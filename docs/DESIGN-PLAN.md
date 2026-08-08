@@ -1,8 +1,11 @@
 # Design plan — UX first, appearance as a consequence
 
-Status: **plan only, nothing implemented.** Written 2026-08-08.
+Status: **implemented.** Written 2026-08-08, built 2026-08-08.
 Supersedes the earlier `DESIGN-2026-08.md` and `DESIGN-IDEAS.md` drafts, which are folded in
 here: the reverse-engineered CSS techniques survive as Appendix A, the strategic argument as §1.
+
+All seven phases are in. Four things differ from the plan as written, each because building it
+turned up a fact the plan did not have. They are recorded in §8 rather than quietly absorbed.
 
 ---
 
@@ -236,6 +239,54 @@ Last, because it is the most expensive and the least essential.
 - The home page demonstrates the generator instead of describing it.
 - Every figure, matrix cell and option stimulus renders exactly as it does today.
 - `npm run test:all` passes; `package.json` gains no dependency.
+
+---
+
+## 8. As built — where this differs from the plan
+
+Four deviations, each forced by something the plan assumed and the code contradicted.
+
+**Phase 3, the type spine: two faces, not three.** The plan budgeted ≤60KB for a display face,
+a text face and a mono. Measured, the naive reading of that came to 381KB (the Fonts API
+defaults to `['normal', 'italic']`, and nothing here is italic) and the tightest honest version
+to 90KB — Google serves both Inter and JetBrains Mono as variable files, so the planned "two
+static weights each" saving does not exist. Of the three, Inter was the most expensive at 48KB
+and would have replaced the system UI stack with something a reader can barely distinguish from
+it. So the display face and the mono are self-hosted (43KB, inside budget) and the text role
+stays on system fonts. `astro.config.mjs` carries the numbers. Also worth knowing: `latin-ext`
+is *not* needed for French — the accented vowels are in U+0000–00FF and œ is U+0152–0153, both
+inside the `latin` range.
+
+**Phase 5, the hairline timer: nothing to replace.** Audit item #4 says a numeric countdown
+"races the user". There is no countdown. `suggestedSeconds` is computed by every generator and
+rendered nowhere, and `store.ts` already documented "there is no countdown timer anywhere in the
+app". Adding a retracting hairline would have introduced the first time-pressure cue the site
+has ever had, which is the opposite of what the phase is for. Focus mode and the speeded-path
+audit shipped; the absence of a timer is now enforced by a test instead of by luck.
+
+**Phase 2, OG images: per format, not per seed.** Per-format cards are built (twenty static
+SVGs, no new dependency). Per-*seed* cards are not possible on a static host: a card for an
+arbitrary `?seed=` would have to be rendered on request, and there is no server. A shared seed
+link previews as its format's card.
+
+**Phase 7, view transitions: not done.** The specific effect — a card's miniature morphing into
+the practice stimulus — cannot work as described, because the stimulus lives in a `client:only`
+island that does not exist at transition time, so there is no shared element to morph into.
+Getting a lesser version would mean adopting `ClientRouter` and changing navigation semantics
+for every link on the site, plus re-registering the layout's inline scripts on `astro:page-load`,
+in exchange for decoration. The keycaps, the `?` sheet and the scroll-driven proof shipped; the
+diagnostic per-error animations stay deferred, as §6 directs.
+
+Two defects were found by building this, and are worth recording because both are the kind that
+survive review:
+
+- `--type-accent: oklch(… var(--type-hue))` declared on `:root` resolves *at its declaration*,
+  so every format card set its own hue and every card still painted indigo. Lightness and chroma
+  are now plain tokens assembled at each use site, with a test asserting ten distinct painted
+  accents.
+- A deuteranopia pass over the revealed option grid showed the correct and the chosen-wrong
+  option tinting to near-identical colours — so the tint was not a channel, and "this is the
+  answer" was carried by the *absence* of a diagnosis chip. Both states are now named in words.
 
 ---
 
