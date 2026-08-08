@@ -1,0 +1,160 @@
+---
+import Base from '../../layouts/Base.astro';
+import { allItemTypes } from '../../lib/generators';
+import { dict, LOCALES, type Locale } from '../../lib/i18n';
+import type { ChcDomain } from '../../lib/types';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const t = dict(locale);
+const p = t.pages.about;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const href = (path: string) => `${base}/${locale}/${path}`;
+
+const domains: ChcDomain[] = ['Gf', 'Gv', 'Gwm', 'Gs'];
+const types = allItemTypes(locale);
+---
+
+<Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
+  <div style="display: grid; gap: 3rem; max-width: 48rem;">
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.procedureHeading}</h2>
+      <p>{p.procedureP1}</p>
+      <p>{p.procedureP2}</p>
+      <ol class="muted">{p.procedureList.map((line) => <li>{line}</li>)}</ol>
+      <p>{p.procedureP3}</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.chcHeading}</h2>
+      <p>{p.chcP1}</p>
+      <div class="card scroll-x" style="margin-top: 1rem;">
+        <table class="data">
+          <thead>
+            <tr>
+              <th>{p.chcColCode}</th>
+              <th>{p.chcColAbility}</th>
+              <th>{p.chcColFormats}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              domains.map((d) => (
+                <tr>
+                  <td style="font-family: var(--font-mono);">{d}</td>
+                  <td>{t.domains[d]}</td>
+                  <td class="muted">
+                    {types.filter((m) => m.domain === d).map((m) => m.name).join(', ')}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="muted" style="font-size: 0.94rem;">{p.chcNote}</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.familiesHeading}</h2>
+      <div style="display: grid; gap: 1rem;">
+        {
+          p.families.map((f) => (
+            <div class="card" style="padding: 1.1rem 1.25rem;">
+              <strong>{f.name}</strong>
+              <p class="muted" style="margin: 0.35rem 0 0; font-size: 0.95rem;">{f.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.automationHeading}</h2>
+      <p>{p.automationBody}</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.verbalHeading}</h2>
+      <p>{p.verbalP1}</p>
+      <p>{p.verbalP2}</p>
+      <p class="muted">{p.verbalP3}</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.guardsHeading}</h2>
+      <p>{p.guardsLede}</p>
+      {
+        p.guards.map((g) => (
+          <div class="card" style="padding: 1.15rem 1.3rem; margin-bottom: 0.85rem;">
+            <strong>{g.title}</strong>
+            <p class="muted" style="margin: 0.35rem 0 0;">{g.body}</p>
+          </div>
+        ))
+      }
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.difficultyHeading}</h2>
+      <p>{p.difficultyP1}</p>
+      <p class="muted">{p.difficultyP2}</p>
+      <p>{p.difficultyP3}</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.ceilingHeading}</h2>
+      <p>{p.ceilingP1}</p>
+      <p>{p.ceilingP2}</p>
+      <p>{p.ceilingP3}</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.notMeasuredHeading}</h2>
+      <p>{p.notMeasuredLede}</p>
+      <div style="display: grid; gap: 0.85rem; margin: 1rem 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));">
+        {
+          p.notMeasured.map((item) => (
+            <div class="card" style="padding: 1rem 1.15rem;">
+              <strong>{item.title}</strong>
+              <p class="muted" style="margin: 0.3rem 0 0; font-size: 0.94rem;">{item.body}</p>
+            </div>
+          ))
+        }
+      </div>
+      <p>{p.notMeasuredClose}</p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.limitsHeading}</h2>
+      <div style="display: grid; gap: 1rem;">
+        {
+          p.limits.map((l) => (
+            <div>
+              <strong>{l.title}</strong>
+              <p class="muted" style="margin: 0.25rem 0 0;">{l.body}</p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="card" style="padding: 1.4rem 1.5rem;">
+      <h2 style="font-size: 1.15rem; margin-bottom: 0.5rem;">{p.dataHeading}</h2>
+      <p class="muted" style="margin: 0;">
+        {p.dataBodyBefore}<a href={href('progress/')}>{p.dataLink}</a>{p.dataBodyAfter}
+      </p>
+    </section>
+
+    <section>
+      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.sourcesHeading}</h2>
+      <ul class="muted" style="font-size: 0.92rem; display: grid; gap: 0.4rem; padding-left: 1.15rem;">
+        {p.sources.map((line) => <li>{line}</li>)}
+      </ul>
+      <p class="subtle" style="font-size: 0.9rem;">{p.sourcesNote}</p>
+    </section>
+  </div>
+</Base>

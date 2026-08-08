@@ -1,0 +1,36 @@
+{
+  "name": "iq",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deliberate practice on procedurally generated reasoning-test item formats. Static, offline, local-first.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "npm run test && npm run build && npm run test:e2e"
+  },
+  "dependencies": {
+    "@astrojs/preact": "^6.0.2",
+    "@astrojs/sitemap": "^3.7.3",
+    "@nanostores/persistent": "^1.3.5",
+    "@nanostores/preact": "^1.1.0",
+    "astro": "^7.2.0",
+    "nanostores": "^1.4.2",
+    "preact": "^10.29.8",
+    "pure-rand": "^8.4.2"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@playwright/test": "^1.62.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.0",
+    "vitest": "^4.1.10"
+  }
+}

@@ -1,0 +1,16 @@
+---
+import Base from '../../layouts/Base.astro';
+import ProgressDashboard from '../../components/ProgressDashboard';
+import { dict, LOCALES, type Locale } from '../../lib/i18n';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const p = dict(locale).pages.progress;
+---
+
+<Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
+  <ProgressDashboard client:only="preact" locale={locale} />
+</Base>

@@ -1,0 +1,164 @@
+---
+import '../styles/global.css';
+import { dict, localeOptions, pathForLocale, type Locale } from '../lib/i18n';
+
+interface Props {
+  locale: Locale;
+  title: string;
+  description: string;
+  /** Rendered under the page heading. */
+  lede?: string;
+}
+
+const { locale, title, description, lede } = Astro.props;
+const t = dict(locale);
+
+const base = import.meta.env.BASE_URL;
+const root = base.replace(/\/$/, '');
+/** Locale-aware in-app link: href('practice/') -> /iq/fr/practice/ */
+const href = (path: string) => `${root}/${locale}/${path}`;
+
+const current = Astro.url.pathname.replace(/\/$/, '');
+const isCurrent = (path: string) => current === href(path).replace(/\/$/, '');
+
+const NAV = [
+  { path: '', label: t.nav.home, key: 'home' },
+  { path: 'practice/', label: t.nav.practice, key: 'practice' },
+  { path: 'test/', label: t.nav.test, key: 'test' },
+  { path: 'progress/', label: t.nav.progress, key: 'progress' },
+  { path: 'about/', label: t.nav.about, key: 'about' },
+];
+
+const languages = localeOptions();
+---
+
+<!doctype html>
+<html lang={t.locale.htmlLang} data-base={base} data-locale={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href={`${root}/favicon.svg`} type="image/svg+xml" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content={locale === 'fr' ? 'fr_FR' : 'en_GB'} />
+    {
+      /* Tell search engines the pages are translations of one another, and which one to
+         serve when the reader's language is unknown. */
+      languages.map((l) => (
+        <link
+          rel="alternate"
+          hreflang={l.locale}
+          href={`${root}/${l.locale}${Astro.url.pathname.replace(`${root}/${locale}`, '')}`}
+        />
+      ))
+    }
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={`${root}/en${Astro.url.pathname.replace(`${root}/${locale}`, '')}`}
+    />
+  </head>
+  <body>
+    <a href="#main" class="sr-only">{t.nav.skipToContent}</a>
+
+    <header
+      style="border-bottom: 1px solid var(--border); background: var(--bg-raised); position: sticky; top: 0; z-index: 10;"
+    >
+      <div
+        class="shell"
+        style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3.75rem; flex-wrap: wrap; padding-block: 0.5rem;"
+      >
+        <a
+          href={href('')}
+          style="display: flex; align-items: center; gap: 0.55rem; font-weight: 700; text-decoration: none; color: var(--text); letter-spacing: -0.02em;"
+        >
+          <span
+            aria-hidden="true"
+            style="display:grid;place-items:center;width:1.85rem;height:1.85rem;border-radius:0.55rem;background:var(--accent);color:var(--accent-text);font-size:0.95rem;"
+            >▦</span
+          >
+          {t.nav.brand}
+        </a>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <nav aria-label={t.nav.mainNav} style="display: flex; gap: 0.25rem; flex-wrap: wrap;">
+            {
+              NAV.map((link) => (
+                <a
+                  href={href(link.path)}
+                  aria-current={isCurrent(link.path) ? 'page' : undefined}
+                  data-testid={`nav-${link.key}`}
+                  style={`padding: 0.4rem 0.7rem; border-radius: 0.55rem; text-decoration: none; font-size: 0.92rem; font-weight: 550; color: ${
+                    isCurrent(link.path) ? 'var(--accent)' : 'var(--text-muted)'
+                  }; background: ${isCurrent(link.path) ? 'var(--accent-soft)' : 'transparent'};`}
+                >
+                  {link.label}
+                </a>
+              ))
+            }
+          </nav>
+
+          <div
+            role="group"
+            aria-label={t.nav.languageLabel}
+            data-testid="language-switcher"
+            style="display: flex; gap: 0.2rem; border: 1px solid var(--border); border-radius: 0.55rem; padding: 0.15rem;"
+          >
+            {
+              languages.map((l) => (
+                <a
+                  href={pathForLocale(Astro.url.pathname, l.locale, base)}
+                  hreflang={l.locale}
+                  lang={l.locale}
+                  data-testid={`lang-${l.locale}`}
+                  aria-current={l.locale === locale ? 'true' : undefined}
+                  title={l.locale === locale ? undefined : t.nav.switchTo(l.nativeName)}
+                  style={`padding: 0.2rem 0.55rem; border-radius: 0.4rem; text-decoration: none; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: ${
+                    l.locale === locale ? 'var(--accent-text)' : 'var(--text-muted)'
+                  }; background: ${l.locale === locale ? 'var(--accent)' : 'transparent'};`}
+                >
+                  {l.locale}
+                </a>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="shell" style="padding-block: 2.5rem 4rem;">
+      <div style="margin-bottom: 2rem;">
+        <h1 style="font-size: clamp(1.75rem, 4vw, 2.4rem);">{title}</h1>
+        {lede && <p class="muted" style="font-size: 1.08rem; margin: 0.6rem 0 0; max-width: 48rem;">{lede}</p>}
+      </div>
+      <slot />
+    </main>
+
+    <footer style="border-top: 1px solid var(--border); padding-block: 2rem; margin-top: auto;">
+      <div class="shell subtle" style="font-size: 0.87rem; display: grid; gap: 0.4rem;">
+        <p style="margin: 0;">{t.footer.generated}</p>
+        <p style="margin: 0;">
+          {t.footer.noScore} <a href={href('about/')}>{t.footer.whyItMatters}</a>.
+        </p>
+        <p style="margin: 0;">
+          <a href={href('terms/')} data-testid="footer-terms">{t.footer.terms}</a>
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Remember the language the reader is actually using, so the root URL can send
+      // them straight back here next time instead of re-negotiating from scratch.
+      try {
+        const chosen = document.documentElement.dataset.locale;
+        if (chosen) localStorage.setItem('iq:v1:locale', chosen);
+      } catch {
+        // Private-browsing modes can throw on localStorage access; the site works without it.
+      }
+    </script>
+  </body>
+</html>

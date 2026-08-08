@@ -1,0 +1,33 @@
+---
+import Base from '../../../layouts/Base.astro';
+import Quiz from '../../../components/Quiz';
+import { ALL_META, getItemText, getMeta } from '../../../lib/generators';
+import { dict, LOCALES, type Locale } from '../../../lib/i18n';
+import type { ItemTypeId } from '../../../lib/types';
+
+export function getStaticPaths() {
+  return LOCALES.flatMap((lang) => ALL_META.map((meta) => ({ params: { lang, type: meta.id } })));
+}
+
+const locale = Astro.params.lang as Locale;
+const type = Astro.params.type as ItemTypeId;
+const t = dict(locale);
+const meta = getMeta(type);
+const text = getItemText(type, locale);
+---
+
+<Base locale={locale} title={text.name} description={text.description} lede={text.blurb}>
+  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+    <span class="pill">{t.domains[meta.domain]} ({meta.domain})</span>
+    <span class="pill">{t.pages.practiceType.seenIn(text.seenIn)}</span>
+  </div>
+
+  <div class="card" style="padding: 1.75rem 1.5rem; margin-bottom: 2rem;">
+    <Quiz client:only="preact" mode="practice" types={[type]} locale={locale} />
+  </div>
+
+  <section class="card" style="padding: 1.35rem 1.5rem;">
+    <h2 style="font-size: 1.05rem; margin-bottom: 0.5rem;">{t.pages.practiceType.aboutHeading}</h2>
+    <p class="muted" style="margin: 0;">{text.description}</p>
+  </section>
+</Base>

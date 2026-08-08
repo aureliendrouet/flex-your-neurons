@@ -1,0 +1,91 @@
+---
+import Base from '../../layouts/Base.astro';
+import { allItemTypes } from '../../lib/generators';
+import { dict, LOCALES, type Locale } from '../../lib/i18n';
+import type { ChcDomain } from '../../lib/types';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const t = dict(locale);
+const p = t.pages.home;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const href = (path: string) => `${base}/${locale}/${path}`;
+
+const domains: ChcDomain[] = ['Gf', 'Gv', 'Gwm', 'Gs'];
+const types = allItemTypes(locale);
+const byDomain = domains.map((d) => ({
+  domain: d,
+  label: t.domains[d],
+  types: types.filter((m) => m.domain === d),
+}));
+---
+
+<Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 3rem;">
+    <a class="btn btn-primary btn-lg" href={href('test/')} data-testid="cta-test">{p.ctaTest}</a>
+    <a class="btn btn-lg" href={href('practice/')} data-testid="cta-practice">{p.ctaPractice}</a>
+  </div>
+
+  <section style="margin-bottom: 3rem;">
+    <h2 style="font-size: 1.4rem; margin-bottom: 0.4rem;">{p.whatHeading}</h2>
+    <p class="muted" style="margin-top: 0; max-width: 46rem;">{p.whatLede}</p>
+
+    <div style="display: grid; gap: 2rem; margin-top: 1.75rem;">
+      {
+        byDomain.map((group) => (
+          <div>
+            <h3 style="font-size: 1rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-subtle); margin-bottom: 0.85rem;">
+              {group.label} <span style="font-family: var(--font-mono); opacity: 0.7;">({group.domain})</span>
+            </h3>
+            <div style="display: grid; gap: 0.85rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));">
+              {group.types.map((meta) => (
+                <a
+                  class="card"
+                  href={href(`practice/${meta.id}/`)}
+                  data-testid={`type-card-${meta.id}`}
+                  style="padding: 1.1rem 1.15rem; text-decoration: none; color: inherit; display: grid; gap: 0.35rem; align-content: start;"
+                >
+                  <span style="font-size: 1.5rem; line-height: 1;" aria-hidden="true">{meta.icon}</span>
+                  <strong style="font-size: 1.02rem;">{meta.name}</strong>
+                  <span class="muted" style="font-size: 0.92rem;">{meta.blurb}</span>
+                  <span class="subtle" style="font-size: 0.78rem; margin-top: 0.25rem;">
+                    {p.seenIn(meta.seenIn)}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="card" style="padding: 1.5rem 1.6rem; margin-bottom: 3rem;">
+    <h2 style="font-size: 1.2rem; margin-bottom: 0.75rem;">{p.howHeading}</h2>
+    <div style="display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));">
+      {
+        p.how.map((point) => (
+          <div>
+            <strong>{point.title}</strong>
+            <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.94rem;">{point.body}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section
+    class="card"
+    style="padding: 1.4rem 1.5rem; border-color: var(--accent-border); background: var(--accent-soft);"
+  >
+    <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem;">{p.clearHeading}</h2>
+    <p style="margin: 0 0 0.6rem;">{p.clearBody}</p>
+    <p class="muted" style="margin: 0;">
+      {p.clearBodyAfter}<a href={href('about/')}>{p.clearLink}</a>.
+    </p>
+  </section>
+</Base>
