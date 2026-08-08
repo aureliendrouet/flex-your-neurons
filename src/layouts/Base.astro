@@ -92,6 +92,13 @@ const languages = localeOptions();
   <body>
     <a href="#main" class="sr-only">{t.nav.skipToContent}</a>
 
+    {
+      /* Scroll sentinel. The header's scrolled state is driven by whether this zero-height
+         element is still in view — an IntersectionObserver fires twice in a session, whereas
+         a scroll listener fires on every frame of every scroll for the same information. */
+    }
+    <div id="scroll-sentinel" aria-hidden="true"></div>
+
     <header class="site-header">
       <div class="shell header-bar">
         <a href={href('')} class="wordmark" data-testid="wordmark">
@@ -142,7 +149,16 @@ const languages = localeOptions();
     </header>
 
     <main id="main" class="shell page-main">
-      <div class="page-head">
+      <div class="page-head" data-has-hero={Astro.slots.has('hero') ? 'true' : undefined}>
+        {
+          /* Optional decoration behind the heading. Only the home page uses it: on a page
+             whose job is comprehension, a figure behind the words would compete with them. */
+          Astro.slots.has('hero') && (
+            <div class="page-hero" aria-hidden="true">
+              <slot name="hero" />
+            </div>
+          )
+        }
         <h1 class="page-title">{title}</h1>
         {lede && <p class="muted page-lede">{lede}</p>}
       </div>
@@ -169,6 +185,27 @@ const languages = localeOptions();
         if (chosen) localStorage.setItem('iq:v1:locale', chosen);
       } catch {
         // Private-browsing modes can throw on localStorage access; the site works without it.
+      }
+
+      /*
+       * `data-scrolled` on <html>, so the sticky header can tell "at rest at the top of the
+       * page" from "floating over content" and earn its shadow and its brighter rule only in
+       * the second case.
+       *
+       * An observer on a sentinel rather than a scroll listener: this needs to know one
+       * boolean, which changes twice, and a scroll handler would recompute it on every frame
+       * of every scroll. The whole effect degrades to a plain bordered header if the script
+       * never runs.
+       */
+      const sentinel = document.getElementById('scroll-sentinel');
+      if (sentinel && 'IntersectionObserver' in window) {
+        new IntersectionObserver(
+          (entries) => {
+            const atTop = entries[entries.length - 1]?.isIntersecting ?? true;
+            document.documentElement.toggleAttribute('data-scrolled', !atTop);
+          },
+          { threshold: 0 },
+        ).observe(sentinel);
       }
     </script>
   </body>

@@ -1,7 +1,9 @@
 ---
 import Base from '../../layouts/Base.astro';
+import FigureView from '../../components/FigureView';
 import ItemThumb from '../../components/ItemThumb';
-import { allItemTypes } from '../../lib/generators';
+import { allItemTypes, generateItem } from '../../lib/generators';
+import { typeHue } from '../../lib/identity';
 import { previewItem } from '../../lib/previews';
 import { dict, LOCALES, type Locale } from '../../lib/i18n';
 import type { ChcDomain } from '../../lib/types';
@@ -24,9 +26,34 @@ const byDomain = domains.map((d) => ({
   label: t.domains[d],
   types: types.filter((m) => m.domain === d),
 }));
+
+/*
+ * The hero is a genuine, solvable matrix at a pinned seed — the same generator, the same
+ * verification, the same drawing code as a live item. The page demonstrates the product
+ * instead of describing it, and the demonstration cannot be faked: if the generator broke,
+ * the home page would break with it.
+ *
+ * The seed is chosen, not arbitrary. At level 1 behind an h1 at 30% opacity, only one kind
+ * of pattern survives: this one is a single shape carrying a single rule on *size*, which
+ * stays obvious at any contrast — 5,4,3 / 4,3,2 / 3,2,? — where a shading ramp would have
+ * been invisible at that weight and a five-attribute matrix would have been noise.
+ */
+const hero = generateItem('matrix', 'HERO151', 1, locale);
+const heroCells = hero.stimulus.kind === 'matrix' ? hero.stimulus.cells : [];
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
+  <div slot="hero" class="hero-matrix" data-hero-seed={hero.seed}>
+    {
+      /* `--cell-index` is the only per-cell value: the stagger itself is in CSS, so the
+         pattern resolves in sequence with no script. */
+      heroCells.map((cell, i) => (
+        <div class="hero-cell" data-blank={String(cell === null)} style={`--cell-index: ${i}`}>
+          {cell !== null && <FigureView figure={cell} className="hero-figure" />}
+        </div>
+      ))
+    }
+  </div>
   <div class="cluster home-cta">
     <a class="btn btn-primary btn-lg" href={href('test/')} data-testid="cta-test">{p.ctaTest}</a>
     <a class="btn btn-lg" href={href('practice/')} data-testid="cta-practice">{p.ctaPractice}</a>
@@ -43,12 +70,15 @@ const byDomain = domains.map((d) => ({
             <h3 class="domain-heading">
               {group.label} <span class="domain-code">({group.domain})</span>
             </h3>
+            {/* `--type-hue` paints each card's chrome only; it never reaches the figures
+                inside the miniature. See src/lib/identity.ts. */}
             <div class="card-grid" style="--card-gap: 0.85rem">
               {group.types.map((meta) => (
                 <a
-                  class="card type-card"
+                  class="card card--interactive type-card"
                   href={href(`practice/${meta.id}/`)}
                   data-testid={`type-card-${meta.id}`}
+                  style={`--type-hue: ${typeHue(meta.id)}`}
                 >
                   {/*
                    * A real item from this format, at a pinned seed, drawn by the same

@@ -2,6 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import Quiz from '../../../components/Quiz';
 import { ALL_META, getItemText, getMeta } from '../../../lib/generators';
+import { typeHue } from '../../../lib/identity';
 import { dict, LOCALES, type Locale } from '../../../lib/i18n';
 import type { ItemTypeId } from '../../../lib/types';
 
@@ -25,8 +26,12 @@ const root = import.meta.env.BASE_URL.replace(/\/$/, '');
   lede={text.blurb}
   ogImage={`${root}/${locale}/og/${type}.svg`}
 >
-  <div class="cluster page-meta" style="--cluster-gap: 0.5rem">
-    <span class="pill">{t.domains[meta.domain]} ({meta.domain})</span>
+  <div
+    class="cluster page-meta"
+    style={`--cluster-gap: 0.5rem; --type-hue: ${typeHue(type)}`}
+    data-type-identity={type}
+  >
+    <span class="pill pill--identity">{t.domains[meta.domain]} ({meta.domain})</span>
     <span class="pill">{t.pages.practiceType.seenIn(text.seenIn)}</span>
   </div>
 

@@ -97,6 +97,39 @@
   --dur-fast: 120ms;
   --dur: 200ms;
   --dur-slow: 420ms;
+
+  /*
+   * Two stops either side of the accent, for the header rule and the card ring.
+   *
+   * Only a ±34 degree spread, and that restraint is the point: a full-spectrum sweep is the
+   * arcade grammar this site deliberately does not borrow. It reads as one colour catching
+   * the light rather than as a rainbow, and because the stops are rotations of the accent
+   * hue the whole thing moves if the brand does.
+   */
+  --spectrum-1: oklch(58% 0.2 calc(var(--hue-accent) - 34));
+  --spectrum-2: oklch(62% 0.19 calc(var(--hue-accent) + 34));
+  --gradient-accent: linear-gradient(
+    100deg,
+    var(--spectrum-1),
+    var(--spectrum-2),
+    var(--spectrum-1)
+  );
+
+  /*
+   * A format's own hue, defaulting to the site accent. Set per card as `--type-hue` (see
+   * src/lib/identity.ts) — chrome only, never inside a figure.
+   *
+   * The lightness and chroma are separate tokens rather than being folded into a single
+   * `--type-accent: oklch(... var(--type-hue))`, and that is not a style preference — it is
+   * the only version that works. A custom property referencing another is resolved where it
+   * is *declared*: `--type-accent` declared here would bake in this rule's `--type-hue` and
+   * a card setting its own hue would inherit an already-resolved indigo. Keeping the three
+   * components as plain values and assembling them at each use site means the hue a card
+   * sets is the hue that paints.
+   */
+  --type-hue: var(--hue-accent);
+  --type-l: 54.1%;
+  --type-c: 0.19;
 }
 
 /*
@@ -160,6 +193,21 @@
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
   --shadow-md: 0 4px 10px -2px rgb(0 0 0 / 45%);
   --shadow-lg: 0 16px 36px -10px rgb(0 0 0 / 60%);
+
+  /* Lifted in dark mode: at 54% lightness an accent reads as muddy against a near-black. */
+  --spectrum-1: oklch(70% 0.18 calc(var(--hue-accent) - 34));
+  --spectrum-2: oklch(74% 0.17 calc(var(--hue-accent) + 34));
+  --type-l: 70%;
+  --type-c: 0.17;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --spectrum-1: oklch(70% 0.18 calc(var(--hue-accent) - 34));
+    --spectrum-2: oklch(74% 0.17 calc(var(--hue-accent) + 34));
+    --type-l: 70%;
+    --type-c: 0.17;
+  }
 }
 
 * {
@@ -267,12 +315,72 @@ a {
 
 /* --- Site chrome ---------------------------------------------------------- */
 
+/*
+ * Zero-height marker at the very top of the document. Its only job is to be observed —
+ * see the script in Base.astro.
+ */
+#scroll-sentinel {
+  position: absolute;
+  top: 0;
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+}
+
 .site-header {
   position: sticky;
   top: 0;
   z-index: 10;
   background: var(--bg-raised);
   border-bottom: 1px solid var(--border);
+  transition: box-shadow var(--dur) var(--ease-out), background-color var(--dur) var(--ease-out);
+}
+
+/*
+ * Translucency only where it is supported, and only in the chrome.
+ *
+ * `@supports` guarded because `backdrop-filter` on a sticky element is a real compositing
+ * cost on low-end Android, and an unsupported browser must get the opaque header rather than
+ * a transparent one. The blur never crosses a figure — that would shift effective contrast,
+ * which is a measurement confound, not a taste question (docs/DESIGN-PLAN.md §3.3).
+ */
+@supports (backdrop-filter: blur(1px)) {
+  .site-header {
+    /* `color-mix` keeps this on the theme token, so it inverts with the palette. */
+    background: color-mix(in oklab, var(--bg-raised) 82%, transparent);
+    backdrop-filter: blur(12px) saturate(140%);
+  }
+}
+
+[data-scrolled] .site-header {
+  box-shadow: var(--shadow-sm);
+}
+
+/*
+ * The horizon: a 2px gradient rule that fades to nothing at both ends, which is what stops
+ * it reading as a divider. It gains its intensity from the scroll state rather than from a
+ * permanent animation loop — same vitality, no battery cost at rest.
+ */
+.site-header::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 8%,
+    var(--spectrum-1) 35%,
+    var(--spectrum-2) 65%,
+    transparent 92%
+  );
+  opacity: 0.45;
+  transition: opacity var(--dur) var(--ease-out);
+  pointer-events: none;
+}
+
+[data-scrolled] .site-header::after {
+  opacity: 1;
 }
 
 .header-bar {
@@ -313,6 +421,48 @@ a {
   background: var(--accent);
   color: var(--accent-text);
   font-size: 0.95rem;
+}
+
+/*
+ * One pass of light across the wordmark on load, then it settles into plain ink.
+ *
+ * `background-clip: text` with `drop-shadow` rather than `text-shadow`: the latter paints
+ * *behind* the clipped gradient and muddies it. `forwards` and a single iteration matter as
+ * much as the gradient — the reference this borrows from loops the effect forever, which on
+ * a page someone is trying to read is a tic rather than a flourish.
+ */
+.wordmark-text {
+  background: var(--gradient-accent);
+  background-size: 220% auto;
+  background-position: 100% center;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: wordmark-settle var(--dur-slow) var(--ease-out) 1 both;
+}
+
+@keyframes wordmark-settle {
+  from {
+    background-position: 0% center;
+  }
+  to {
+    background-position: 100% center;
+    /* Ends on the text colour, so the wordmark at rest is ink, not decoration. */
+    -webkit-text-fill-color: var(--text);
+  }
+}
+
+/*
+ * Reduced motion: the shimmer *disappears* rather than running fast. The global block only
+ * neutralises durations, which for a gradient wipe would mean landing on the final frame —
+ * correct here by luck, but stated explicitly so it cannot regress.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-text {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: var(--text);
+  }
 }
 
 .nav {
@@ -385,6 +535,98 @@ a {
   margin-bottom: 2rem;
 }
 
+.page-head[data-has-hero] {
+  position: relative;
+  /* Room for the hero to sit behind and to the right of the heading block. */
+  min-height: 13rem;
+  padding-block: 1rem;
+}
+
+/* --- The live hero -------------------------------------------------------- */
+
+/*
+ * A real, solvable matrix behind the h1.
+ *
+ * Deliberately *behind*, at low contrast, and `aria-hidden`: it is a demonstration for the
+ * eye, and a screen reader being read nine figure descriptions before the page's first
+ * sentence would be actively worse off. Everything it says in pictures, the lede says in
+ * words.
+ */
+.page-hero {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.hero-matrix {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  width: 17rem;
+  aspect-ratio: 1;
+  /* Low enough that the heading wins every contrast comparison against it. */
+  opacity: 0.3;
+  color: var(--text);
+}
+
+.hero-cell {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.4rem;
+  padding: 0.2rem;
+  /*
+   * The pattern resolves cell by cell on load: 90ms apart, reading order, one pass. That
+   * ordering is the demonstration — it shows the reader that the cells relate to each other,
+   * which is the thing a static screenshot of a matrix cannot convey.
+   */
+  animation: hero-resolve var(--dur-slow) var(--ease-out) both;
+  animation-delay: calc(var(--cell-index) * 90ms);
+}
+
+.hero-cell[data-blank='true'] {
+  border-style: dashed;
+  background: var(--bg-sunken);
+}
+
+.hero-figure {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@keyframes hero-resolve {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+@media (width < 62rem) {
+  /*
+   * Under the heading rather than beside it there is no room for both, and a figure
+   * overlapping the h1 is a readability cost with no upside.
+   */
+  .page-head[data-has-hero] {
+    min-height: 0;
+  }
+
+  .page-hero {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Present, but it does not assemble itself. */
+  .hero-cell {
+    animation: none;
+  }
+}
+
 .page-title {
   font-size: clamp(1.85rem, 4.5vw, 2.6rem);
 }
@@ -416,6 +658,93 @@ a {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
+}
+
+/*
+ * A card that is also a link. Lift and shadow are the substance; the gradient ring below is
+ * the flourish, and the order matters — if the ring fails to render, the affordance is still
+ * completely there.
+ */
+.card--interactive {
+  position: relative;
+  isolation: isolate;
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out),
+    border-color var(--dur) var(--ease-out);
+}
+
+.card--interactive:hover,
+.card--interactive:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/*
+ * The animated ring, in the format's own hue.
+ *
+ * A pseudo-element fills the padding box with a gradient and masks out the content box,
+ * leaving only the ring. Two details are easy to get wrong: the base border has to go
+ * transparent on hover or two lines stack, and the ring's radius sits 1px inside the card's
+ * or the corners visibly disagree.
+ *
+ * The animation is declared `paused` and only runs while the card is hovered or focused.
+ * Ten cards each animating a gradient at rest is a measurable battery cost for an effect
+ * nobody is looking at.
+ */
+.card--interactive::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: calc(var(--radius-lg) - 1px);
+  padding: 1.5px;
+  background: linear-gradient(
+    100deg,
+    oklch(var(--type-l) var(--type-c) var(--type-hue)),
+    oklch(var(--type-l) var(--type-c) calc(var(--type-hue) + 40)),
+    oklch(var(--type-l) var(--type-c) var(--type-hue))
+  );
+  background-size: 200% auto;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease-out);
+  animation: ring-shimmer 4s linear infinite paused;
+  pointer-events: none;
+}
+
+.card--interactive:hover,
+.card--interactive:focus-visible {
+  border-color: transparent;
+}
+
+/* Mirrored onto :focus-visible so keyboard users get the same affordance, not a lesser one. */
+.card--interactive:hover::after,
+.card--interactive:focus-visible::after {
+  opacity: 1;
+  animation-play-state: running;
+}
+
+@keyframes ring-shimmer {
+  to {
+    background-position: -200% center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * The ring goes away entirely rather than appearing instantly: it is decoration, and the
+   * lift and shadow already carry the affordance. `transform: none` for the same reason.
+   */
+  .card--interactive::after {
+    display: none;
+  }
+
+  .card--interactive:hover,
+  .card--interactive:focus-visible {
+    transform: none;
+    border-color: oklch(var(--type-l) var(--type-c) var(--type-hue));
+  }
 }
 
 .muted {
@@ -895,6 +1224,42 @@ a {
   display: grid;
   gap: 0.35rem;
   align-content: start;
+}
+
+/*
+ * The format's hue, on the one part of the card that is chrome: a short rule under the
+ * name. Not the miniature's frame and not its contents — those are figures.
+ *
+ * A rule rather than a wash because it survives being one of ten: ten tinted card
+ * backgrounds is a fruit salad, whereas ten short rules read as a set.
+ */
+.type-card-name {
+  position: relative;
+  padding-bottom: 0.3rem;
+}
+
+.type-card-name::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 1.6rem;
+  height: 2px;
+  border-radius: 2px;
+  background: oklch(var(--type-l) var(--type-c) var(--type-hue));
+  transition: width var(--dur) var(--ease-out);
+}
+
+.card--interactive:hover .type-card-name::after,
+.card--interactive:focus-visible .type-card-name::after {
+  width: 3rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card--interactive:hover .type-card-name::after,
+  .card--interactive:focus-visible .type-card-name::after {
+    width: 1.6rem;
+  }
 }
 
 .type-card-name {
@@ -1737,6 +2102,16 @@ a {
   max-width: 100%;
   text-align: left;
   overflow-wrap: anywhere;
+}
+
+/*
+ * The same format identity, carried onto the format's own page. A left border rather than a
+ * tinted background: it marks the pill as belonging to this format without competing with
+ * the item that follows it down the page.
+ */
+.pill--identity {
+  border-left: 3px solid oklch(var(--type-l) var(--type-c) var(--type-hue));
+  padding-left: 0.5rem;
 }
 
 .meter {

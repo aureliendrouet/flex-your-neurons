@@ -27,6 +27,7 @@ import {
   shapeOutline,
   type PatternName,
 } from './geometry';
+import { TYPE_CHROMA, TYPE_LIGHTNESS } from './identity';
 import type { CellGrid, Figure, Item, Shape } from './types';
 
 export const OG_WIDTH = 1200;
@@ -385,6 +386,12 @@ function wrap(text: string, perLine: number, maxLines: number): string[] {
 
 export interface OgCard {
   item: Item;
+  /**
+   * This format's hue in degrees, from `identity.ts`. Paints the card's chrome — the top
+   * rule and the domain label — so a shared link is recognisable as *this* format before its
+   * name is read. Never touches the figures: the same rule as everywhere else.
+   */
+  hue: number;
   /** Translated format name — the card's headline. */
   name: string;
   /** Translated one-line description. */
@@ -407,6 +414,11 @@ export interface OgCard {
  * where none of the surrounding text does.
  */
 export function ogCard(card: OgCard): string {
+  /*
+   * The format's hue, written in OKLCH exactly as the stylesheet does — an SVG rendered by a
+   * browser resolves it, and baking a converted hex here would let the two drift apart.
+   */
+  const identity = `oklch(${TYPE_LIGHTNESS}% ${TYPE_CHROMA} ${card.hue.toFixed(1)})`;
   const nameLines = wrap(card.name, 22, 2);
   const blurbLines = wrap(card.blurb, 40, 3);
   const nameSize = nameLines.length > 1 ? 58 : 68;
@@ -421,14 +433,14 @@ export function ogCard(card: OgCard): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${OG_WIDTH}" height="${OG_HEIGHT}" viewBox="0 0 ${OG_WIDTH} ${OG_HEIGHT}" role="img" aria-label="${esc(card.name)}" data-og-type="${card.item.type}">
 <defs>${patternDefs()}</defs>
 <rect width="${OG_WIDTH}" height="${OG_HEIGHT}" fill="${PAPER}"/>
-<rect x="0" y="0" width="${OG_WIDTH}" height="6" fill="${ACCENT}"/>
+<rect x="0" y="0" width="${OG_WIDTH}" height="6" fill="${identity}"/>
 
 <g font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
-  <rect x="72" y="64" width="40" height="40" rx="11" fill="${ACCENT}"/>
+  <rect x="72" y="64" width="40" height="40" rx="11" fill="${identity}"/>
   <text x="92" y="84" text-anchor="middle" dominant-baseline="central" font-size="21" fill="${RAISED}">▦</text>
   <text x="126" y="84" dominant-baseline="central" font-size="27" font-weight="700" fill="${INK}">${esc(card.brand)}</text>
 
-  <text x="72" y="168" font-size="21" font-weight="650" letter-spacing="2.4" fill="${SUBTLE}">${esc(card.domain.toUpperCase())} (${esc(card.domainCode)})</text>
+  <text x="72" y="168" font-size="21" font-weight="650" letter-spacing="2.4" fill="${identity}">${esc(card.domain.toUpperCase())} (${esc(card.domainCode)})</text>
 
   ${nameLines
     .map(

@@ -13,6 +13,7 @@
  */
 import type { APIRoute } from 'astro';
 import { ALL_META, getItemText, getMeta } from '../../../lib/generators';
+import { typeHue } from '../../../lib/identity';
 import { previewItem } from '../../../lib/previews';
 import { ogCard } from '../../../lib/og';
 import { dict, LOCALES, type Locale } from '../../../lib/i18n';
@@ -31,6 +32,7 @@ export const GET: APIRoute = ({ params }) => {
 
   const svg = ogCard({
     item: previewItem(type, locale),
+    hue: typeHue(type),
     name: text.name,
     blurb: text.blurb,
     domain: t.domains[meta.domain],

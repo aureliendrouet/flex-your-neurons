@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PREVIEW_PINS, previewItem } from '@/lib/previews';
 import { ogCard, OG_HEIGHT, OG_WIDTH } from '@/lib/og';
 import { getItemText, getMeta, ITEM_TYPE_IDS } from '@/lib/generators';
+import { BASE_HUE, typeColour, typeHue } from '@/lib/identity';
 import { dict, LOCALES } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 import type { ItemTypeId } from '@/lib/types';
@@ -12,6 +13,7 @@ function card(id: ItemTypeId, locale: Locale): string {
   const text = getItemText(id, locale);
   return ogCard({
     item: previewItem(id, locale),
+    hue: typeHue(id),
     name: text.name,
     blurb: text.blurb,
     domain: t.domains[meta.domain],
@@ -146,6 +148,7 @@ describe('social cards', () => {
   it('escapes text rather than letting it break the document', () => {
     const svg = ogCard({
       item: previewItem('matrix'),
+      hue: typeHue('matrix'),
       name: 'A & B <script>',
       blurb: 'Quotes "here" and \'there\'',
       domain: 'Fluid & reasoning',

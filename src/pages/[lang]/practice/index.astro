@@ -2,6 +2,7 @@
 import Base from '../../../layouts/Base.astro';
 import ItemThumb from '../../../components/ItemThumb';
 import { allItemTypes } from '../../../lib/generators';
+import { typeHue } from '../../../lib/identity';
 import { previewItem } from '../../../lib/previews';
 import { dict, LOCALES, type Locale } from '../../../lib/i18n';
 
@@ -23,9 +24,10 @@ const types = allItemTypes(locale);
     {
       types.map((meta) => (
         <a
-          class="card type-card practice-card"
+          class="card card--interactive type-card practice-card"
           href={href(`practice/${meta.id}/`)}
           data-testid={`practice-card-${meta.id}`}
+          style={`--type-hue: ${typeHue(meta.id)}`}
         >
           <ItemThumb item={previewItem(meta.id, locale)} />
           <div class="cluster practice-card-head" style="--cluster-gap: 0.6rem">
