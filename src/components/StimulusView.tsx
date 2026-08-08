@@ -46,34 +46,9 @@ export default function StimulusView({
 
     case 'sequence':
       return (
-        <div
-          data-stimulus="sequence"
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '0.5rem',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
+        <div data-stimulus="sequence" class="seq-row">
           {stimulus.terms.map((term, i) => (
-            <span
-              key={i}
-              data-term={term ?? '?'}
-              style={{
-                minWidth: '3.25rem',
-                padding: '0.6rem 0.75rem',
-                textAlign: 'center',
-                borderRadius: '0.75rem',
-                border: `2px ${term === null ? 'dashed' : 'solid'} var(--border)`,
-                background: term === null ? 'var(--bg-sunken)' : 'var(--bg-raised)',
-                color: term === null ? 'var(--text-subtle)' : 'var(--text)',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
+            <span key={i} class="seq-term" data-term={term ?? '?'} data-blank={String(term === null)}>
               {term ?? '?'}
             </span>
           ))}
@@ -82,10 +57,10 @@ export default function StimulusView({
 
     case 'text':
       return (
-        <div data-stimulus="text" class="card" style={{ padding: '1.25rem' }}>
-          <ol style={{ margin: 0, paddingLeft: '1.25rem', display: 'grid', gap: '0.5rem' }}>
+        <div data-stimulus="text" class="card premises">
+          <ol class="premises-list">
             {stimulus.lines.map((line, i) => (
-              <li key={i} data-premise={String(i)} style={{ fontSize: '1.05rem' }}>
+              <li key={i} data-premise={String(i)}>
                 {line}
               </li>
             ))}
@@ -95,29 +70,16 @@ export default function StimulusView({
 
     case 'analogy':
       return (
-        <div
-          data-stimulus="analogy"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-          }}
-        >
+        <div data-stimulus="analogy" class="analogy-row">
           <AnalogyCell figure={stimulus.a} label={t.figureLabels.first} locale={locale} />
           <Arrow />
           <AnalogyCell figure={stimulus.b} label={t.figureLabels.second} locale={locale} />
-          <span class="subtle" style={{ fontSize: '1.5rem', padding: '0 0.5rem' }} aria-hidden="true">
+          <span class="subtle analogy-op" aria-hidden="true">
             ::
           </span>
           <AnalogyCell figure={stimulus.c} label={t.figureLabels.third} locale={locale} />
           <Arrow />
-          <div
-            class="matrix-cell"
-            data-blank="true"
-            style={{ width: '5rem', borderRadius: '0.75rem', border: '2px dashed var(--border)' }}
-          >
+          <div class="matrix-cell analogy-cell analogy-cell--blank" data-blank="true">
             <span aria-label={t.missingFigure}>?</span>
           </div>
         </div>
@@ -125,8 +87,8 @@ export default function StimulusView({
 
     case 'grid':
       return (
-        <div data-stimulus="grid" style={{ display: 'grid', placeItems: 'center' }}>
-          <div style={{ width: 'min(11rem, 60vw)' }}>
+        <div data-stimulus="grid" class="grid-stimulus">
+          <div class="grid-stimulus-inner">
             <GridView grid={stimulus.grid} label={t.figureLabels.target} />
           </div>
         </div>
@@ -144,7 +106,7 @@ export default function StimulusView({
 
     case 'symbol-search':
       return (
-        <div data-stimulus="symbol-search" style={{ display: 'grid', gap: '1rem' }}>
+        <div data-stimulus="symbol-search" class="symbol-search">
           <SymbolRow
             title={t.figureLabels.targets}
             figures={stimulus.targets}
@@ -175,7 +137,7 @@ export default function StimulusView({
 
 function Arrow() {
   return (
-    <span class="subtle" style={{ fontSize: '1.5rem' }} aria-hidden="true">
+    <span class="subtle analogy-op" aria-hidden="true">
       →
     </span>
   );
@@ -191,7 +153,7 @@ function AnalogyCell({
   locale: Locale;
 }) {
   return (
-    <div class="matrix-cell card" style={{ width: '5rem', borderRadius: '0.75rem' }}>
+    <div class="matrix-cell card analogy-cell">
       <FigureView figure={figure} label={`${label}: ${describeFigure(figure, locale)}`} />
     </div>
   );
@@ -210,23 +172,10 @@ function SymbolRow({
 }) {
   return (
     <div>
-      <p class="subtle" style={{ margin: '0 0 0.4rem', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {title}
-      </p>
-      <div
-        data-symbol-row={testid}
-        style={{
-          display: 'flex',
-          gap: '0.5rem',
-          flexWrap: 'wrap',
-          padding: '0.6rem',
-          border: '1px solid var(--border)',
-          borderRadius: '0.75rem',
-          background: 'var(--bg-raised)',
-        }}
-      >
+      <p class="subtle symbol-row-title">{title}</p>
+      <div data-symbol-row={testid} class="symbol-row">
         {figures.map((f, i) => (
-          <div key={i} style={{ width: '3rem' }}>
+          <div key={i} class="symbol-slot">
             <FigureView figure={f} label={`${title} ${i + 1}: ${describeFigure(f, locale)}`} />
           </div>
         ))}
@@ -388,8 +337,10 @@ function FoldFrame({
   return (
     <svg
       viewBox={`0 0 ${viewW} ${viewH}`}
-      // Constant cell size across frames, so the sheet visibly halves at each fold.
-      style={{ width: `${viewW / 16}rem`, height: 'auto', color: 'var(--text)', flex: 'none' }}
+      class="fold-frame"
+      // Constant cell size across frames, so the sheet visibly halves at each fold: the
+      // width is derived from the sheet's own dimensions, so it has to be inline.
+      style={{ '--frame-width': `${viewW / 16}rem` } as never}
       role="img"
       aria-label={label}
       data-grid=""
@@ -525,34 +476,19 @@ function PaperFolding({
   });
 
   return (
-    <div
-      data-stimulus="paper-folding"
-      style={{
-        display: 'flex',
-        gap: '0.4rem',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexWrap: 'wrap',
-      }}
-    >
+    <div data-stimulus="paper-folding" class="fold-strip">
       {frames.map((frame, i) => (
         /*
          * The connector travels with the frame it points at. Left as siblings, a wrap on a
          * narrow screen strands the arrow alone at the end of the previous line.
          */
-        <div
-          key={i}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
-        >
+        <div key={i} class="fold-step">
           {i > 0 && (
-            <span class="subtle" style={{ fontSize: '1.35rem', flex: 'none' }} aria-hidden="true">
+            <span class="subtle fold-arrow" aria-hidden="true">
               →
             </span>
           )}
-          <figure
-            data-fold={frame.fold ?? undefined}
-            style={{ margin: 0, textAlign: 'center', display: 'grid', gap: '0.15rem', justifyItems: 'center' }}
-          >
+          <figure class="fold-figure" data-fold={frame.fold ?? undefined}>
             <FoldFrame
               rows={frame.rows}
               cols={frame.cols}
@@ -560,7 +496,7 @@ function PaperFolding({
               punches={frame.punches}
               label={frame.label}
             />
-            <figcaption class="subtle" style={{ fontSize: '0.72rem', lineHeight: 1.3, maxWidth: '7rem' }}>
+            <figcaption class="subtle fold-caption">
               {frame.fold ? (
                 <>
                   <span aria-hidden="true">{FOLD_ARROW[frame.fold]}</span> {frame.caption}
@@ -569,7 +505,7 @@ function PaperFolding({
                 <>
                   {frame.caption}
                   <br />
-                  <span style={{ opacity: 0.8 }}>{t.quiz.figureLabels.layers(layers)}</span>
+                  <span class="fold-layers">{t.quiz.figureLabels.layers(layers)}</span>
                 </>
               )}
             </figcaption>
@@ -625,33 +561,13 @@ function SpanPlayer({
   }, [sequence.join(''), stepMs, gapMs]);
 
   return (
-    <div
-      data-stimulus="span"
-      data-span-finished={String(finished)}
-      style={{
-        display: 'grid',
-        placeItems: 'center',
-        minHeight: '8rem',
-        border: '2px dashed var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        background: 'var(--bg-sunken)',
-      }}
-    >
+    <div data-stimulus="span" class="span-stage" data-span-finished={String(finished)}>
       {finished ? (
         <span class="subtle" data-span-prompt>
           {t.nowTypeItBack}
         </span>
       ) : (
-        <span
-          data-span-element={index >= 0 ? sequence[index] : ''}
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '3.5rem',
-            fontWeight: 700,
-            lineHeight: 1,
-            color: 'var(--accent)',
-          }}
-        >
+        <span class="span-element" data-span-element={index >= 0 ? sequence[index] : ''}>
           {index >= 0 ? sequence[index] : ' '}
         </span>
       )}

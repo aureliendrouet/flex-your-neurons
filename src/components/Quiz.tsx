@@ -295,7 +295,7 @@ export default function Quiz({
 
   if (!session || !item) {
     return (
-      <div class="card" style={{ padding: '2rem', textAlign: 'center' }} data-testid="quiz-loading">
+      <div class="card quiz-loading" data-testid="quiz-loading">
         <span class="muted">{t.quiz.preparing}</span>
       </div>
     );
@@ -339,7 +339,7 @@ export default function Quiz({
       class="stack"
       style={{ '--stack-gap': '1.25rem' } as never}
     >
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+      <header class="cluster cluster--between quiz-header" style={{ '--cluster-gap': '1rem' } as never}>
         <div>
           <span class="pill" data-testid="item-type-label">
             {meta.icon} {typeText.name}
@@ -349,7 +349,7 @@ export default function Quiz({
           </span>
         </div>
         <div class="quiz-header-right">
-          <span class="muted" data-testid="progress-label" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <span class="muted num-tabular" data-testid="progress-label">
             {t.quiz.progress(Math.min(answered + (revealed ? 0 : 1), total), total)}
           </span>
           <SeedChip seed={session.seed} locale={locale} />
@@ -357,10 +357,12 @@ export default function Quiz({
       </header>
 
       <div class="meter" aria-hidden="true">
-        <span style={{ width: `${(answered / total) * 100}%` }} />
+        {/* The only genuinely dynamic value in the component, so it stays inline — but as
+            a custom property, which keeps the *styling* in the stylesheet. */}
+        <span style={{ '--fill': `${(answered / total) * 100}%` } as never} />
       </div>
 
-      <h2 style={{ fontSize: '1.15rem' }} data-testid="prompt">
+      <h2 class="quiz-prompt" data-testid="prompt">
         {item.prompt}
       </h2>
 
@@ -391,7 +393,7 @@ export default function Quiz({
             if (!spanReady || typed.trim() === '') return;
             submit(null, typed);
           }}
-          style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}
+          class="cluster text-response"
         >
           <label class="sr-only" for="span-answer">
             {t.quiz.yourAnswer}
@@ -406,17 +408,7 @@ export default function Quiz({
             spellcheck={false}
             placeholder={spanReady ? t.quiz.typeSequence : t.quiz.watching}
             onInput={(e) => setTyped((e.currentTarget as HTMLInputElement).value)}
-            style={{
-              flex: '1 1 12rem',
-              padding: '0.75rem 1rem',
-              fontSize: '1.25rem',
-              fontFamily: 'var(--font-mono)',
-              letterSpacing: '0.15em',
-              borderRadius: 'var(--radius)',
-              border: '2px solid var(--border)',
-              background: 'var(--bg-raised)',
-              color: 'var(--text)',
-            }}
+            class="text-input"
           />
           <button
             class="btn btn-primary"
@@ -487,7 +479,7 @@ export default function Quiz({
       )}
 
       {!revealed && item.responseMode === 'choice' && (
-        <p class="subtle" style={{ fontSize: '0.85rem', margin: 0 }}>
+        <p class="subtle quiz-tip">
           {tip.before}
           <kbd>{tip.first}</kbd>–<kbd>{tip.last}</kbd>
           {tip.after}
@@ -578,16 +570,16 @@ function OptionGrid({
 function OptionBody({ option }: { option: Option }) {
   switch (option.kind) {
     case 'text':
-      return <span style={{ fontSize: '1.02rem' }}>{option.text}</span>;
+      return <span class="option-text">{option.text}</span>;
     case 'figure':
       return (
-        <span style={{ display: 'block', width: '100%' }}>
+        <span class="option-figure">
           <FigureView figure={option.figure} />
         </span>
       );
     case 'grid':
       return (
-        <span style={{ display: 'block', width: '100%' }}>
+        <span class="option-figure">
           <GridView grid={option.grid} variant={option.variant ?? 'solid'} />
         </span>
       );
@@ -634,9 +626,9 @@ function Results({
 
   return (
     <div class="stack" data-testid="results" style={{ '--stack-gap': '1.25rem' } as never}>
-      <h2 style={{ fontSize: '1.6rem' }}>{t.results.heading}</h2>
+      <h2 class="results-heading">{t.results.heading}</h2>
 
-      <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(9rem, 1fr))' }}>
+      <div class="card-grid card-grid--fit stat-grid">
         <Stat label={t.results.correct} value={`${correct} / ${total}`} testid="stat-correct" />
         <Stat label={t.results.accuracy} value={formatPercent(accuracy, locale)} testid="stat-accuracy" />
         <Stat label={t.results.medianTime} value={formatDuration(speed, locale)} testid="stat-speed" />
@@ -656,8 +648,8 @@ function Results({
 
       <MistakeBreakdown responses={session.responses} locale={locale} />
 
-      <div class="card" style={{ padding: '1rem 1.25rem' }}>
-        <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>{t.results.byItemType}</h3>
+      <div class="card table-card">
+        <h3 class="section-heading section-heading--xs">{t.results.byItemType}</h3>
         <div class="scroll-x">
           <table class="data">
             <thead>
@@ -684,13 +676,13 @@ function Results({
         </div>
       </div>
 
-      <p class="subtle" style={{ fontSize: '0.88rem', margin: 0 }}>
+      <p class="subtle results-disclaimer">
         {t.results.disclaimerBefore}
         <a href={localeHref('about/')}>{t.results.disclaimerLink}</a>
         {t.results.disclaimerAfter}
       </p>
 
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+      <div class="cluster">
         <button class="btn btn-primary btn-lg" onClick={onRestart} data-testid="restart">
           {t.results.goAgain}
         </button>

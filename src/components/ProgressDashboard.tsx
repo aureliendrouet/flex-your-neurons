@@ -50,10 +50,15 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
   const change = firstVsRecent(trend);
 
   return (
-    <div class="stack" data-testid="dashboard" data-has-data={String(hasData)} data-locale={locale} style={{ '--stack-gap': '2rem' } as never}>
+    <div
+      class="stack dashboard"
+      data-testid="dashboard"
+      data-has-data={String(hasData)}
+      data-locale={locale}
+    >
       <section>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>{t.dashboard.overall}</h2>
-        <div style={{ display: 'grid', gap: '0.75rem', gridTemplateColumns: 'repeat(auto-fit, minmax(8.5rem, 1fr))' }}>
+        <h2 class="dash-heading">{t.dashboard.overall}</h2>
+        <div class="card-grid card-grid--fit stat-grid" style={{ '--card-min': '8.5rem' } as never}>
           <Stat label={t.dashboard.itemsAnswered} value={String(overall.attempts)} testid="total-attempts" />
           <Stat label={t.dashboard.accuracy} value={formatPercent(overall.accuracy, locale)} testid="total-accuracy" />
           <Stat label={t.dashboard.medianTime} value={formatDuration(overall.medianLatencyMs, locale)} testid="total-speed" />
@@ -61,7 +66,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
           <Stat label={t.dashboard.dayStreak} value={String(overall.dayStreak)} testid="day-streak" />
         </div>
         {!hasData && (
-          <p class="muted" data-testid="empty-state" style={{ marginTop: '1rem' }}>
+          <p class="muted dash-empty" data-testid="empty-state">
             {t.dashboard.empty}
           </p>
         )}
@@ -69,22 +74,15 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
 
       {hasData && (
         <section data-testid="charts-section">
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.35rem' }}>{t.dashboard.charts.heading}</h2>
-          <p class="muted" style={{ margin: '0 0 1rem', fontSize: '0.94rem' }}>
-            {t.dashboard.charts.lede}
-          </p>
+          <h2 class="dash-heading dash-heading--tight">{t.dashboard.charts.heading}</h2>
+          <p class="muted dash-lede">{t.dashboard.charts.lede}</p>
 
           {change && (
             <p
-              class="card"
+              class="card change-note"
               data-testid="improvement"
               data-delta={String(Math.round(change.delta * 100))}
-              style={{
-                margin: '0 0 1rem',
-                padding: '0.85rem 1.1rem',
-                borderColor: change.delta > 0.02 ? 'var(--correct-border)' : 'var(--border)',
-                background: change.delta > 0.02 ? 'var(--correct-soft)' : 'var(--bg-raised)',
-              }}
+              data-improved={String(change.delta > 0.02)}
             >
               {Math.abs(change.delta) < 0.02
                 ? t.dashboard.charts.steady
@@ -94,13 +92,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
             </p>
           )}
 
-          <div
-            style={{
-              display: 'grid',
-              gap: '1rem',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 18rem), 1fr))',
-            }}
-          >
+          <div class="card-grid card-grid--fit" style={{ '--card-min': '18rem' } as never}>
             <ChartCard title={t.dashboard.charts.accuracyTitle}>
               <TrendChart
                 testid="accuracy-chart"
@@ -155,7 +147,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
 
       {hasData && (
         <section>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>{t.dashboard.byDomain}</h2>
+          <h2 class="dash-heading">{t.dashboard.byDomain}</h2>
           <DomainChart
             label={t.dashboard.domainChartLabel}
             locale={locale}
@@ -169,7 +161,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
       )}
 
       <section>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>{t.dashboard.byItemType}</h2>
+        <h2 class="dash-heading">{t.dashboard.byItemType}</h2>
         <div class="card scroll-x">
           <table class="data" data-testid="type-table">
             <thead>
@@ -216,8 +208,8 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
       </section>
 
       <section>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>{t.dashboard.settings}</h2>
-        <div class="card" style={{ padding: '1rem 1.25rem', display: 'grid', gap: '0.85rem' }}>
+        <h2 class="dash-heading">{t.dashboard.settings}</h2>
+        <div class="card dash-panel">
           <Toggle
             id="setting-feedback"
             label={t.dashboard.settingFeedback}
@@ -239,7 +231,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
             checked={settings.reducedMotion}
             onChange={(v) => updateSettings({ reducedMotion: v })}
           />
-          <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <label class="cluster">
             <span>{t.dashboard.settingLength}</span>
             <input
               type="number"
@@ -251,30 +243,21 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
                 const v = Number((e.currentTarget as HTMLInputElement).value);
                 if (Number.isFinite(v) && v >= 3 && v <= 50) updateSettings({ practiceLength: v });
               }}
-              style={{
-                width: '5rem',
-                padding: '0.4rem 0.6rem',
-                borderRadius: '0.5rem',
-                border: '1px solid var(--border-strong)',
-                background: 'var(--bg-raised)',
-                color: 'var(--text)',
-              }}
+              class="number-input"
             />
           </label>
         </div>
       </section>
 
       <section>
-        <h2 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>{t.dashboard.yourData}</h2>
-        <div class="card" style={{ padding: '1rem 1.25rem', display: 'grid', gap: '0.85rem' }}>
-          <p class="muted" style={{ margin: 0 }}>
-            {t.dashboard.storageNote(sessions.length)}
-          </p>
-          <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
+        <h2 class="dash-heading">{t.dashboard.yourData}</h2>
+        <div class="card dash-panel">
+          <p class="muted flush">{t.dashboard.storageNote(sessions.length)}</p>
+          <div class="cluster" style={{ '--cluster-gap': '0.6rem' } as never}>
             <button class="btn" data-testid="export" onClick={() => download(exportData())}>
               {t.dashboard.exportJson}
             </button>
-            <label class="btn" style={{ cursor: 'pointer' }}>
+            <label class="btn btn--file">
               {t.dashboard.importJson}
               <input
                 type="file"
@@ -292,9 +275,8 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
             {confirming ? (
               <>
                 <button
-                  class="btn"
+                  class="btn btn-danger"
                   data-testid="reset-confirm"
-                  style={{ borderColor: 'var(--wrong-border)', color: 'var(--wrong)' }}
                   onClick={() => {
                     clearHistory();
                     setConfirming(false);
@@ -314,10 +296,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
             )}
           </div>
           {notice && (
-            <p
-              data-testid="data-notice"
-              style={{ margin: 0, color: notice.ok ? 'var(--correct)' : 'var(--wrong)' }}
-            >
+            <p class="data-notice" data-testid="data-notice" data-ok={String(notice.ok)}>
               {notice.text}
             </p>
           )}
@@ -343,10 +322,10 @@ function DomainChart({
   const barWidth = 300;
 
   return (
-    <div class="card scroll-x" style={{ padding: '1rem' }}>
+    <div class="card domain-chart-card scroll-x">
       <svg
         viewBox={`0 0 ${labelWidth + barWidth + 52} ${height}`}
-        style={{ width: '100%', maxWidth: '34rem', height: 'auto', color: 'var(--text)' }}
+        class="domain-chart"
         role="img"
         aria-label={label}
         data-testid="domain-chart"
@@ -423,19 +402,8 @@ function accuracySeries(trend: { accuracy: number }[]): Series[] {
 
 function ChartCard({ title, children }: { title: string; children: preact.ComponentChildren }) {
   return (
-    <div class="card" style={{ padding: '0.9rem 1rem' }}>
-      <h3
-        class="subtle"
-        style={{
-          fontSize: '0.75rem',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          margin: '0 0 0.6rem',
-          fontWeight: 600,
-        }}
-      >
-        {title}
-      </h3>
+    <div class="card chart-card">
+      <h3 class="subtle chart-card-title">{title}</h3>
       {children}
     </div>
   );
@@ -443,7 +411,7 @@ function ChartCard({ title, children }: { title: string; children: preact.Compon
 
 function Legend({ text }: { text: string }) {
   return (
-    <p class="subtle" style={{ margin: '0.4rem 0 0', fontSize: '0.75rem' }}>
+    <p class="subtle chart-legend">
       <span aria-hidden="true">┄┄</span> {text}
     </p>
   );
@@ -451,11 +419,9 @@ function Legend({ text }: { text: string }) {
 
 function Stat({ label, value, testid }: { label: string; value: string; testid: string }) {
   return (
-    <div class="card" style={{ padding: '0.9rem 1rem' }} data-testid={testid}>
-      <div class="subtle" style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '1.5rem', fontWeight: 650, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+    <div class="card stat" data-testid={testid}>
+      <div class="stat-label subtle">{label}</div>
+      <div class="stat-value">{value}</div>
     </div>
   );
 }
@@ -475,20 +441,18 @@ function Toggle({
 }) {
   return (
     <div>
-      <label style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', cursor: 'pointer' }}>
+      <label class="toggle">
         <input
           id={id}
           type="checkbox"
           data-testid={id}
           checked={checked}
           onChange={(e) => onChange((e.currentTarget as HTMLInputElement).checked)}
-          style={{ width: '1.1rem', height: '1.1rem', accentColor: 'var(--accent)' }}
+          class="toggle-box"
         />
         <span>{label}</span>
       </label>
-      <p class="subtle" style={{ margin: '0.15rem 0 0 1.7rem', fontSize: '0.85rem' }}>
-        {hint}
-      </p>
+      <p class="subtle toggle-hint">{hint}</p>
     </div>
   );
 }

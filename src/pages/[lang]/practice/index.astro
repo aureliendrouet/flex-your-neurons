@@ -19,21 +19,20 @@ const types = allItemTypes(locale);
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
-  <div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));">
+  <div class="card-grid" style="--card-min: 20rem">
     {
       types.map((meta) => (
         <a
-          class="card"
+          class="card type-card practice-card"
           href={href(`practice/${meta.id}/`)}
           data-testid={`practice-card-${meta.id}`}
-          style="padding: 1.25rem; text-decoration: none; color: inherit; display: grid; gap: 0.4rem; align-content: start;"
         >
           <ItemThumb item={previewItem(meta.id, locale)} />
-          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-            <strong style="font-size: 1.05rem;">{meta.name}</strong>
-            <span class="pill" style="margin-left: auto;">{t.domains[meta.domain]}</span>
+          <div class="cluster practice-card-head" style="--cluster-gap: 0.6rem">
+            <strong class="practice-card-name">{meta.name}</strong>
+            <span class="pill practice-card-domain">{t.domains[meta.domain]}</span>
           </div>
-          <p class="muted" style="margin: 0; font-size: 0.94rem;">{meta.blurb}</p>
+          <p class="muted practice-card-blurb">{meta.blurb}</p>
         </a>
       ))
     }

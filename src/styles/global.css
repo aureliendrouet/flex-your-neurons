@@ -7,71 +7,126 @@
  * drawn with `currentColor` and distinguished by texture rather than hue, so every item
  * stays solvable for colour-blind and low-vision readers, and legible in both themes.
  */
+/*
+ * Three type roles: display, text, code.
+ *
+ * `--font-display` and `--font-code` are defined by Astro's Fonts API (see
+ * `astro.config.mjs`), which downloads, subsets and self-hosts them at build time — so the
+ * deployed page still makes zero third-party requests. `--font-text` is deliberately the
+ * system UI stack: `astro.config.mjs` explains the measurement behind that choice.
+ *
+ * `--font-sans` / `--font-mono` are aliases because they are referenced from components and
+ * inline styles throughout the app, and renaming every call site buys nothing.
+ */
 @theme {
-  --font-sans: 'Inter var', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+  --font-text: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    sans-serif;
+  --font-sans: var(--font-text);
+  --font-mono: var(--font-code);
 
-  --color-ink: #10131a;
-  --color-accent: #5b53e8;
-  --color-accent-soft: #eceafd;
+  --color-ink: oklch(20.2% 0.018 275);
+  --color-accent: oklch(54.1% 0.217 278.7);
+  --color-accent-soft: oklch(94.6% 0.024 288.5);
 }
 
+/*
+ * The palette is written in OKLCH, and not as a fashion.
+ *
+ * Phase 4 gives each of the ten item formats its own hue. In sRGB that is unbuildable: a
+ * set of hex values at "the same lightness" is not perceptually level, so one or two
+ * members always vibrate — a yellow at #d0d040 sits visibly forward of a blue at #4040d0
+ * however carefully the numbers are matched. OKLCH is perceptually uniform, so "same
+ * lightness and chroma, different hue" is *true*, and a ten-member set can be generated
+ * from one triple by rotating a single number.
+ *
+ * Every family below is therefore a lightness/chroma pair on a named hue. The indigo
+ * accent keeps its exact value (54.1% 0.217 278.7 is #5b53e8 converted, not re-chosen), so
+ * the site's identity is continuous across the refresh.
+ */
 :root {
   color-scheme: light dark;
 
-  --bg: #f7f7fb;
-  --bg-raised: #ffffff;
-  --bg-sunken: #eeeef5;
-  --border: #dcdce8;
-  --border-strong: #c2c2d6;
-  --text: #14161f;
-  --text-muted: #5c6070;
-  --text-subtle: #83879a;
+  /* Hue anchors. Rotate one of these and its whole family moves together. */
+  --hue-accent: 278.7;
+  /* Surfaces and text carry a trace of the accent hue rather than being dead grey. */
+  --hue-neutral: 282;
+  --hue-ink: 275;
+  --hue-correct: 170;
+  --hue-wrong: 12;
 
-  --accent: #5b53e8;
-  --accent-text: #ffffff;
-  --accent-soft: #ecebfd;
-  --accent-border: #c3bff8;
+  --bg: oklch(97.7% 0.005 var(--hue-neutral));
+  --bg-raised: oklch(100% 0 var(--hue-neutral));
+  --bg-sunken: oklch(95.1% 0.009 var(--hue-neutral));
+  --border: oklch(89.8% 0.016 var(--hue-neutral));
+  --border-strong: oklch(82% 0.028 var(--hue-neutral));
+  --text: oklch(20.2% 0.018 var(--hue-ink));
+  --text-muted: oklch(49.1% 0.026 var(--hue-ink));
+  --text-subtle: oklch(62.7% 0.029 var(--hue-ink));
 
-  --correct: #17795e;
-  --correct-soft: #dcf5ec;
-  --correct-border: #8ed6bf;
+  --accent: oklch(54.1% 0.217 var(--hue-accent));
+  --accent-text: oklch(100% 0 var(--hue-accent));
+  --accent-soft: oklch(94.6% 0.024 var(--hue-accent));
+  --accent-border: oklch(82.7% 0.079 var(--hue-accent));
 
-  --wrong: #c0344a;
-  --wrong-soft: #fce7ea;
-  --wrong-border: #f0aeb8;
+  --correct: oklch(51.5% 0.096 var(--hue-correct));
+  --correct-soft: oklch(94.9% 0.029 var(--hue-correct));
+  --correct-border: oklch(82.2% 0.079 var(--hue-correct));
+
+  --wrong: oklch(54.3% 0.176 var(--hue-wrong));
+  --wrong-soft: oklch(94.6% 0.023 var(--hue-wrong));
+  --wrong-border: oklch(81.5% 0.078 var(--hue-wrong));
 
   --shadow-sm: 0 1px 2px rgb(20 22 31 / 6%), 0 1px 3px rgb(20 22 31 / 4%);
   --shadow-md: 0 4px 6px -1px rgb(20 22 31 / 8%), 0 2px 4px -2px rgb(20 22 31 / 6%);
   --shadow-lg: 0 12px 28px -8px rgb(20 22 31 / 18%);
 
+  --radius-sm: 0.5rem;
   --radius: 0.75rem;
   --radius-lg: 1.25rem;
+
+  /*
+   * Motion, as tokens rather than as numbers scattered through the file.
+   *
+   * There were four different ad-hoc durations before this (80ms, 120ms, 320ms and a
+   * couple of bare `ease`s), which is how a site ends up feeling arbitrary. `--ease-out`
+   * is a decelerating curve: things arrive and settle, they never overshoot, because an
+   * overshoot next to a figure someone is reading is a distraction with no upside.
+   */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+  --dur-slow: 420ms;
 }
 
+/*
+ * Dark values live in one place and are referenced twice — once for the system preference,
+ * once for an explicit `[data-theme]` — so the two can never drift apart. The values
+ * themselves are the same conversions as the light set: same hues, mirrored lightness.
+ */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #0c0e15;
-    --bg-raised: #151824;
-    --bg-sunken: #0a0c12;
-    --border: #262b3d;
-    --border-strong: #39405a;
-    --text: #eef0f7;
-    --text-muted: #a2a8bd;
-    --text-subtle: #767d95;
+    --bg: oklch(16.5% 0.015 var(--hue-neutral));
+    --bg-raised: oklch(21.2% 0.024 var(--hue-neutral));
+    --bg-sunken: oklch(15.5% 0.013 var(--hue-neutral));
+    --border: oklch(29.3% 0.034 var(--hue-neutral));
+    --border-strong: oklch(37.7% 0.046 var(--hue-neutral));
+    --text: oklch(95.6% 0.01 var(--hue-ink));
+    --text-muted: oklch(73.4% 0.031 var(--hue-ink));
+    --text-subtle: oklch(59.2% 0.038 var(--hue-ink));
 
-    --accent: #8b84ff;
-    --accent-text: #10121c;
-    --accent-soft: #1e1f3d;
-    --accent-border: #3f3a80;
+    --accent: oklch(67.7% 0.177 var(--hue-accent));
+    --accent-text: oklch(18.5% 0.021 var(--hue-accent));
+    --accent-soft: oklch(25.5% 0.056 var(--hue-accent));
+    --accent-border: oklch(39.2% 0.114 var(--hue-accent));
 
-    --correct: #4fd6ab;
-    --correct-soft: #10281f;
-    --correct-border: #266b55;
+    --correct: oklch(79.1% 0.133 var(--hue-correct));
+    --correct-soft: oklch(25.4% 0.035 var(--hue-correct));
+    --correct-border: oklch(47.8% 0.078 var(--hue-correct));
 
-    --wrong: #ff8e9e;
-    --wrong-soft: #2c1218;
-    --wrong-border: #7a3040;
+    --wrong: oklch(77.2% 0.137 var(--hue-wrong));
+    --wrong-soft: oklch(22.3% 0.043 var(--hue-wrong));
+    --wrong-border: oklch(41.8% 0.104 var(--hue-wrong));
 
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
     --shadow-md: 0 4px 10px -2px rgb(0 0 0 / 45%);
@@ -80,27 +135,27 @@
 }
 
 :root[data-theme='dark'] {
-  --bg: #0c0e15;
-  --bg-raised: #151824;
-  --bg-sunken: #0a0c12;
-  --border: #262b3d;
-  --border-strong: #39405a;
-  --text: #eef0f7;
-  --text-muted: #a2a8bd;
-  --text-subtle: #767d95;
+  --bg: oklch(16.5% 0.015 var(--hue-neutral));
+  --bg-raised: oklch(21.2% 0.024 var(--hue-neutral));
+  --bg-sunken: oklch(15.5% 0.013 var(--hue-neutral));
+  --border: oklch(29.3% 0.034 var(--hue-neutral));
+  --border-strong: oklch(37.7% 0.046 var(--hue-neutral));
+  --text: oklch(95.6% 0.01 var(--hue-ink));
+  --text-muted: oklch(73.4% 0.031 var(--hue-ink));
+  --text-subtle: oklch(59.2% 0.038 var(--hue-ink));
 
-  --accent: #8b84ff;
-  --accent-text: #10121c;
-  --accent-soft: #1e1f3d;
-  --accent-border: #3f3a80;
+  --accent: oklch(67.7% 0.177 var(--hue-accent));
+  --accent-text: oklch(18.5% 0.021 var(--hue-accent));
+  --accent-soft: oklch(25.5% 0.056 var(--hue-accent));
+  --accent-border: oklch(39.2% 0.114 var(--hue-accent));
 
-  --correct: #4fd6ab;
-  --correct-soft: #10281f;
-  --correct-border: #266b55;
+  --correct: oklch(79.1% 0.133 var(--hue-correct));
+  --correct-soft: oklch(25.4% 0.035 var(--hue-correct));
+  --correct-border: oklch(47.8% 0.078 var(--hue-correct));
 
-  --wrong: #ff8e9e;
-  --wrong-soft: #2c1218;
-  --wrong-border: #7a3040;
+  --wrong: oklch(77.2% 0.137 var(--hue-wrong));
+  --wrong-soft: oklch(22.3% 0.043 var(--hue-wrong));
+  --wrong-border: oklch(41.8% 0.104 var(--hue-wrong));
 
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
   --shadow-md: 0 4px 10px -2px rgb(0 0 0 / 45%);
@@ -120,18 +175,40 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-sans);
+  font-family: var(--font-text);
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+/*
+ * Headings take the display face; body copy does not. That division is the whole point of
+ * having three: the display face carries the site's voice in short lines where its
+ * character is an asset, and stays out of the long explanatory prose where it would be a
+ * reading tax.
+ *
+ * `letter-spacing` is negative because Space Grotesk sets wide by default at large sizes;
+ * `text-wrap: balance` stops a two-line heading leaving one orphaned word.
+ */
 h1, h2, h3, h4 {
-  line-height: 1.2;
-  letter-spacing: -0.02em;
   margin: 0;
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.14;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+/*
+ * The mono face is the data voice, and it is genuinely load-bearing here: seeds, response
+ * latencies, option keys and error-type names are all things whose *identity as data* is
+ * part of their meaning. It was a system stack before — the one typeface carrying meaning
+ * was the one nobody had chosen.
+ */
+code, kbd, samp {
+  font-family: var(--font-code);
+  font-size: 0.92em;
 }
 
 a {
@@ -156,6 +233,182 @@ a {
 
 .stack > * + * {
   margin-top: var(--stack-gap, 1rem);
+}
+
+/*
+ * A row of things that wraps. Named for what it is rather than for where it is used,
+ * because "flex, wrap, gap" was written out inline about thirty times before this.
+ */
+.cluster {
+  display: flex;
+  align-items: center;
+  gap: var(--cluster-gap, 0.75rem);
+  flex-wrap: wrap;
+}
+
+.cluster--between {
+  justify-content: space-between;
+}
+
+/*
+ * Auto-fitting card grid. `min(100%, …)` rather than a bare minimum: without it a card
+ * whose minimum exceeds the viewport forces the whole page into horizontal scrolling, which
+ * is the single most common way a card grid breaks on a 360px phone.
+ */
+.card-grid {
+  display: grid;
+  gap: var(--card-gap, 1rem);
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--card-min, 17rem)), 1fr));
+}
+
+.card-grid--fit {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--card-min, 17rem)), 1fr));
+}
+
+/* --- Site chrome ---------------------------------------------------------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.75rem;
+  flex-wrap: wrap;
+  padding-block: 0.5rem;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.wordmark-mark {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 0.95rem;
+}
+
+.nav {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+/*
+ * The reason the de-inlining had to happen. A hover state cannot be written in a `style`
+ * attribute at all, so the navigation had no hover feedback of any kind — the current page
+ * was marked and everything else was inert.
+ */
+.nav-link {
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: var(--bg-sunken);
+}
+
+.nav-link[aria-current='page'] {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.lang-switch {
+  display: flex;
+  gap: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem;
+}
+
+.lang-link {
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.4rem;
+  text-decoration: none;
+  font: 600 0.82rem/1.5 var(--font-code);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: transparent;
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.lang-link:hover:not([aria-current]) {
+  color: var(--text);
+  background: var(--bg-sunken);
+}
+
+.lang-link[aria-current] {
+  color: var(--accent-text);
+  background: var(--accent);
+}
+
+.page-main {
+  padding-block: 2.5rem 4rem;
+}
+
+.page-head {
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: clamp(1.85rem, 4.5vw, 2.6rem);
+}
+
+.page-lede {
+  font-size: 1.08rem;
+  margin: 0.7rem 0 0;
+  max-width: 48rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding-block: 2rem;
+  margin-top: auto;
+}
+
+.footer-inner {
+  font-size: 0.87rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.footer-inner p {
+  margin: 0;
 }
 
 .card {
@@ -221,6 +474,22 @@ a {
 .btn-lg {
   padding: 0.85rem 1.5rem;
   font-size: 1.05rem;
+}
+
+/* A destructive action, marked as one without being a big red slab. */
+.btn-danger {
+  border-color: var(--wrong-border);
+  color: var(--wrong);
+}
+
+.btn-danger:hover:not(:disabled) {
+  border-color: var(--wrong);
+  background: var(--wrong-soft);
+}
+
+/* A `<label>` wrapping a hidden file input has to declare its own affordance. */
+.btn--file {
+  cursor: pointer;
 }
 
 /* --- Item options --------------------------------------------------------- */
@@ -499,6 +768,275 @@ a {
   color: var(--text-subtle);
   font-size: 1.75rem;
   font-weight: 300;
+}
+
+/* --- Sections and notes --------------------------------------------------- */
+
+.section-heading {
+  font-size: 1.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.section-heading--sm {
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-heading--xs {
+  font-size: 1.02rem;
+  margin-bottom: 0.5rem;
+}
+
+/* A card whose content is prose rather than data. */
+.prose-card {
+  padding: 1.35rem 1.5rem;
+}
+
+.prose-card-body {
+  margin: 0;
+}
+
+.spaced-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.page-meta {
+  margin-bottom: 1.5rem;
+}
+
+/* The card the quiz island lives in, on both the practice and full-test pages. */
+.quiz-stage {
+  padding: 1.75rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (width < 34rem) {
+  .quiz-stage {
+    padding: 1.1rem 0.9rem;
+  }
+}
+
+.section-lede {
+  margin-top: 0;
+  max-width: 46rem;
+}
+
+/* A callout that has to be noticed without shouting. */
+.note {
+  padding: 1.4rem 1.5rem;
+}
+
+.note--accent {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.note-body {
+  margin: 0 0 0.6rem;
+}
+
+.note-body--last {
+  margin-bottom: 0;
+}
+
+/* --- Home page ------------------------------------------------------------ */
+
+.home-cta {
+  margin-bottom: 3rem;
+}
+
+.home-section {
+  margin-bottom: 3rem;
+}
+
+.home-how {
+  padding: 1.5rem 1.6rem;
+  margin-bottom: 3rem;
+}
+
+.home-how-body {
+  margin: 0.25rem 0 0;
+  font-size: 0.94rem;
+}
+
+.domain-groups {
+  display: grid;
+  gap: 2rem;
+  margin-top: 1.75rem;
+}
+
+.domain-heading {
+  font-size: 0.92rem;
+  font-family: var(--font-text);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-subtle);
+  margin-bottom: 0.85rem;
+}
+
+/*
+ * `text-transform: none` matters: CHC codes are case-significant — Gf, Gv, Gwm, Gs — and
+ * the uppercasing on the heading was rendering them as GF, GV, GWM, GS.
+ */
+.domain-code {
+  font-family: var(--font-code);
+  text-transform: none;
+  opacity: 0.75;
+}
+
+.type-card {
+  padding: 1.1rem 1.15rem;
+  text-decoration: none;
+  color: inherit;
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+}
+
+.type-card-name {
+  font-size: 1.02rem;
+  margin-top: 0.15rem;
+}
+
+.type-card-blurb {
+  font-size: 0.92rem;
+}
+
+.type-card-seen {
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+}
+
+/* --- Practice index ------------------------------------------------------- */
+
+.practice-card {
+  padding: 1.25rem;
+  gap: 0.4rem;
+}
+
+.practice-card-head {
+  margin-top: 0.15rem;
+}
+
+.practice-card-name {
+  font-size: 1.05rem;
+}
+
+.practice-card-domain {
+  margin-left: auto;
+}
+
+.practice-card-blurb {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+/* --- Language chooser at the site root ------------------------------------ */
+
+/*
+ * Normally never seen: the inline script redirects before paint. It exists for the case
+ * where the script does not run, so it must be plain and complete rather than pretty.
+ */
+.chooser {
+  padding-block: 4rem;
+  display: grid;
+  gap: 1.25rem;
+  place-items: start;
+}
+
+.chooser-title {
+  font-size: 1.5rem;
+}
+
+/* --- Long-form pages (About, Terms) --------------------------------------- */
+
+/*
+ * A measured column. 48rem is roughly 75 characters at this size, which is the readable
+ * span — the About page is the longest prose on the site and the one most likely to be
+ * read start to finish.
+ */
+.prose-sections {
+  display: grid;
+  gap: 3rem;
+  max-width: 48rem;
+}
+
+.prose-sections--tight {
+  gap: 2.5rem;
+  max-width: 46rem;
+}
+
+.card-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.note-card {
+  padding: 1.1rem 1.25rem;
+}
+
+.note-card--spaced {
+  margin-bottom: 0.85rem;
+}
+
+.note-card--tight {
+  padding: 1rem 1.15rem;
+}
+
+.note-card-body {
+  margin: 0.3rem 0 0;
+  font-size: 0.95rem;
+}
+
+.about-table {
+  margin-top: 1rem;
+}
+
+.about-not-measured {
+  margin: 1rem 0;
+}
+
+.section-heading--num {
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.section-number {
+  font-family: var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.terms-paragraph {
+  margin: 0 0 0.75rem;
+}
+
+.terms-publisher {
+  padding: 1.25rem 1.4rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+/* --- Small text utilities ------------------------------------------------- */
+
+.small {
+  font-size: 0.92rem;
+}
+
+.flush {
+  margin: 0;
+}
+
+.mono {
+  font-family: var(--font-code);
+}
+
+/* A long URL must wrap rather than push the page sideways on a phone. */
+.break-anywhere {
+  overflow-wrap: anywhere;
 }
 
 /* --- Stat cards ----------------------------------------------------------- */
@@ -786,6 +1324,386 @@ a {
   background: var(--border-strong);
 }
 
+/* --- The quiz runner ------------------------------------------------------ */
+
+.quiz-loading {
+  padding: 2rem;
+  text-align: center;
+}
+
+.quiz-header {
+  /* Room for the seed chip's status text to appear without shifting the row. */
+  min-height: 2rem;
+}
+
+.quiz-prompt {
+  font-size: 1.15rem;
+  /* Prompts are questions, set in the text face: the display face at this size next to a
+     figure competes with the figure. */
+  font-family: var(--font-text);
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+.quiz-tip {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.text-response {
+  --cluster-gap: 0.75rem;
+}
+
+.text-input {
+  flex: 1 1 12rem;
+  padding: 0.75rem 1rem;
+  font-family: var(--font-code);
+  font-size: 1.25rem;
+  letter-spacing: 0.15em;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text);
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.text-input:focus {
+  border-color: var(--accent);
+}
+
+.option-text {
+  font-size: 1.02rem;
+}
+
+.option-figure {
+  display: block;
+  width: 100%;
+}
+
+.num-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Results -------------------------------------------------------------- */
+
+.results-heading {
+  font-size: 1.6rem;
+}
+
+.stat-grid {
+  --card-min: 9rem;
+  --card-gap: 0.75rem;
+}
+
+.table-card {
+  padding: 1rem 1.25rem;
+}
+
+.results-disclaimer {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* --- Stimuli -------------------------------------------------------------- */
+
+.seq-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.seq-term {
+  min-width: 3.25rem;
+  padding: 0.6rem 0.75rem;
+  text-align: center;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: var(--bg-raised);
+  color: var(--text);
+  font: 600 1.25rem/1.4 var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.seq-term[data-blank='true'] {
+  border-style: dashed;
+  background: var(--bg-sunken);
+  color: var(--text-subtle);
+}
+
+.premises {
+  padding: 1.25rem;
+}
+
+.premises-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.premises-list > li {
+  font-size: 1.05rem;
+}
+
+.analogy-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.analogy-op {
+  font-size: 1.5rem;
+}
+
+.analogy-cell {
+  width: 5rem;
+  border-radius: var(--radius);
+}
+
+.analogy-cell--blank {
+  border: 2px dashed var(--border);
+}
+
+.grid-stimulus {
+  display: grid;
+  place-items: center;
+}
+
+.grid-stimulus-inner {
+  width: min(11rem, 60vw);
+}
+
+.symbol-search {
+  display: grid;
+  gap: 1rem;
+}
+
+.symbol-row-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.symbol-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.symbol-slot {
+  width: 3rem;
+}
+
+/* --- Paper-folding diagram ------------------------------------------------ */
+
+.fold-strip {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/*
+ * The connector travels with the frame it points at. Left as siblings, a wrap on a narrow
+ * screen strands the arrow alone at the end of the previous line.
+ */
+.fold-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fold-arrow {
+  font-size: 1.35rem;
+  flex: none;
+}
+
+.fold-frame {
+  width: var(--frame-width);
+  height: auto;
+  color: var(--text);
+  flex: none;
+}
+
+.fold-figure {
+  margin: 0;
+  text-align: center;
+  display: grid;
+  gap: 0.15rem;
+  justify-items: center;
+}
+
+.fold-caption {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  max-width: 7rem;
+}
+
+.fold-layers {
+  opacity: 0.8;
+}
+
+/* --- Digit span ----------------------------------------------------------- */
+
+.span-stage {
+  display: grid;
+  place-items: center;
+  min-height: 8rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+
+.span-element {
+  font-family: var(--font-code);
+  font-size: 3.5rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+}
+
+/* --- Progress dashboard --------------------------------------------------- */
+
+.dashboard {
+  --stack-gap: 2rem;
+}
+
+.dash-heading {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.dash-heading--tight {
+  margin-bottom: 0.35rem;
+}
+
+.dash-lede {
+  margin: 0 0 1rem;
+  font-size: 0.94rem;
+}
+
+.dash-empty {
+  margin-top: 1rem;
+}
+
+.dash-panel {
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.change-note {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1.1rem;
+}
+
+/*
+ * Green only when the change is real. The threshold lives in the component; the styling
+ * reads the decision off a data attribute rather than re-deciding it.
+ */
+.change-note[data-improved='true'] {
+  border-color: var(--correct-border);
+  background: var(--correct-soft);
+}
+
+.number-input {
+  width: 5rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-raised);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+
+.toggle {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle-box {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+}
+
+.toggle-hint {
+  /* Indented to line up under the label, not under the checkbox. */
+  margin: 0.15rem 0 0 1.7rem;
+  font-size: 0.85rem;
+}
+
+.data-notice {
+  margin: 0;
+  color: var(--wrong);
+}
+
+.data-notice[data-ok='true'] {
+  color: var(--correct);
+}
+
+/* --- Charts --------------------------------------------------------------- */
+
+.chart-card {
+  padding: 0.9rem 1rem;
+}
+
+.chart-card-title {
+  font-size: 0.75rem;
+  font-family: var(--font-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--text);
+}
+
+.chart-empty {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.chart-legend {
+  margin: 0.4rem 0 0;
+  font-size: 0.75rem;
+}
+
+.sparkline {
+  color: var(--text);
+  vertical-align: middle;
+}
+
+.domain-chart-card {
+  padding: 1rem;
+}
+
+.domain-chart {
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+  color: var(--text);
+}
+
 /* --- Utility -------------------------------------------------------------- */
 
 .sr-only {
@@ -832,8 +1750,10 @@ a {
 .meter > span {
   display: block;
   height: 100%;
+  width: var(--fill, 0%);
   background: var(--accent);
   border-radius: 999px;
+  transition: width var(--dur) var(--ease-out);
 }
 
 table.data {

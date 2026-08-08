@@ -95,6 +95,40 @@ export async function answerIncorrectly(
   await page.getByTestId(`option-${wrong}`).click();
 }
 
+/**
+ * The sRGB triple a computed colour actually paints, whatever colour space it was written
+ * in.
+ *
+ * Needed because the palette is authored in OKLCH and Chromium's `getComputedStyle`
+ * faithfully returns `oklch(0.977 0.005 286)` rather than converting to `rgb()`. Scraping
+ * numbers out of that string would read a *lightness* as a red channel. Painting one pixel
+ * and reading it back asks the browser to do the conversion, so the assertion is about what
+ * the user sees rather than about how the value was spelled.
+ */
+export async function paintedColour(
+  page: Page,
+  selector: string,
+  property: 'backgroundColor' | 'color' = 'backgroundColor',
+): Promise<{ r: number; g: number; b: number }> {
+  return page.evaluate(
+    ({ selector, property }) => {
+      const element = document.querySelector(selector);
+      if (!element) throw new Error(`no element matches ${selector}`);
+      const value = getComputedStyle(element)[property as 'backgroundColor'];
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext('2d')!;
+      context.fillStyle = value;
+      context.fillRect(0, 0, 1, 1);
+      const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+      return { r: r!, g: g!, b: b! };
+    },
+    { selector, property },
+  );
+}
+
 export async function readLocalStorageSessions(page: Page): Promise<unknown[]> {
   return page.evaluate(() => {
     const raw = localStorage.getItem('iq:v1:sessions');

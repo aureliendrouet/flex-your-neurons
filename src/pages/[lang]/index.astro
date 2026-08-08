@@ -27,29 +27,28 @@ const byDomain = domains.map((d) => ({
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
-  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 3rem;">
+  <div class="cluster home-cta">
     <a class="btn btn-primary btn-lg" href={href('test/')} data-testid="cta-test">{p.ctaTest}</a>
     <a class="btn btn-lg" href={href('practice/')} data-testid="cta-practice">{p.ctaPractice}</a>
   </div>
 
-  <section style="margin-bottom: 3rem;">
-    <h2 style="font-size: 1.4rem; margin-bottom: 0.4rem;">{p.whatHeading}</h2>
-    <p class="muted" style="margin-top: 0; max-width: 46rem;">{p.whatLede}</p>
+  <section class="home-section">
+    <h2 class="section-heading">{p.whatHeading}</h2>
+    <p class="muted section-lede">{p.whatLede}</p>
 
-    <div style="display: grid; gap: 2rem; margin-top: 1.75rem;">
+    <div class="domain-groups">
       {
         byDomain.map((group) => (
           <div>
-            <h3 style="font-size: 1rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-subtle); margin-bottom: 0.85rem;">
-              {group.label} <span style="font-family: var(--font-mono); opacity: 0.7;">({group.domain})</span>
+            <h3 class="domain-heading">
+              {group.label} <span class="domain-code">({group.domain})</span>
             </h3>
-            <div style="display: grid; gap: 0.85rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));">
+            <div class="card-grid" style="--card-gap: 0.85rem">
               {group.types.map((meta) => (
                 <a
-                  class="card"
+                  class="card type-card"
                   href={href(`practice/${meta.id}/`)}
                   data-testid={`type-card-${meta.id}`}
-                  style="padding: 1.1rem 1.15rem; text-decoration: none; color: inherit; display: grid; gap: 0.35rem; align-content: start;"
                 >
                   {/*
                    * A real item from this format, at a pinned seed, drawn by the same
@@ -57,11 +56,9 @@ const byDomain = domains.map((d) => ({
                    * about what you were choosing.
                    */}
                   <ItemThumb item={previewItem(meta.id, locale)} />
-                  <strong style="font-size: 1.02rem;">{meta.name}</strong>
-                  <span class="muted" style="font-size: 0.92rem;">{meta.blurb}</span>
-                  <span class="subtle" style="font-size: 0.78rem; margin-top: 0.25rem;">
-                    {p.seenIn(meta.seenIn)}
-                  </span>
+                  <strong class="type-card-name">{meta.name}</strong>
+                  <span class="muted type-card-blurb">{meta.blurb}</span>
+                  <span class="subtle type-card-seen">{p.seenIn(meta.seenIn)}</span>
                 </a>
               ))}
             </div>
@@ -71,27 +68,24 @@ const byDomain = domains.map((d) => ({
     </div>
   </section>
 
-  <section class="card" style="padding: 1.5rem 1.6rem; margin-bottom: 3rem;">
-    <h2 style="font-size: 1.2rem; margin-bottom: 0.75rem;">{p.howHeading}</h2>
-    <div style="display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));">
+  <section class="card home-how">
+    <h2 class="section-heading section-heading--sm">{p.howHeading}</h2>
+    <div class="card-grid card-grid--fit" style="--card-min: 15rem; --card-gap: 1.1rem">
       {
         p.how.map((point) => (
           <div>
             <strong>{point.title}</strong>
-            <p class="muted" style="margin: 0.25rem 0 0; font-size: 0.94rem;">{point.body}</p>
+            <p class="muted home-how-body">{point.body}</p>
           </div>
         ))
       }
     </div>
   </section>
 
-  <section
-    class="card"
-    style="padding: 1.4rem 1.5rem; border-color: var(--accent-border); background: var(--accent-soft);"
-  >
-    <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem;">{p.clearHeading}</h2>
-    <p style="margin: 0 0 0.6rem;">{p.clearBody}</p>
-    <p class="muted" style="margin: 0;">
+  <section class="card note note--accent">
+    <h2 class="section-heading section-heading--sm">{p.clearHeading}</h2>
+    <p class="note-body">{p.clearBody}</p>
+    <p class="muted note-body note-body--last">
       {p.clearBodyAfter}<a href={href('about/')}>{p.clearLink}</a>.
     </p>
   </section>

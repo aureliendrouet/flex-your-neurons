@@ -18,41 +18,41 @@ const p = dict(locale).pages.terms;
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
-  <div style="display: grid; gap: 2.5rem; max-width: 46rem;">
-    <p class="subtle" style="margin: 0; font-size: 0.9rem;" data-testid="terms-updated">
+  <div class="prose-sections prose-sections--tight">
+    <p class="subtle small flush" data-testid="terms-updated">
       {p.updated}
     </p>
 
     {
       p.sections.map((section, i) => (
         <section data-terms-section={String(i + 1)}>
-          <h2 style="font-size: 1.3rem; margin-bottom: 0.75rem;">
-            <span class="subtle" style="font-variant-numeric: tabular-nums;">{i + 1}.</span>{' '}
+          <h2 class="section-heading section-heading--num">
+            <span class="subtle section-number">{i + 1}.</span>{' '}
             {section.heading}
           </h2>
           {section.body.map((paragraph) => (
-            <p style="margin: 0 0 0.75rem;">{paragraph}</p>
+            <p class="terms-paragraph">{paragraph}</p>
           ))}
         </section>
       ))
     }
 
-    <section class="card" style="padding: 1.25rem 1.4rem; display: grid; gap: 0.6rem;">
+    <section class="card terms-publisher">
       <div>
         <strong>{p.publisherLabel}</strong>
-        <p class="muted" style="margin: 0.2rem 0 0;" data-testid="terms-publisher">{p.publisher}</p>
+        <p class="muted note-card-body" data-testid="terms-publisher">{p.publisher}</p>
       </div>
       <div>
         <strong>{p.contactLabel}</strong>
-        <p class="muted" style="margin: 0.2rem 0 0;">
-          <a href={p.contact} rel="noopener noreferrer" style="overflow-wrap: anywhere;">
+        <p class="muted note-card-body">
+          <a href={p.contact} rel="noopener noreferrer" class="break-anywhere">
             {p.contact}
           </a>
         </p>
       </div>
       <div>
         <strong>{p.hostLabel}</strong>
-        <p class="muted" style="margin: 0.2rem 0 0;">{p.host}</p>
+        <p class="muted note-card-body">{p.host}</p>
       </div>
     </section>
   </div>

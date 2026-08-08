@@ -37,7 +37,7 @@ export default function ActivityChart({
 
   if (max === 0) {
     return (
-      <p class="muted" data-testid="activity-chart-empty" style={{ margin: 0, fontSize: '0.92rem' }}>
+      <p class="muted chart-empty" data-testid="activity-chart-empty">
         {emptyMessage}
       </p>
     );
@@ -51,7 +51,7 @@ export default function ActivityChart({
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      style={{ width: '100%', height: 'auto', color: 'var(--text)', display: 'block' }}
+      class="chart-svg"
       role="img"
       aria-label={label}
       data-testid="activity-chart"

@@ -13,13 +13,13 @@ const p = dict(locale).pages.test;
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
-  <div class="card" style="padding: 1.75rem 1.5rem; margin-bottom: 2rem;">
+  <div class="card quiz-stage">
     <Quiz client:only="preact" mode="test" types={ITEM_TYPE_IDS} locale={locale} length={20} />
   </div>
 
-  <section class="card" style="padding: 1.35rem 1.5rem;">
-    <h2 style="font-size: 1.05rem; margin-bottom: 0.5rem;">{p.differsHeading}</h2>
-    <ul class="muted" style="margin: 0; padding-left: 1.15rem; display: grid; gap: 0.4rem;">
+  <section class="card prose-card">
+    <h2 class="section-heading section-heading--xs">{p.differsHeading}</h2>
+    <ul class="muted spaced-list">
       {p.differs.map((line) => <li>{line}</li>)}
     </ul>
   </section>

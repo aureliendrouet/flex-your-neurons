@@ -56,11 +56,11 @@ const fr = dict('fr').pages.redirect;
     </script>
   </head>
   <body>
-    <main class="shell" style="padding-block: 4rem; display: grid; gap: 1.25rem; place-items: start;">
-      <h1 style="font-size: 1.5rem;" data-testid="redirect-title">{en.title}</h1>
-      <p class="muted" style="margin: 0;">{en.body}</p>
-      <p class="muted" style="margin: 0;" lang="fr">{fr.body}</p>
-      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <main class="shell chooser">
+      <h1 class="chooser-title" data-testid="redirect-title">{en.title}</h1>
+      <p class="muted flush">{en.body}</p>
+      <p class="muted flush" lang="fr">{fr.body}</p>
+      <div class="cluster">
         {
           languages.map((l) => (
             <a class="btn btn-lg" href={`${base}/${l.locale}/`} hreflang={l.locale} lang={l.locale} data-testid={`choose-${l.locale}`}>

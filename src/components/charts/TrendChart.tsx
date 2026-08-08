@@ -52,7 +52,7 @@ export default function TrendChart({
 
   if (count === 0) {
     return (
-      <p class="muted" data-testid={`${testid}-empty`} style={{ margin: 0, fontSize: '0.92rem' }}>
+      <p class="muted chart-empty" data-testid={`${testid}-empty`}>
         {emptyMessage}
       </p>
     );
@@ -67,7 +67,7 @@ export default function TrendChart({
   return (
     <svg
       viewBox={`0 0 ${W} ${H}`}
-      style={{ width: '100%', height: 'auto', color: 'var(--text)', display: 'block' }}
+      class="chart-svg"
       role="img"
       aria-label={label}
       data-testid={testid}

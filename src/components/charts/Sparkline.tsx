@@ -45,7 +45,7 @@ export default function Sparkline({ values, label, testid }: Props) {
       data-testid={testid}
       data-points={String(values.length)}
       data-trend={rising ? 'up' : 'down'}
-      style={{ color: 'var(--text)', verticalAlign: 'middle' }}
+      class="sparkline"
     >
       <line
         x1={PAD}

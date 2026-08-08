@@ -25,17 +25,17 @@ const root = import.meta.env.BASE_URL.replace(/\/$/, '');
   lede={text.blurb}
   ogImage={`${root}/${locale}/og/${type}.svg`}
 >
-  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+  <div class="cluster page-meta" style="--cluster-gap: 0.5rem">
     <span class="pill">{t.domains[meta.domain]} ({meta.domain})</span>
     <span class="pill">{t.pages.practiceType.seenIn(text.seenIn)}</span>
   </div>
 
-  <div class="card" style="padding: 1.75rem 1.5rem; margin-bottom: 2rem;">
+  <div class="card quiz-stage">
     <Quiz client:only="preact" mode="practice" types={[type]} locale={locale} />
   </div>
 
-  <section class="card" style="padding: 1.35rem 1.5rem;">
-    <h2 style="font-size: 1.05rem; margin-bottom: 0.5rem;">{t.pages.practiceType.aboutHeading}</h2>
-    <p class="muted" style="margin: 0;">{text.description}</p>
+  <section class="card prose-card">
+    <h2 class="section-heading section-heading--xs">{t.pages.practiceType.aboutHeading}</h2>
+    <p class="muted prose-card-body">{text.description}</p>
   </section>
 </Base>

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectedItem, practiceUrl, waitForQuiz, type DrillOptions } from './helpers';
+import { expectedItem, paintedColour, practiceUrl, waitForQuiz, type DrillOptions } from './helpers';
 
 const OPTS: DrillOptions = { seed: 'A11YTEST', difficulty: 2, length: 3 };
 
@@ -192,17 +192,16 @@ test.describe('layout', () => {
   test('the site renders in dark mode', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.goto('en/');
-    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    // The dark palette is near-black; the light one is near-white.
-    const [r, g, b] = bg.match(/\d+/g)!.map(Number) as [number, number, number];
+    // The dark palette is near-black; the light one is near-white. Read as painted sRGB
+    // rather than as a string, because the palette is authored in OKLCH.
+    const { r, g, b } = await paintedColour(page, 'body');
     expect(r + g + b).toBeLessThan(200);
   });
 
   test('the site renders in light mode', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'light' });
     await page.goto('en/');
-    const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-    const [r, g, b] = bg.match(/\d+/g)!.map(Number) as [number, number, number];
+    const { r, g, b } = await paintedColour(page, 'body');
     expect(r + g + b).toBeGreaterThan(600);
   });
 });

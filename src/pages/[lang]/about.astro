@@ -20,9 +20,9 @@ const types = allItemTypes(locale);
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
-  <div style="display: grid; gap: 3rem; max-width: 48rem;">
+  <div class="prose-sections">
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.procedureHeading}</h2>
+      <h2 class="section-heading">{p.procedureHeading}</h2>
       <p>{p.procedureP1}</p>
       <p>{p.procedureP2}</p>
       <ol class="muted">{p.procedureList.map((line) => <li>{line}</li>)}</ol>
@@ -30,9 +30,9 @@ const types = allItemTypes(locale);
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.chcHeading}</h2>
+      <h2 class="section-heading">{p.chcHeading}</h2>
       <p>{p.chcP1}</p>
-      <div class="card scroll-x" style="margin-top: 1rem;">
+      <div class="card scroll-x about-table">
         <table class="data">
           <thead>
             <tr>
@@ -45,7 +45,7 @@ const types = allItemTypes(locale);
             {
               domains.map((d) => (
                 <tr>
-                  <td style="font-family: var(--font-mono);">{d}</td>
+                  <td class="mono">{d}</td>
                   <td>{t.domains[d]}</td>
                   <td class="muted">
                     {types.filter((m) => m.domain === d).map((m) => m.name).join(', ')}
@@ -56,17 +56,17 @@ const types = allItemTypes(locale);
           </tbody>
         </table>
       </div>
-      <p class="muted" style="font-size: 0.94rem;">{p.chcNote}</p>
+      <p class="muted small">{p.chcNote}</p>
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.familiesHeading}</h2>
-      <div style="display: grid; gap: 1rem;">
+      <h2 class="section-heading">{p.familiesHeading}</h2>
+      <div class="card-stack">
         {
           p.families.map((f) => (
-            <div class="card" style="padding: 1.1rem 1.25rem;">
+            <div class="card note-card">
               <strong>{f.name}</strong>
-              <p class="muted" style="margin: 0.35rem 0 0; font-size: 0.95rem;">{f.body}</p>
+              <p class="muted note-card-body">{f.body}</p>
             </div>
           ))
         }
@@ -74,53 +74,53 @@ const types = allItemTypes(locale);
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.automationHeading}</h2>
+      <h2 class="section-heading">{p.automationHeading}</h2>
       <p>{p.automationBody}</p>
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.verbalHeading}</h2>
+      <h2 class="section-heading">{p.verbalHeading}</h2>
       <p>{p.verbalP1}</p>
       <p>{p.verbalP2}</p>
       <p class="muted">{p.verbalP3}</p>
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.guardsHeading}</h2>
+      <h2 class="section-heading">{p.guardsHeading}</h2>
       <p>{p.guardsLede}</p>
       {
         p.guards.map((g) => (
-          <div class="card" style="padding: 1.15rem 1.3rem; margin-bottom: 0.85rem;">
+          <div class="card note-card note-card--spaced">
             <strong>{g.title}</strong>
-            <p class="muted" style="margin: 0.35rem 0 0;">{g.body}</p>
+            <p class="muted note-card-body">{g.body}</p>
           </div>
         ))
       }
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.difficultyHeading}</h2>
+      <h2 class="section-heading">{p.difficultyHeading}</h2>
       <p>{p.difficultyP1}</p>
       <p class="muted">{p.difficultyP2}</p>
       <p>{p.difficultyP3}</p>
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.ceilingHeading}</h2>
+      <h2 class="section-heading">{p.ceilingHeading}</h2>
       <p>{p.ceilingP1}</p>
       <p>{p.ceilingP2}</p>
       <p>{p.ceilingP3}</p>
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.notMeasuredHeading}</h2>
+      <h2 class="section-heading">{p.notMeasuredHeading}</h2>
       <p>{p.notMeasuredLede}</p>
-      <div style="display: grid; gap: 0.85rem; margin: 1rem 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));">
+      <div class="card-grid card-grid--fit about-not-measured" style="--card-min: 15rem; --card-gap: 0.85rem">
         {
           p.notMeasured.map((item) => (
-            <div class="card" style="padding: 1rem 1.15rem;">
+            <div class="card note-card note-card--tight">
               <strong>{item.title}</strong>
-              <p class="muted" style="margin: 0.3rem 0 0; font-size: 0.94rem;">{item.body}</p>
+              <p class="muted note-card-body">{item.body}</p>
             </div>
           ))
         }
@@ -129,32 +129,32 @@ const types = allItemTypes(locale);
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.limitsHeading}</h2>
-      <div style="display: grid; gap: 1rem;">
+      <h2 class="section-heading">{p.limitsHeading}</h2>
+      <div class="card-stack">
         {
           p.limits.map((l) => (
             <div>
               <strong>{l.title}</strong>
-              <p class="muted" style="margin: 0.25rem 0 0;">{l.body}</p>
+              <p class="muted note-card-body">{l.body}</p>
             </div>
           ))
         }
       </div>
     </section>
 
-    <section class="card" style="padding: 1.4rem 1.5rem;">
-      <h2 style="font-size: 1.15rem; margin-bottom: 0.5rem;">{p.dataHeading}</h2>
-      <p class="muted" style="margin: 0;">
+    <section class="card note">
+      <h2 class="section-heading section-heading--sm">{p.dataHeading}</h2>
+      <p class="muted prose-card-body">
         {p.dataBodyBefore}<a href={href('progress/')}>{p.dataLink}</a>{p.dataBodyAfter}
       </p>
     </section>
 
     <section>
-      <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">{p.sourcesHeading}</h2>
-      <ul class="muted" style="font-size: 0.92rem; display: grid; gap: 0.4rem; padding-left: 1.15rem;">
+      <h2 class="section-heading">{p.sourcesHeading}</h2>
+      <ul class="muted spaced-list small">
         {p.sources.map((line) => <li>{line}</li>)}
       </ul>
-      <p class="subtle" style="font-size: 0.9rem;">{p.sourcesNote}</p>
+      <p class="subtle small">{p.sourcesNote}</p>
     </section>
   </div>
 </Base>
