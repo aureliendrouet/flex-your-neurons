@@ -14,9 +14,17 @@ const type = Astro.params.type as ItemTypeId;
 const t = dict(locale);
 const meta = getMeta(type);
 const text = getItemText(type, locale);
+
+const root = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 
-<Base locale={locale} title={text.name} description={text.description} lede={text.blurb}>
+<Base
+  locale={locale}
+  title={text.name}
+  description={text.description}
+  lede={text.blurb}
+  ogImage={`${root}/${locale}/og/${type}.svg`}
+>
   <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
     <span class="pill">{t.domains[meta.domain]} ({meta.domain})</span>
     <span class="pill">{t.pages.practiceType.seenIn(text.seenIn)}</span>

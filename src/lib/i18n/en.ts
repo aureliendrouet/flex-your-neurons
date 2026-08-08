@@ -10,7 +10,7 @@
  * ("de" vs "d'"), and different plural rules, and those decisions belong in the locale
  * file rather than at the call site.
  */
-import type { ChcDomain, ItemTypeId } from '../types';
+import type { ChcDomain, ErrorType, ItemTypeId } from '../types';
 
 const en = {
   locale: {
@@ -110,8 +110,95 @@ const en = {
     },
   },
 
+  /**
+   * Copy for the build-time social cards.
+   *
+   * A preview image travels to places where none of the site's surrounding text does, so
+   * the "no score" position has to be on the image itself — short enough to read at
+   * thumbnail size in a chat window.
+   */
+  og: {
+    disclaimer: 'Practice, not assessment. No IQ score, ever.',
+  },
+
+  /**
+   * The seed, promoted from a URL parameter to something a reader can see and pass on.
+   *
+   * Replaying an exact item in either language is this site's most distinctive capability
+   * and it used to be invisible — discoverable only by noticing `?seed=` in the address
+   * bar. These strings are what make it an offer rather than an implementation detail.
+   */
+  seed: {
+    label: 'Seed',
+    /** Accessible name for the copy control; the visible glyph is decorative. */
+    copy: 'Copy the link that replays this run',
+    copyShort: 'Copy link',
+    copied: 'Link copied',
+    copyFailed: 'Could not copy — select the seed and copy it by hand.',
+    explain:
+      'This eight-character seed is the whole run. Anyone opening the copied link gets exactly these items, in whichever language they read — nothing is stored on a server, because the seed regenerates the items on their own machine.',
+  },
+
+  /**
+   * The error-type taxonomy, in words.
+   *
+   * Every distractor already carries a machine-readable diagnosis (`Item.errorTypes`,
+   * from Wang & Su — docs/IQ-TESTS.md §5.1). These strings are what turn that from a
+   * verdict into a lesson: not "wrong", but *which* misreading this was.
+   *
+   * The wording is deliberately format-neutral. A matrix, an analogy and a folded sheet
+   * can all be misread "one step too far", and the diagnosis is more useful stated as the
+   * general habit than as a fact about this one item — the item-specific part is already
+   * in `explanation.rules`.
+   */
+  diagnosis: {
+    heading: 'What went wrong',
+    /** Short label for the monospace chip. Lower case: it is a tag, not a sentence. */
+    tags: {
+      correct: 'correct',
+      'wrong-rule': 'wrong rule',
+      'wrong-axis': 'wrong axis',
+      'off-by-one': 'off by one',
+      copy: 'copied cell',
+      'wrong-attribute': 'wrong attribute',
+      mirror: 'mirrored',
+      plausible: 'near miss',
+    } as Record<ErrorType, string>,
+    bodies: {
+      correct: 'You applied every rule the item was built from.',
+      'wrong-rule':
+        'Right feature, wrong rule. You spotted which attribute changes, then applied a different transformation to it than the one the item is built on.',
+      'wrong-axis':
+        'Right rule, wrong direction. You read down the column instead of across the row. The rules here run along the rows; the columns only appear to be patterned because the rows are.',
+      'off-by-one':
+        'Right rule, one step too far. The transformation is applied once more — or once less — than the pattern calls for. Count the steps rather than eyeballing the end point.',
+      copy: 'That option simply repeats a figure already on screen. Something already visible can never be the missing part of the pattern.',
+      'wrong-attribute':
+        'Right rule, wrong feature. The transformation you applied is a real one here, but it governs a different attribute from the one you moved.',
+      mirror:
+        'That is a reflection, not a rotation. Pick one asymmetric feature and follow it: turning preserves its position relative to the rest, flipping reverses it.',
+      plausible:
+        'A near miss with no single diagnosis — it breaks the pattern in more than one way at once, so there is no one rule to correct.',
+    } as Record<ErrorType, string>,
+    /** Chip on a distractor once the answer is revealed. */
+    optionTag: (tag: string) => `wrong: ${tag}`,
+    /** Appended to a distractor's accessible name once revealed. */
+    optionAria: (tag: string) => `Incorrect — ${tag}.`,
+    answerLabel: 'The answer',
+  },
+
   results: {
     heading: 'Session complete',
+    /** The error-type breakdown for the session just finished. */
+    mistakesHeading: 'How you went wrong',
+    mistakesLede:
+      'Every wrong answer here is a specific misreading, and the same misreading tends to repeat. This is the one thing worth taking away from a session.',
+    mistakesNone: 'Nothing to break down — you got every item right.',
+    /** The headline finding: the single commonest way this session went wrong. */
+    commonestMistake: (tag: string, n: number, total: number) =>
+      `${n} of your ${total} wrong answer${total === 1 ? '' : 's'} ${n === 1 ? 'was' : 'were'} the same mistake: ${tag}.`,
+    mistakesSpread:
+      'Your wrong answers were spread across several different mistakes, with no single habit standing out.',
     correct: 'Correct',
     accuracy: 'Accuracy',
     medianTime: 'Median time',

@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useStore } from '@nanostores/preact';
+import SeedChip from './SeedChip';
 import StimulusView from './StimulusView';
 import FigureView, { describeFigure } from './FigureView';
 import GridView from './GridView';
@@ -18,11 +19,13 @@ import {
   advanceLadder,
   formatDuration,
   formatPercent,
+  dominantErrorType,
   isCorrect,
   median,
   newLadder,
   normaliseTextAnswer,
   suggestedStart,
+  tallyErrorTypes,
   type Ladder,
 } from '../lib/scoring';
 import {
@@ -33,7 +36,7 @@ import {
   newSession,
   saveSession,
 } from '../lib/store';
-import type { Difficulty, ItemTypeId, Option, Response, Session } from '../lib/types';
+import type { Difficulty, ErrorType, ItemTypeId, Option, Response, Session } from '../lib/types';
 
 interface Props {
   mode: 'practice' | 'test';
@@ -215,6 +218,7 @@ export default function Quiz({
         correct,
         Math.max(0, Math.round(performance.now() - shownAt.current)),
         text,
+        choiceIndex === null ? undefined : item.errorTypes[choiceIndex],
       );
       const all = [...responses, response];
       setResponses(all);
@@ -314,6 +318,17 @@ export default function Quiz({
   const wasCorrect = revealed && responses[responses.length - 1]?.correct === true;
   const tip = t.quiz.tip(item.options.length);
 
+  /**
+   * The named mistake for the option actually chosen, or `null` when there is nothing to
+   * diagnose: a correct answer, a text-entry format (no distractors exist to diagnose),
+   * or a generator that left the slot as `'correct'`.
+   */
+  const chosenErrorType = chosen === null ? undefined : item.errorTypes[chosen];
+  const diagnosis =
+    revealed && !wasCorrect && chosenErrorType && chosenErrorType !== 'correct'
+      ? chosenErrorType
+      : null;
+
   return (
     <div
       data-testid="quiz"
@@ -333,9 +348,12 @@ export default function Quiz({
             {t.quiz.level(item.difficulty)}
           </span>
         </div>
-        <span class="muted" data-testid="progress-label" style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {t.quiz.progress(Math.min(answered + (revealed ? 0 : 1), total), total)}
-        </span>
+        <div class="quiz-header-right">
+          <span class="muted" data-testid="progress-label" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {t.quiz.progress(Math.min(answered + (revealed ? 0 : 1), total), total)}
+          </span>
+          <SeedChip seed={session.seed} locale={locale} />
+        </div>
       </header>
 
       <div class="meter" aria-hidden="true">
@@ -414,6 +432,7 @@ export default function Quiz({
           options={item.options}
           chosen={chosen}
           answerIndex={item.answerIndex}
+          errorTypes={item.errorTypes}
           revealed={revealed}
           locale={locale}
           onPick={(i) => submit(i)}
@@ -422,30 +441,46 @@ export default function Quiz({
 
       {revealed && (
         <div
-          class="card"
+          class="card feedback"
           data-testid="feedback"
           data-correct={String(wasCorrect)}
-          style={{
-            padding: '1.1rem 1.25rem',
-            borderColor: wasCorrect ? 'var(--correct-border)' : 'var(--wrong-border)',
-            background: wasCorrect ? 'var(--correct-soft)' : 'var(--wrong-soft)',
-          }}
+          data-error-type={diagnosis ?? undefined}
         >
-          <strong style={{ color: wasCorrect ? 'var(--correct)' : 'var(--wrong)' }} data-testid="verdict">
+          <strong class="feedback-verdict" data-testid="verdict">
             {wasCorrect ? t.quiz.correct : t.quiz.notQuite}
           </strong>
-          <p style={{ margin: '0.4rem 0 0' }}>{item.explanation.summary}</p>
-          <ul style={{ margin: '0.6rem 0 0', paddingLeft: '1.1rem' }} class="muted">
+
+          {/*
+           * The diagnosis leads, ahead of both the rules and the answer. Someone who got
+           * the item wrong came here to find out *which* mistake they made; the answer
+           * they can see for themselves in the option grid.
+           */}
+          {diagnosis && (
+            <div class="diagnosis" data-testid="diagnosis" data-error-type={diagnosis}>
+              <span class="tag" data-testid="diagnosis-tag">
+                {t.diagnosis.tags[diagnosis]}
+              </span>
+              <p class="diagnosis-body">{t.diagnosis.bodies[diagnosis]}</p>
+            </div>
+          )}
+
+          <ul class="feedback-rules muted">
             {item.explanation.rules.map((rule, i) => (
               <li key={i}>{rule}</li>
             ))}
           </ul>
+
+          <p class="feedback-answer" data-testid="answer-summary">
+            <span class="subtle feedback-answer-label">{t.diagnosis.answerLabel}</span>{' '}
+            {item.explanation.summary}
+          </p>
+
           {item.responseMode === 'text' && !wasCorrect && (
-            <p class="muted" style={{ margin: '0.6rem 0 0' }}>
+            <p class="muted feedback-typed">
               {t.quiz.youTyped(normaliseTextAnswer(typed) || t.quiz.nothing)}
             </p>
           )}
-          <button class="btn btn-primary" style={{ marginTop: '0.9rem' }} onClick={next} data-testid="next">
+          <button class="btn btn-primary feedback-next" onClick={next} data-testid="next">
             {responses.length >= total ? t.quiz.seeResults : t.quiz.next} <span aria-hidden="true">↵</span>
           </button>
         </div>
@@ -466,6 +501,7 @@ function OptionGrid({
   options,
   chosen,
   answerIndex,
+  errorTypes,
   revealed,
   locale,
   onPick,
@@ -473,6 +509,7 @@ function OptionGrid({
   options: Option[];
   chosen: number | null;
   answerIndex: number;
+  errorTypes: ErrorType[];
   revealed: boolean;
   locale: Locale;
   onPick: (i: number) => void;
@@ -484,15 +521,7 @@ function OptionGrid({
       data-testid="options"
       role="group"
       aria-label={t.quiz.answerOptions}
-      style={{
-        display: 'grid',
-        gap: '0.6rem',
-        gridTemplateColumns: isFigural
-          // Figural options need real estate: the fill textures and the size ramp are
-          // both unreadable below roughly 7rem of option width.
-          ? 'repeat(auto-fit, minmax(7rem, 1fr))'
-          : 'repeat(auto-fit, minmax(min(100%, 16rem), 1fr))',
-      }}
+      class={isFigural ? 'option-grid option-grid--figural' : 'option-grid'}
     >
       {options.map((option, i) => {
         let state: string | undefined;
@@ -502,23 +531,43 @@ function OptionGrid({
         } else if (i === chosen) {
           state = 'chosen';
         }
+        /*
+         * Once the answer is out, every distractor says how it is wrong — so the grid
+         * stops being seven rejects around one winner and becomes a map of the ways this
+         * item can be misread. Only shown when revealed: before that it would be the
+         * answer key.
+         */
+        const errorType = errorTypes[i];
+        const tag =
+          revealed && i !== answerIndex && errorType && errorType !== 'correct'
+            ? t.diagnosis.tags[errorType]
+            : null;
         return (
           <button
             key={i}
-            class="option"
+            class={isFigural ? 'option option--figural' : 'option'}
             data-testid={`option-${i}`}
             data-option-index={String(i)}
             data-state={state}
             data-correct={revealed ? String(i === answerIndex) : undefined}
+            data-error-type={revealed ? errorType : undefined}
             disabled={revealed}
             onClick={() => onPick(i)}
-            style={isFigural ? { flexDirection: 'column', gap: '0.35rem' } : undefined}
-            aria-label={optionLabel(option, i, locale)}
+            aria-label={
+              tag
+                ? `${optionLabel(option, i, locale)} — ${t.diagnosis.optionAria(tag)}`
+                : optionLabel(option, i, locale)
+            }
           >
             <span class="option-key" aria-hidden="true">
               {i + 1}
             </span>
             <OptionBody option={option} />
+            {tag && (
+              <span class="tag option-tag" aria-hidden="true">
+                {t.diagnosis.optionTag(tag)}
+              </span>
+            )}
           </button>
         );
       })}
@@ -591,8 +640,21 @@ function Results({
         <Stat label={t.results.correct} value={`${correct} / ${total}`} testid="stat-correct" />
         <Stat label={t.results.accuracy} value={formatPercent(accuracy, locale)} testid="stat-accuracy" />
         <Stat label={t.results.medianTime} value={formatDuration(speed, locale)} testid="stat-speed" />
-        <Stat label={t.results.seed} value={session.seed} testid="stat-seed" mono />
+        {/*
+         * The seed gets a card of its own rather than a row of digits in a table: it is the
+         * only figure here that is an *action* — the thing you send to someone else.
+         */}
+        <div class="card stat stat--seed" data-testid="stat-seed">
+          <div class="stat-label subtle">{t.results.seed}</div>
+          <SeedChip seed={session.seed} locale={locale} variant="full" />
+        </div>
       </div>
+
+      <p class="subtle seed-explain" data-testid="seed-explain">
+        {t.seed.explain}
+      </p>
+
+      <MistakeBreakdown responses={session.responses} locale={locale} />
 
       <div class="card" style={{ padding: '1rem 1.25rem' }}>
         <h3 style={{ fontSize: '1rem', marginBottom: '0.5rem' }}>{t.results.byItemType}</h3>
@@ -640,15 +702,61 @@ function Results({
   );
 }
 
-function Stat({ label, value, testid, mono }: { label: string; value: string; testid: string; mono?: boolean }) {
+/**
+ * The error-type breakdown for a finished session.
+ *
+ * This is the payoff of storing a diagnosis per response: "most of your errors were
+ * wrong-axis" is a finding about how someone reads a matrix, which no accuracy percentage
+ * can express. It is deliberately a count and a name — never a score, and never a
+ * normative comparison.
+ */
+function MistakeBreakdown({ responses, locale }: { responses: Response[]; locale: Locale }) {
+  const t = dict(locale);
+  const tally = tallyErrorTypes(responses);
+  const total = tally.reduce((sum, x) => sum + x.count, 0);
+  const dominant = dominantErrorType(tally);
+  const wrong = responses.filter((r) => !r.correct).length;
+
+  // Nothing diagnosable: either a clean sweep, or a run of text-entry items which have no
+  // distractors to name. Saying so beats an empty card.
+  if (total === 0) {
+    return (
+      <div class="card mistakes" data-testid="mistakes" data-count="0">
+        <h3 class="mistakes-heading">{t.results.mistakesHeading}</h3>
+        <p class="muted mistakes-empty">
+          {wrong === 0 ? t.results.mistakesNone : t.results.mistakesSpread}
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div class="card" style={{ padding: '0.9rem 1rem' }} data-testid={testid}>
-      <div class="subtle" style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-        {label}
-      </div>
-      <div style={{ fontSize: '1.5rem', fontWeight: 650, fontFamily: mono ? 'var(--font-mono)' : undefined }}>
-        {value}
-      </div>
+    <div class="card mistakes" data-testid="mistakes" data-count={String(total)}>
+      <h3 class="mistakes-heading">{t.results.mistakesHeading}</h3>
+      <p class="mistakes-finding" data-testid="mistakes-finding">
+        {dominant
+          ? t.results.commonestMistake(t.diagnosis.tags[dominant.errorType], dominant.count, total)
+          : t.results.mistakesSpread}
+      </p>
+      <ul class="mistakes-list">
+        {tally.map((x) => (
+          <li key={x.errorType} data-error-type={x.errorType}>
+            <span class="tag">{t.diagnosis.tags[x.errorType]}</span>
+            <span class="mistakes-count">{x.count}</span>
+            <span class="muted mistakes-body">{t.diagnosis.bodies[x.errorType]}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="subtle mistakes-lede">{t.results.mistakesLede}</p>
+    </div>
+  );
+}
+
+function Stat({ label, value, testid }: { label: string; value: string; testid: string }) {
+  return (
+    <div class="card stat" data-testid={testid}>
+      <div class="stat-label subtle">{label}</div>
+      <div class="stat-value">{value}</div>
     </div>
   );
 }

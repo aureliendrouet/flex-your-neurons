@@ -1,6 +1,8 @@
 ---
 import Base from '../../../layouts/Base.astro';
+import ItemThumb from '../../../components/ItemThumb';
 import { allItemTypes } from '../../../lib/generators';
+import { previewItem } from '../../../lib/previews';
 import { dict, LOCALES, type Locale } from '../../../lib/i18n';
 
 export function getStaticPaths() {
@@ -26,8 +28,8 @@ const types = allItemTypes(locale);
           data-testid={`practice-card-${meta.id}`}
           style="padding: 1.25rem; text-decoration: none; color: inherit; display: grid; gap: 0.4rem; align-content: start;"
         >
+          <ItemThumb item={previewItem(meta.id, locale)} />
           <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-            <span style="font-size: 1.4rem;" aria-hidden="true">{meta.icon}</span>
             <strong style="font-size: 1.05rem;">{meta.name}</strong>
             <span class="pill" style="margin-left: auto;">{t.domains[meta.domain]}</span>
           </div>

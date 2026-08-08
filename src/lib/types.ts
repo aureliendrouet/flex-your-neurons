@@ -228,6 +228,15 @@ export interface Response {
   correct: boolean;
   /** Milliseconds from item shown to answer submitted. */
   latencyMs: number;
+  /**
+   * The diagnosis for the option actually chosen, i.e. `item.errorTypes[chosenIndex]`.
+   *
+   * Stored rather than re-derived because it is the one thing about a response that the
+   * seed cannot cheaply give back: recovering it would mean regenerating every item in
+   * every session just to read one array element. Optional, so histories written before
+   * the taxonomy was surfaced still load.
+   */
+  errorType?: ErrorType;
 }
 
 export type SessionMode = 'practice' | 'test';

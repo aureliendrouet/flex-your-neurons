@@ -121,8 +121,71 @@ const fr: Dict = {
     },
   },
 
+  /** Textes des cartes de partage générées au build. */
+  og: {
+    disclaimer: 'Entraînement, pas évaluation. Jamais de score de QI.',
+  },
+
+  /**
+   * La graine, promue du statut de paramètre d’URL à celui d’objet visible et partageable.
+   */
+  seed: {
+    label: 'Graine',
+    copy: 'Copier le lien qui rejoue cette série',
+    copyShort: 'Copier le lien',
+    copied: 'Lien copié',
+    copyFailed: 'Copie impossible — sélectionnez la graine et copiez-la à la main.',
+    explain:
+      'Cette graine de huit caractères contient toute la série. Qui ouvre le lien copié obtient exactement ces items, dans la langue qu’il lit — rien n’est stocké sur un serveur, puisque la graine régénère les items sur sa propre machine.',
+  },
+
+  /**
+   * La taxonomie des erreurs, en mots. Les libellés courts sont en minuscules : ce sont
+   * des étiquettes, pas des phrases.
+   */
+  diagnosis: {
+    heading: 'Où ça a dérapé',
+    tags: {
+      correct: 'correct',
+      'wrong-rule': 'mauvaise règle',
+      'wrong-axis': 'mauvais axe',
+      'off-by-one': 'un pas de trop',
+      copy: 'case recopiée',
+      'wrong-attribute': 'mauvais attribut',
+      mirror: 'image miroir',
+      plausible: 'presque juste',
+    },
+    bodies: {
+      correct: 'Vous avez appliqué toutes les règles qui construisent cet item.',
+      'wrong-rule':
+        'Le bon attribut, mais la mauvaise règle. Vous avez repéré ce qui change, puis vous lui avez appliqué une autre transformation que celle sur laquelle l’item est bâti.',
+      'wrong-axis':
+        'La bonne règle, mais dans le mauvais sens : vous avez lu la colonne au lieu de la ligne. Ici les règles courent le long des lignes ; les colonnes ne semblent régulières que par ricochet.',
+      'off-by-one':
+        'La bonne règle, poussée d’un pas de trop — ou d’un pas de trop peu. Comptez les étapes au lieu d’estimer le point d’arrivée.',
+      copy: 'Cette option ne fait que reprendre une figure déjà affichée. Ce qui est déjà visible ne peut pas être la pièce manquante.',
+      'wrong-attribute':
+        'La bonne règle, mais sur le mauvais attribut. La transformation que vous avez appliquée existe bien ici, mais elle gouverne autre chose que ce que vous avez fait varier.',
+      mirror:
+        'C’est un reflet, pas une rotation. Choisissez un détail asymétrique et suivez-le : tourner conserve sa position relative, retourner l’inverse.',
+      plausible:
+        'Presque juste, sans diagnostic unique : cette option casse le motif de plusieurs façons à la fois, il n’y a donc pas une seule règle à corriger.',
+    },
+    optionTag: (tag: string) => `faux : ${tag}`,
+    optionAria: (tag: string) => `Incorrect — ${tag}.`,
+    answerLabel: 'La réponse',
+  },
+
   results: {
     heading: 'Session terminée',
+    mistakesHeading: 'Comment vous vous êtes trompé',
+    mistakesLede:
+      'Chaque mauvaise réponse correspond à une lecture erronée précise, et la même revient souvent. C’est la seule chose vraiment utile à retenir d’une session.',
+    mistakesNone: 'Rien à décomposer : vous avez tout juste.',
+    commonestMistake: (tag: string, n: number, total: number) =>
+      `${n} de vos ${total} mauvaise${total === 1 ? '' : 's'} réponse${total === 1 ? '' : 's'} ${n === 1 ? 'relève' : 'relèvent'} de la même erreur : ${tag}.`,
+    mistakesSpread:
+      'Vos erreurs se répartissent entre plusieurs types différents, sans qu’une habitude se dégage.',
     correct: 'Bonnes réponses',
     accuracy: 'Précision',
     medianTime: 'Temps médian',

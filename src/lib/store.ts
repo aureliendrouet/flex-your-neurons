@@ -11,7 +11,7 @@
  */
 import { persistentAtom } from '@nanostores/persistent';
 import { computed } from 'nanostores';
-import type { Difficulty, ItemTypeId, Response, Session, SessionMode } from './types';
+import type { Difficulty, ErrorType, ItemTypeId, Response, Session, SessionMode } from './types';
 import { summarise, type Summary } from './scoring';
 import { randomSeed } from './rng';
 import { dict, DEFAULT_LOCALE, type Locale } from './i18n';
@@ -116,6 +116,7 @@ export function makeResponse(
   correct: boolean,
   latencyMs: number,
   chosenText?: string,
+  errorType?: ErrorType,
 ): Response {
   return {
     type,
@@ -126,6 +127,9 @@ export function makeResponse(
     answerIndex,
     correct,
     latencyMs,
+    // Omitted rather than written as undefined: `JSON.stringify` would drop the key
+    // anyway, and an absent key is what an older history looks like.
+    ...(errorType === undefined ? {} : { errorType }),
   };
 }
 

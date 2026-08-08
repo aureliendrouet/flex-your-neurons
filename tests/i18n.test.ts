@@ -101,6 +101,7 @@ describe('dictionaries', () => {
       'results.colType',
       'dashboard.colType',
       'dashboard.sessions',
+      'diagnosis.tags.correct', // "correct" is the French word too
       'pages.about.chcColCode', // "Code"
       'pages.about.sourcesHeading', // "Sources"
       // Facts that do not translate.

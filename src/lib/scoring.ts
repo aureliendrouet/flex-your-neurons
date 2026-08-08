@@ -6,7 +6,7 @@
  * (docs/IQ-TESTS.md §8). What is reported instead is the user's own accuracy, speed, and
  * change over time — quantities this app can actually measure.
  */
-import type { ChcDomain, Difficulty, ItemTypeId, Response, Session } from './types';
+import type { ChcDomain, Difficulty, ErrorType, ItemTypeId, Response, Session } from './types';
 import { getMeta } from './generators';
 import { dict, DEFAULT_LOCALE, type Locale } from './i18n';
 
@@ -180,6 +180,56 @@ function lastPlayed(sessions: Session[], type: ItemTypeId): number | null {
     if (latest === null || t > latest) latest = t;
   }
   return latest;
+}
+
+// ---------------------------------------------------------------------------
+// Error types — turning a verdict into a diagnosis
+// ---------------------------------------------------------------------------
+
+export interface ErrorTally {
+  errorType: ErrorType;
+  count: number;
+}
+
+/**
+ * Counts the named mistakes among a set of responses, commonest first.
+ *
+ * Only wrong answers are counted, and only those carrying a diagnosis: text-entry formats
+ * (digit span) have no distractors to diagnose, and histories written before the taxonomy
+ * was surfaced have no `errorType` at all. Both are absences, not zeroes, so they are
+ * dropped rather than bucketed — a "plausible" bucket inflated by every old response would
+ * make the breakdown say something false about the user's habits.
+ */
+export function tallyErrorTypes(responses: Response[]): ErrorTally[] {
+  const counts = new Map<ErrorType, number>();
+  for (const r of responses) {
+    if (r.correct) continue;
+    const type = r.errorType;
+    if (type === undefined || type === 'correct') continue;
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([errorType, count]) => ({ errorType, count }))
+    // Ties broken by name so the order is stable across renders and across locales.
+    .sort((a, b) => b.count - a.count || a.errorType.localeCompare(b.errorType));
+}
+
+/**
+ * The single commonest mistake, when one genuinely stands out.
+ *
+ * "Stands out" means at least a third of the diagnosed errors and at least two
+ * occurrences. Below that the honest report is that the errors were spread — naming a
+ * "commonest" mistake from a 2–1–1 split would be reading a habit into noise, which is
+ * the same overclaiming this site refuses to do with scores.
+ */
+export function dominantErrorType(tally: ErrorTally[]): ErrorTally | null {
+  const total = tally.reduce((sum, t) => sum + t.count, 0);
+  const top = tally[0];
+  if (!top || total === 0) return null;
+  if (top.count < 2 || top.count / total < 1 / 3) return null;
+  // A tie for first place is not a dominant habit either.
+  if (tally[1] && tally[1].count === top.count) return null;
+  return top;
 }
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,8 @@
 ---
 import Base from '../../layouts/Base.astro';
+import ItemThumb from '../../components/ItemThumb';
 import { allItemTypes } from '../../lib/generators';
+import { previewItem } from '../../lib/previews';
 import { dict, LOCALES, type Locale } from '../../lib/i18n';
 import type { ChcDomain } from '../../lib/types';
 
@@ -49,7 +51,12 @@ const byDomain = domains.map((d) => ({
                   data-testid={`type-card-${meta.id}`}
                   style="padding: 1.1rem 1.15rem; text-decoration: none; color: inherit; display: grid; gap: 0.35rem; align-content: start;"
                 >
-                  <span style="font-size: 1.5rem; line-height: 1;" aria-hidden="true">{meta.icon}</span>
+                  {/*
+                   * A real item from this format, at a pinned seed, drawn by the same
+                   * generator the drill uses. It replaces an emoji that told you nothing
+                   * about what you were choosing.
+                   */}
+                  <ItemThumb item={previewItem(meta.id, locale)} />
                   <strong style="font-size: 1.02rem;">{meta.name}</strong>
                   <span class="muted" style="font-size: 0.92rem;">{meta.blurb}</span>
                   <span class="subtle" style="font-size: 0.78rem; margin-top: 0.25rem;">
