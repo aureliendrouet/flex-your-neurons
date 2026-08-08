@@ -285,6 +285,31 @@ export default function Quiz({
   }, []);
 
   /**
+   * Focus mode: while an item is live, the site chrome recedes.
+   *
+   * The flags go on `<html>` rather than on the quiz root because what has to change is
+   * everything *around* the island — the header, the footer, the prose below — and an island
+   * cannot style its own ancestors. Removed on unmount and whenever the answer is revealed,
+   * so the interface comes back the moment measurement stops.
+   *
+   * `data-speeded` marks the formats where motion is not a matter of taste. On a task scored
+   * by response time, an animation anywhere near the stimulus is an active confound: it
+   * competes for attention during the exact interval being measured. It covers the
+   * processing-speed formats and anything with a transient presentation.
+   */
+  const speeded = item !== null && (item.presentation !== undefined || getMeta(item.type).domain === 'Gs');
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.toggleAttribute('data-focus', phase === 'answering');
+    root.toggleAttribute('data-speeded', speeded);
+    return () => {
+      root.removeAttribute('data-focus');
+      root.removeAttribute('data-speeded');
+    };
+  }, [phase, speeded]);
+
+  /**
    * Flips once effects have run, so `data-hydrated` on the quiz root is a real signal
    * that the island is interactive. Declared after the listener effect, which guarantees
    * the listener is attached by the time this fires. The end-to-end tests wait on it
@@ -336,6 +361,8 @@ export default function Quiz({
       data-item-type={item.type}
       data-difficulty={String(item.difficulty)}
       data-locale={locale}
+      data-speeded={String(speeded)}
+      data-phase={phase}
       class="stack"
       style={{ '--stack-gap': '1.25rem' } as never}
     >

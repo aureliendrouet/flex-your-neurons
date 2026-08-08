@@ -2131,6 +2131,113 @@ a {
   transition: width var(--dur) var(--ease-out);
 }
 
+/* --- Focus mode ----------------------------------------------------------- */
+
+/*
+ * While an item is live, everything that is not the item recedes.
+ *
+ * `data-focus` is set on <html> by the quiz island for exactly as long as an answer is being
+ * collected. The claim this makes is not decorative: an instrument that visibly quiets itself
+ * while measuring is both more distinctive than one that gets louder *and* more valid, because
+ * the surrounding interface stops competing for attention during the interval being timed.
+ *
+ * Everything recedes rather than disappearing, and every control stays operable. A header
+ * that vanished would be a trap — someone who wants to leave mid-drill must be able to.
+ */
+[data-focus] .site-header {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* The horizon goes out entirely: it is ornament, and this is the moment for none. */
+[data-focus] .site-header::after {
+  opacity: 0;
+}
+
+[data-focus] .nav,
+[data-focus] .lang-switch,
+[data-focus] .wordmark,
+[data-focus] .site-footer,
+[data-focus] .page-head,
+[data-focus] .page-meta,
+[data-focus] .prose-card {
+  opacity: 0.42;
+  filter: saturate(0.25);
+  transition: opacity var(--dur-slow) var(--ease-out), filter var(--dur-slow) var(--ease-out);
+}
+
+/*
+ * Reaching for the chrome brings it straight back, at full strength. Without this the
+ * receding would be a cost rather than a courtesy: `:focus-within` matters as much as
+ * `:hover`, because a keyboard user tabbing to the navigation must not be tabbing into
+ * something half-faded.
+ */
+[data-focus] .site-header:hover .nav,
+[data-focus] .site-header:hover .lang-switch,
+[data-focus] .site-header:hover .wordmark,
+[data-focus] .site-header:focus-within .nav,
+[data-focus] .site-header:focus-within .lang-switch,
+[data-focus] .site-header:focus-within .wordmark,
+[data-focus] .site-footer:hover,
+[data-focus] .site-footer:focus-within,
+[data-focus] .prose-card:hover,
+[data-focus] .prose-card:focus-within {
+  opacity: 1;
+  filter: none;
+}
+
+/* The stimulus is the only lit thing on screen: its card keeps its full contrast. */
+[data-focus] .quiz-stage {
+  box-shadow: var(--shadow-md);
+}
+
+/* --- Speeded formats: no motion, at all ----------------------------------- */
+
+/*
+ * On a task scored by response time, motion near the stimulus is a measurement confound
+ * rather than a matter of taste — it competes for attention during the exact interval being
+ * timed. So on the processing-speed formats and on anything with a transient presentation,
+ * the decoration is not merely faster: it is off.
+ *
+ * The digit-span playback itself is deliberately untouched. That animation *is* the
+ * construct: the sequence has to be gone before the answer is given, or the task measures
+ * reading rather than memory.
+ */
+[data-speeded] .site-header,
+[data-speeded] .nav,
+[data-speeded] .lang-switch,
+[data-speeded] .wordmark,
+[data-speeded] .site-footer,
+[data-speeded] .page-head,
+[data-speeded] .page-meta,
+[data-speeded] .prose-card {
+  transition: none;
+}
+
+[data-speeded] .wordmark-text {
+  animation: none;
+  background: none;
+  -webkit-text-fill-color: var(--text);
+}
+
+[data-speeded] .site-header::after {
+  transition: none;
+}
+
+[data-speeded] .meter > span {
+  transition: none;
+}
+
+[data-speeded] .feedback {
+  animation: none;
+}
+
+[data-speeded] .option,
+[data-speeded] .btn {
+  transition: none;
+}
+
 table.data {
   width: 100%;
   border-collapse: collapse;
