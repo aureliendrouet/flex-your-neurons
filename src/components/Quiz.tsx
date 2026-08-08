@@ -332,15 +332,29 @@ export default function Quiz({
    */
   const speeded = item !== null && (item.presentation !== undefined || getMeta(item.type).domain === 'Gs');
 
+  /*
+   * `data-drill` marks "an item is on screen right now", which is a different claim from
+   * `data-focus` ("an answer is being collected"). Focus mode quiets the chrome; drill mode
+   * gives the item the viewport.
+   *
+   * It has to cover the revealed phase too. If the lock ended at reveal, answering an item
+   * would drop the page back into document flow — the page heading and the format blurb
+   * would spring back and shove the option grid down the screen at the exact moment its
+   * tags became worth reading.
+   */
+  const drilling = phase === 'answering' || phase === 'revealed';
+
   useEffect(() => {
     const root = document.documentElement;
     root.toggleAttribute('data-focus', phase === 'answering');
+    root.toggleAttribute('data-drill', drilling);
     root.toggleAttribute('data-speeded', speeded);
     return () => {
       root.removeAttribute('data-focus');
+      root.removeAttribute('data-drill');
       root.removeAttribute('data-speeded');
     };
-  }, [phase, speeded]);
+  }, [phase, drilling, speeded]);
 
   /**
    * Flips once effects have run, so `data-hydrated` on the quiz root is a real signal
@@ -396,7 +410,7 @@ export default function Quiz({
       data-locale={locale}
       data-speeded={String(speeded)}
       data-phase={phase}
-      class="stack"
+      class="stack quiz-root"
       style={{ '--stack-gap': '1.25rem' } as never}
     >
       <header class="cluster cluster--between quiz-header" style={{ '--cluster-gap': '1rem' } as never}>
@@ -422,139 +436,159 @@ export default function Quiz({
         <span style={{ '--fill': `${(answered / total) * 100}%` } as never} />
       </div>
 
-      <h2 class="quiz-prompt" data-testid="prompt">
-        {item.prompt}
-      </h2>
-
-      <StimulusView
-        stimulus={item.stimulus}
-        locale={locale}
-        presentation={item.presentation}
-        reducedMotion={settings.reducedMotion}
-        onPresentationDone={() => {
-          /*
-           * PLAN-2026-08 §2.2. A span item plays its sequence before a response is
-           * possible, and the playback lengthens with difficulty. Timing from the mount
-           * would therefore record "the harder the item, the longer you thought", which is
-           * a property of the animation, not the user. The clock starts here, at the same
-           * moment as every other format's: when answering becomes possible.
-           */
-          startResponseClock();
-          setSpanReady(true);
-          setTimeout(() => textInput.current?.focus(), 30);
-        }}
-      />
-
-      {item.responseMode === 'text' ? (
-        <form
-          data-testid="text-response"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!spanReady || typed.trim() === '') return;
-            submit(null, typed);
-          }}
-          class="cluster text-response"
-        >
-          <label class="sr-only" for="span-answer">
-            {t.quiz.yourAnswer}
-          </label>
-          <input
-            id="span-answer"
-            ref={textInput}
-            data-testid="span-input"
-            value={typed}
-            disabled={!spanReady || revealed}
-            autocomplete="off"
-            spellcheck={false}
-            placeholder={spanReady ? t.quiz.typeSequence : t.quiz.watching}
-            onInput={(e) => setTyped((e.currentTarget as HTMLInputElement).value)}
-            class="text-input"
-          />
-          <button
-            class="btn btn-primary"
-            type="submit"
-            disabled={!spanReady || revealed || typed.trim() === ''}
-            data-testid="submit-text"
-          >
-            {t.quiz.submit}
-          </button>
-        </form>
-      ) : (
-        <OptionGrid
-          options={item.options}
-          chosen={chosen}
-          answerIndex={item.answerIndex}
-          errorTypes={item.errorTypes}
-          revealed={revealed}
-          locale={locale}
-          onPick={(i) => submit(i)}
-        />
-      )}
-
-      {revealed && (
-        <div
-          class="card feedback"
-          data-testid="feedback"
-          data-correct={String(wasCorrect)}
-          data-error-type={diagnosis ?? undefined}
-        >
-          <strong class="feedback-verdict" data-testid="verdict">
-            {wasCorrect ? t.quiz.correct : t.quiz.notQuite}
-          </strong>
+      {/*
+        * Two regions, because they have different jobs under a height constraint. The item
+        * is what must never leave the screen; the answer tray is what may scroll when eight
+        * figural options and an explanation cannot all fit a phone. Splitting them is what
+        * lets the stimulus stay pinned while the tray moves under it.
+        */}
+      <div class="quiz-view">
+        <div class="quiz-item" data-testid="quiz-item">
+          <h2 class="quiz-prompt" data-testid="prompt">
+            {item.prompt}
+          </h2>
 
           {/*
-           * The diagnosis leads, ahead of both the rules and the answer. Someone who got
-           * the item wrong came here to find out *which* mistake they made; the answer
-           * they can see for themselves in the option grid.
+           * A sized container, so the figure can be told to fit the height it has been
+           * given rather than the width alone — see `.quiz-figure` in global.css. Collapses
+           * to nothing when the format has no stimulus (`kind: 'none'`).
            */}
-          {diagnosis && (
-            <div class="diagnosis" data-testid="diagnosis" data-error-type={diagnosis}>
-              <span class="tag" data-testid="diagnosis-tag">
-                {t.diagnosis.tags[diagnosis]}
-              </span>
-              <p class="diagnosis-body">{t.diagnosis.bodies[diagnosis]}</p>
-            </div>
-          )}
-
-          <ul class="feedback-rules muted">
-            {item.explanation.rules.map((rule, i) => (
-              <li key={i}>{rule}</li>
-            ))}
-          </ul>
-
-          <p class="feedback-answer" data-testid="answer-summary">
-            <span class="subtle feedback-answer-label">{t.diagnosis.answerLabel}</span>{' '}
-            {item.explanation.summary}
-          </p>
-
-          {item.responseMode === 'text' && !wasCorrect && (
-            <p class="muted feedback-typed">
-              {t.quiz.youTyped(normaliseTextAnswer(typed) || t.quiz.nothing)}
-            </p>
-          )}
-          <button class="btn btn-primary feedback-next" onClick={next} data-testid="next">
-            {responses.length >= total ? t.quiz.seeResults : t.quiz.next} <span aria-hidden="true">↵</span>
-          </button>
+          <div class="quiz-figure">
+            <StimulusView
+              stimulus={item.stimulus}
+              locale={locale}
+              presentation={item.presentation}
+              reducedMotion={settings.reducedMotion}
+              onPresentationDone={() => {
+                /*
+                 * PLAN-2026-08 §2.2. A span item plays its sequence before a response is
+                 * possible, and the playback lengthens with difficulty. Timing from the
+                 * mount would therefore record "the harder the item, the longer you
+                 * thought", which is a property of the animation, not the user. The clock
+                 * starts here, at the same moment as every other format's: when answering
+                 * becomes possible.
+                 */
+                startResponseClock();
+                setSpanReady(true);
+                setTimeout(() => textInput.current?.focus(), 30);
+              }}
+            />
+          </div>
         </div>
-      )}
 
-      {!revealed && item.responseMode === 'choice' && (
-        <p class="subtle quiz-tip">
-          {tip.before}
-          <kbd>{tip.first}</kbd>
-          <span class="shortcut-dash" aria-hidden="true">–</span>
-          <kbd>{tip.last}</kbd>
-          {tip.after}{' '}
-          <button
-            type="button"
-            class="link-button"
-            onClick={() => setShortcuts(true)}
-            data-testid="shortcut-open"
+        <div class="quiz-answer" data-testid="answer-tray">
+        {item.responseMode === 'text' ? (
+          <form
+            data-testid="text-response"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!spanReady || typed.trim() === '') return;
+              submit(null, typed);
+            }}
+            class="cluster text-response"
           >
-            {t.shortcuts.open}
-          </button>
-        </p>
-      )}
+            <label class="sr-only" for="span-answer">
+              {t.quiz.yourAnswer}
+            </label>
+            <input
+              id="span-answer"
+              ref={textInput}
+              data-testid="span-input"
+              value={typed}
+              disabled={!spanReady || revealed}
+              autocomplete="off"
+              spellcheck={false}
+              placeholder={spanReady ? t.quiz.typeSequence : t.quiz.watching}
+              onInput={(e) => setTyped((e.currentTarget as HTMLInputElement).value)}
+              class="text-input"
+            />
+            <button
+              class="btn btn-primary"
+              type="submit"
+              disabled={!spanReady || revealed || typed.trim() === ''}
+              data-testid="submit-text"
+            >
+              {t.quiz.submit}
+            </button>
+          </form>
+        ) : (
+          <OptionGrid
+            options={item.options}
+            chosen={chosen}
+            answerIndex={item.answerIndex}
+            errorTypes={item.errorTypes}
+            revealed={revealed}
+            locale={locale}
+            onPick={(i) => submit(i)}
+          />
+        )}
+
+        {revealed && (
+          <div
+            class="card feedback"
+            data-testid="feedback"
+            data-correct={String(wasCorrect)}
+            data-error-type={diagnosis ?? undefined}
+          >
+            <strong class="feedback-verdict" data-testid="verdict">
+              {wasCorrect ? t.quiz.correct : t.quiz.notQuite}
+            </strong>
+
+            {/*
+             * The diagnosis leads, ahead of both the rules and the answer. Someone who got
+             * the item wrong came here to find out *which* mistake they made; the answer
+             * they can see for themselves in the option grid.
+             */}
+            {diagnosis && (
+              <div class="diagnosis" data-testid="diagnosis" data-error-type={diagnosis}>
+                <span class="tag" data-testid="diagnosis-tag">
+                  {t.diagnosis.tags[diagnosis]}
+                </span>
+                <p class="diagnosis-body">{t.diagnosis.bodies[diagnosis]}</p>
+              </div>
+            )}
+
+            <ul class="feedback-rules muted">
+              {item.explanation.rules.map((rule, i) => (
+                <li key={i}>{rule}</li>
+              ))}
+            </ul>
+
+            <p class="feedback-answer" data-testid="answer-summary">
+              <span class="subtle feedback-answer-label">{t.diagnosis.answerLabel}</span>{' '}
+              {item.explanation.summary}
+            </p>
+
+            {item.responseMode === 'text' && !wasCorrect && (
+              <p class="muted feedback-typed">
+                {t.quiz.youTyped(normaliseTextAnswer(typed) || t.quiz.nothing)}
+              </p>
+            )}
+            <button class="btn btn-primary feedback-next" onClick={next} data-testid="next">
+              {responses.length >= total ? t.quiz.seeResults : t.quiz.next} <span aria-hidden="true">↵</span>
+            </button>
+          </div>
+        )}
+
+        {!revealed && item.responseMode === 'choice' && (
+          <p class="subtle quiz-tip">
+            {tip.before}
+            <kbd>{tip.first}</kbd>
+            <span class="shortcut-dash" aria-hidden="true">–</span>
+            <kbd>{tip.last}</kbd>
+            {tip.after}{' '}
+            <button
+              type="button"
+              class="link-button"
+              onClick={() => setShortcuts(true)}
+              data-testid="shortcut-open"
+            >
+              {t.shortcuts.open}
+            </button>
+          </p>
+        )}
+        </div>
+      </div>
 
       <ShortcutSheet
         locale={locale}

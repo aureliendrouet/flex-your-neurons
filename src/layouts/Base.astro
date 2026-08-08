@@ -197,6 +197,24 @@ const languages = localeOptions();
        * of every scroll. The whole effect degrades to a plain bordered header if the script
        * never runs.
        */
+      /*
+       * `--header-h` on <html>: the measured height of the site header.
+       *
+       * The drill stage is sized as "one viewport, less the header", and the header is 49px
+       * on a desktop and 72px on a phone — a guess wrong in either direction shows up as a
+       * clipped option row or as a scrollbar with nothing under it. A ResizeObserver rather
+       * than a one-off read, because the height changes with the viewport, with the reader's
+       * font size, and with the language (the French navigation is wider and wraps sooner).
+       * The stylesheet carries a fallback, so nothing here is load-bearing.
+       */
+      const siteHeader = document.querySelector('.site-header');
+      if (siteHeader && 'ResizeObserver' in window) {
+        new ResizeObserver(([entry]) => {
+          const height = entry?.borderBoxSize?.[0]?.blockSize ?? entry?.contentRect.height;
+          if (height) document.documentElement.style.setProperty('--header-h', `${height}px`);
+        }).observe(siteHeader);
+      }
+
       const sentinel = document.getElementById('scroll-sentinel');
       if (sentinel && 'IntersectionObserver' in window) {
         new IntersectionObserver(

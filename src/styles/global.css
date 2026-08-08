@@ -2513,6 +2513,275 @@ kbd {
   box-shadow: var(--shadow-md);
 }
 
+/* --- Drill mode: the item gets the viewport -------------------------------- */
+
+/*
+ * The regions of a live item. These rules are the *unlocked* layout — what a short window
+ * or an old browser gets — and they reproduce the previous single-column stack exactly.
+ * The lock below is an enhancement on top of them, never a prerequisite.
+ */
+.quiz-view {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.quiz-item {
+  display: grid;
+  gap: 1rem;
+}
+
+.quiz-figure {
+  display: grid;
+  place-items: center;
+}
+
+/* `kind: 'none'` renders no stimulus at all; the region must not then hold space open. */
+.quiz-figure:empty {
+  display: none;
+}
+
+.quiz-answer {
+  display: grid;
+  gap: 1.25rem;
+  align-content: start;
+}
+
+/*
+ * While an item is live, the page stops being a document and becomes a stage.
+ *
+ * The measurement that forced this: on a 1280x800 desktop, one matrix item ran from y=299
+ * to y=1011 — the option grid began 211px below the fold, so *no scroll position existed*
+ * from which the pattern and the options it has to be compared against were both on screen.
+ * Solving a matrix is a comparison task; making the comparison require memory instead of
+ * sight changes what the item measures. On a Pixel 7 the same item was a 2459px document.
+ *
+ * So for exactly as long as an item is on screen, the quiz is promoted to the top of the
+ * page and given a full viewport of its own: the figure is scaled to the height it has been
+ * given, and the answer tray is the only thing that moves.
+ *
+ * What it deliberately does NOT do is lock the scroll. Hiding the page heading, the domain
+ * pills and the format description for the duration was the first attempt, and it cost more
+ * than it bought: on `/practice/matrix/` a drill starts on arrival, so "About this format"
+ * would have been unreachable until the run ended, and a page whose only h1 is
+ * `display: none` has no heading in the accessibility tree at all. Everything stays where
+ * it was, one deliberate scroll below the stage — and since the stage begins at the top and
+ * ends exactly at the fold, the resting position of the page is the item.
+ *
+ * Guarded on viewport height, and on height alone. Below ~34rem there is no budget to
+ * divide and a full-viewport stage would only mean two scrollbars where one would do, so a
+ * short window (or a phone in landscape) keeps the ordinary document. This all degrades to
+ * that.
+ */
+@media (height >= 34rem) {
+  [data-drill] .page-main {
+    display: flex;
+    flex-direction: column;
+    padding-block: 1rem 4rem;
+  }
+
+  /*
+   * The stage first, the page it sits on second. Without this the heading and the domain
+   * pills push the item ~180px down and a full-viewport stage guarantees a scroll rather
+   * than preventing one.
+   *
+   * A visual reorder rather than a DOM one: the markup order stays heading-then-quiz, so
+   * assistive technology still meets the page in the order it is written, and neither
+   * element that moves contains anything focusable.
+   */
+  [data-drill] .quiz-stage {
+    order: -1;
+  }
+
+  /*
+   * The header stays — a drill someone cannot leave is a trap, and the wordmark, the
+   * navigation and the language switch all remain operable. It is only made to cost one
+   * row instead of three: on a Pixel 7 the wrapped header was 184px, a fifth of the
+   * viewport, and every link survives the change as a horizontal scroll.
+   */
+  [data-drill] .header-bar {
+    flex-wrap: nowrap;
+    min-height: 0;
+    padding-block: 0.35rem;
+    gap: 0.75rem;
+  }
+
+  [data-drill] .header-controls {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  [data-drill] .nav {
+    flex-wrap: nowrap;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  /* Or "Full test" breaks across two lines inside a row that is no longer allowed to wrap. */
+  [data-drill] .nav-link {
+    white-space: nowrap;
+  }
+
+  /* A hard cut mid-word reads as a bug; a faded edge reads as "this row scrolls". */
+  [data-drill] .nav {
+    mask-image: linear-gradient(to right, #000 calc(100% - 1.5rem), transparent);
+  }
+
+  [data-drill] .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /*
+   * Exactly one viewport, less the header above it and the breathing room around it.
+   *
+   * `--header-h` is measured and published by the observer in Base.astro, because the header
+   * is 49px on a desktop and 72px on a phone and guessing wrong shows up directly as either
+   * a clipped option row or a scrollbar with nothing under it. The fallback covers the case
+   * where the script never runs, and errs high: too short a stage scrolls, too tall a one
+   * cuts the item off, and only one of those is the bug being fixed.
+   */
+  [data-drill] .quiz-stage {
+    block-size: calc(100dvh - var(--header-h, 5rem) - 2rem);
+    min-block-size: 0;
+    display: flex;
+    margin-bottom: 2rem;
+  }
+
+  [data-drill] .quiz-root {
+    /* The ceiling on the item region, read by `.quiz-item` and by the matrix inside it. */
+    --stage-item: 44dvh;
+    flex: 1;
+    min-block-size: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  /* A wide window puts the options on one row, so the item can afford more of the height. */
+  @media (width >= 60rem) {
+    [data-drill] .quiz-root {
+      --stage-item: 50dvh;
+    }
+  }
+
+  /* `.stack` spaces with sibling margins, which would stack on top of the flex gap and
+     cost 40px between the progress meter and the prompt. */
+  [data-drill] .quiz-root > * + * {
+    margin-top: 0;
+  }
+
+  /*
+   * The item takes what it needs up to a ceiling; the tray takes the rest and is the thing
+   * that scrolls. The order of those two rows is the whole trick, and getting it backwards
+   * was the first attempt: with the tray sized to its content, revealing an explanation
+   * squeezed the matrix from 314px to 131px — a stimulus that resizes the moment you answer
+   * is motion at the stimulus, which is the one place this design puts none.
+   *
+   * The ceiling rather than a fixed height, because a syllogism is two lines of text: a
+   * fixed region would strand it in the middle of 336px of nothing while the options it
+   * has to be compared against sat at the bottom of the screen.
+   */
+  [data-drill] .quiz-view {
+    flex: 1;
+    min-block-size: 0;
+    grid-template-rows: minmax(0, auto) minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  [data-drill] .quiz-item {
+    min-block-size: 0;
+    max-block-size: var(--stage-item);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.6rem;
+  }
+
+  /* An h2's default margin inside a grid is 19px of nothing, and here it is 19px of figure. */
+  [data-drill] .quiz-prompt {
+    margin: 0;
+  }
+
+  /* A stimulus taller than its ceiling — four premises on a phone — scrolls in place
+     rather than pushing the options off the screen. */
+  [data-drill] .quiz-figure {
+    min-block-size: 0;
+    overflow: auto;
+  }
+
+  /*
+   * A matrix is square, so height binds long before width ever does and the `max-width`
+   * cap alone can never make one fit a short window. It is sized from the ceiling instead,
+   * less the prompt above it.
+   *
+   * A container query (`100cqb`) would express this exactly and was tried first: it needs
+   * `container-type: size`, and an element with size containment stops deriving its height
+   * from its contents — so on this region, whose height *is* content-derived whenever the
+   * ceiling is not binding, it collapses to nothing. A stimulus that vanishes on the short
+   * formats is a worse bug than a 3.5rem approximation of one prompt line.
+   */
+  [data-drill] .quiz-figure .matrix-grid {
+    width: min(26rem, 100%, calc(var(--stage-item) - 3.5rem));
+  }
+
+  /*
+   * The one region allowed to move. Eight figural options at the 7rem each needs to keep
+   * its fill textures legible plus an explanation genuinely do not fit a phone beside a
+   * stimulus; something has to give, and it is this rather than the item.
+   */
+  [data-drill] .quiz-answer {
+    min-block-size: 0;
+    overflow-y: auto;
+    gap: 0.85rem;
+    scrollbar-gutter: stable;
+  }
+
+  /*
+   * On reveal the explanation comes first, ahead of the option grid it is explaining.
+   *
+   * In document flow the grid-then-explanation order is right: you look back at what you
+   * picked, then read why. Under a height lock it stranded the entire feedback panel below
+   * the fold of the tray — verdict, diagnosis and the button to continue, none of them on
+   * screen, with nothing to say a scroll would find them. The grid is still directly below
+   * and every option in it is now tagged, so the map of misreadings is not lost, only
+   * second.
+   *
+   * Safe as a visual reorder specifically because the options are `disabled` once revealed
+   * and so leave the tab order entirely: the only focusable thing in the tray is the button
+   * inside this panel, which means reading order and focus order still agree.
+   */
+  [data-drill] .quiz-answer > .feedback {
+    order: -1;
+  }
+
+
+  /*
+   * Whatever else is scrolled out of the tray, the way forward is not. The explanation can
+   * run to four rules and a worked answer; Enter has always done this, but only a visible
+   * button says so.
+   *
+   * Full width for the duration, which is not decoration: a sticky control has to be opaque
+   * across the whole column or the text it is pinned over shows either side of it and the
+   * panel reads as broken. It is also the shape a thumb wants at the bottom of a phone.
+   */
+  [data-drill] .feedback-next {
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+  }
+
+  /* An overlay while the page beneath cannot scroll, rather than a card appended below it. */
+  [data-drill] .shortcut-sheet {
+    position: fixed;
+    z-index: 20;
+    inset-block-end: 1rem;
+    inset-inline: 1rem;
+    margin-inline: auto;
+    max-width: 28rem;
+    max-block-size: 70dvh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-md);
+  }
+}
+
 /* --- Speeded formats: no motion, at all ----------------------------------- */
 
 /*

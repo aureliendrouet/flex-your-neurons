@@ -288,6 +288,45 @@ survive review:
   option tinting to near-identical colours — so the tint was not a channel, and "this is the
   answer" was carried by the *absence* of a diagnosis chip. Both states are now named in words.
 
+## 9. The drill stage — an audit item the plan missed
+
+Phase 5 quieted the chrome around a live item and left its *size* alone. Measured afterwards,
+that was the bigger problem: on a 1280×800 desktop a matrix item ran from y=299 to y=1011, so
+the option grid began 211px below the fold and **no scroll position existed from which the
+pattern and the options could both be seen**. On a Pixel 7 the same item was a 2459px document.
+A matrix is a comparison task; making the comparison depend on memory rather than sight changes
+what the item measures, which puts this alongside the timing confounds in §3 rather than among
+the taste questions.
+
+`data-drill` on `<html>` marks "an item is on screen" — a wider claim than `data-focus`, which
+means "an answer is being collected", and it has to cover the revealed phase or answering an
+item would drop the page back into flow and shove the option grid down at the moment its tags
+became worth reading. While it is set, above a 34rem-tall viewport:
+
+- the quiz is promoted to the top of the page (`order: -1`) and given `100dvh` less the header,
+  measured by a `ResizeObserver` into `--header-h` because the header is 49px on a desktop and
+  72px on a phone;
+- the item region takes what it needs up to `--stage-item`, and the answer tray takes the rest
+  and is the only thing that scrolls;
+- on reveal the explanation is ordered ahead of the option grid, and the Next button is sticky.
+
+Three things were tried and rejected in the building, each for a reason worth keeping:
+
+- **Sizing the item from what the tray left over.** Revealing an explanation then squeezed the
+  matrix from 314px to 131px — motion at the stimulus, the one place this design puts none. The
+  rows are the other way round now, and a test asserts the figure does not move when answered.
+- **`container-type: size` on the figure region**, so the matrix could be sized in `cqb`. Size
+  containment stops an element deriving its height from its contents, so on the short formats,
+  where the ceiling is not binding and the height *is* content-derived, the stimulus collapsed to
+  nothing. It is sized from `--stage-item` less one prompt line instead — an approximation, but
+  of a number, not of a stimulus.
+- **Locking the scroll and hiding the page around the stage.** This is what Anki does and it is
+  what was asked for, but a drill on `/practice/matrix/` starts on arrival, so "About this
+  format" would have been unreachable until the run ended — and a page whose only `h1` is
+  `display: none` has no heading in the accessibility tree. Twelve existing tests said so. The
+  page below the stage is pushed under the fold instead of removed; because the stage begins at
+  the top and ends exactly at the fold, the resting position of the page is still the item.
+
 ---
 
 ## Appendix A — techniques reverse-engineered from the reference
