@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useStore } from '@nanostores/preact';
 import SeedChip from './SeedChip';
+import ShortcutSheet from './ShortcutSheet';
 import StimulusView from './StimulusView';
 import FigureView, { describeFigure } from './FigureView';
 import GridView from './GridView';
@@ -111,6 +112,7 @@ export default function Quiz({
   const [typed, setTyped] = useState('');
   const [spanReady, setSpanReady] = useState(false);
   const [responses, setResponses] = useState<Response[]>([]);
+  const [shortcuts, setShortcuts] = useState(false);
 
   /**
    * When the current item became answerable, on the monotonic clock.
@@ -256,8 +258,22 @@ export default function Quiz({
    * torn down and re-attached on every state change. Re-registering left a window after
    * each render in which no listener was attached and a keystroke was simply lost.
    */
-  const liveRef = useRef({ phase, item, submit, next });
-  liveRef.current = { phase, item, submit, next };
+  const liveRef = useRef({
+    phase,
+    item,
+    submit,
+    next,
+    toggleShortcuts: () => {},
+    closeShortcuts: () => {},
+  });
+  liveRef.current = {
+    phase,
+    item,
+    submit,
+    next,
+    toggleShortcuts: () => setShortcuts((v) => !v),
+    closeShortcuts: () => setShortcuts(false),
+  };
 
   // Keyboard: number keys pick an option, Enter advances. Registered once, on mount.
   useEffect(() => {
@@ -266,6 +282,22 @@ export default function Quiz({
       const current = liveRef.current;
       const target = e.target as HTMLElement | null;
       const typing = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
+
+      /*
+       * `?` opens the shortcuts sheet, and it is handled here rather than in the sheet
+       * itself: this is the app's one key listener, and a second listener competing for the
+       * same events is exactly how a keystroke gets eaten. Guarded on `typing` so a reader
+       * can put a question mark into the span input.
+       */
+      if (!typing && e.key === '?') {
+        e.preventDefault();
+        current.toggleShortcuts();
+        return;
+      }
+      if (e.key === 'Escape') {
+        current.closeShortcuts();
+        return;
+      }
 
       if (current.phase === 'revealed' && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
@@ -509,10 +541,27 @@ export default function Quiz({
       {!revealed && item.responseMode === 'choice' && (
         <p class="subtle quiz-tip">
           {tip.before}
-          <kbd>{tip.first}</kbd>–<kbd>{tip.last}</kbd>
-          {tip.after}
+          <kbd>{tip.first}</kbd>
+          <span class="shortcut-dash" aria-hidden="true">–</span>
+          <kbd>{tip.last}</kbd>
+          {tip.after}{' '}
+          <button
+            type="button"
+            class="link-button"
+            onClick={() => setShortcuts(true)}
+            data-testid="shortcut-open"
+          >
+            {t.shortcuts.open}
+          </button>
         </p>
       )}
+
+      <ShortcutSheet
+        locale={locale}
+        open={shortcuts}
+        optionCount={item.options.length}
+        onClose={() => setShortcuts(false)}
+      />
     </div>
   );
 }
@@ -558,10 +607,23 @@ function OptionGrid({
          * answer key.
          */
         const errorType = errorTypes[i];
-        const tag =
-          revealed && i !== answerIndex && errorType && errorType !== 'correct'
-            ? t.diagnosis.tags[errorType]
-            : null;
+        /*
+         * The correct option is tagged too, not just the distractors.
+         *
+         * Marking only the wrong ones would leave "this is the answer" carried by the absence
+         * of a chip plus a green tint — and a deuteranopia pass makes the problem obvious: the
+         * correct and the chosen-wrong option tint to near-identical colours, so the tint is
+         * not a channel. With both states named in words, the verdict reads from text and
+         * position alone, which is the rule (docs/DESIGN-PLAN.md §3.1).
+         */
+        const isAnswer = i === answerIndex;
+        const tag = !revealed
+          ? null
+          : isAnswer
+            ? t.quiz.correct
+            : errorType && errorType !== 'correct'
+              ? t.diagnosis.tags[errorType]
+              : null;
         return (
           <button
             key={i}
@@ -574,9 +636,11 @@ function OptionGrid({
             disabled={revealed}
             onClick={() => onPick(i)}
             aria-label={
-              tag
-                ? `${optionLabel(option, i, locale)} — ${t.diagnosis.optionAria(tag)}`
-                : optionLabel(option, i, locale)
+              !tag
+                ? optionLabel(option, i, locale)
+                : isAnswer
+                  ? `${optionLabel(option, i, locale)} — ${t.quiz.correct}.`
+                  : `${optionLabel(option, i, locale)} — ${t.diagnosis.optionAria(tag)}`
             }
           >
             <span class="option-key" aria-hidden="true">
@@ -584,8 +648,11 @@ function OptionGrid({
             </span>
             <OptionBody option={option} />
             {tag && (
-              <span class="tag option-tag" aria-hidden="true">
-                {t.diagnosis.optionTag(tag)}
+              <span
+                class={isAnswer ? 'tag option-tag option-tag--correct' : 'tag option-tag'}
+                aria-hidden="true"
+              >
+                {isAnswer ? tag : t.diagnosis.optionTag(tag)}
               </span>
             )}
           </button>

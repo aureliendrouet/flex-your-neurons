@@ -98,6 +98,49 @@ const types = allItemTypes(locale);
       }
     </section>
 
+    {
+      /*
+       * The proof, stepped out.
+       *
+       * Every stage is in the DOM and readable from the moment the page loads — the scroll
+       * animation only stages the *reveal*, and it is entirely CSS behind an `@supports`
+       * guard. With no scroll-driven animation support, no JavaScript, or reduced motion, the
+       * whole thing is simply a set of visible panels, which is what it has to be: this is an
+       * argument, and an argument that needs a scroll gesture to be legible is not an argument.
+       */
+    }
+    <section class="proof" data-testid="proof">
+      <h2 class="section-heading">{p.proof.heading}</h2>
+      <p class="muted section-lede">{p.proof.lede}</p>
+
+      <div class="proof-steps">
+        <div class="proof-step proof-step--sequence">
+          <p class="subtle proof-caption">{p.proof.sequence}</p>
+          <div class="seq-row">
+            {['2', '4', '8'].map((term) => <span class="seq-term">{term}</span>)}
+            <span class="seq-term" data-blank="true">?</span>
+          </div>
+        </div>
+
+        <div class="proof-step proof-reading" data-reading="a">
+          <strong class="proof-reading-name">{p.proof.readingA}</strong>
+          <p class="muted proof-reading-work">{p.proof.readingAWork}</p>
+          <span class="seq-term proof-answer">{p.proof.readingAAnswer}</span>
+        </div>
+
+        <div class="proof-step proof-reading" data-reading="b">
+          <strong class="proof-reading-name">{p.proof.readingB}</strong>
+          <p class="muted proof-reading-work">{p.proof.readingBWork}</p>
+          <span class="seq-term proof-answer">{p.proof.readingBAnswer}</span>
+        </div>
+
+        <div class="proof-step proof-verdict">
+          <span class="tag proof-verdict-tag">{p.proof.verdictLabel}</span>
+          <p class="proof-verdict-body">{p.proof.verdict}</p>
+        </div>
+      </div>
+    </section>
+
     <section>
       <h2 class="section-heading">{p.difficultyHeading}</h2>
       <p>{p.difficultyP1}</p>

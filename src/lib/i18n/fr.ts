@@ -121,6 +121,23 @@ const fr: Dict = {
     },
   },
 
+  /** L’aide-mémoire des raccourcis clavier. */
+  shortcuts: {
+    open: 'Raccourcis clavier',
+    hint: 'Appuyez sur ? pour les raccourcis clavier',
+    heading: 'Raccourcis clavier',
+    lede: 'Une série entière peut se faire sans toucher la souris.',
+    close: 'Fermer',
+    keys: {
+      numbers: 'Choisir une réponse',
+      enter: 'Passer à l’item suivant',
+      tab: 'Se déplacer entre les réponses',
+      question: 'Afficher ou masquer cette liste',
+      escape: 'Fermer cette liste',
+    },
+    range: (first: string, last: string) => ({ first, last }),
+  },
+
   /** Textes des cartes de partage générées au build. */
   og: {
     disclaimer: 'Entraînement, pas évaluation. Jamais de score de QI.',
@@ -709,6 +726,22 @@ const fr: Dict = {
           body: 'Les distracteurs sont construits à partir d’erreurs précises : la règle appliquée en colonnes au lieu des lignes, la bonne règle poussée d’un cran de trop, une case simplement recopiée. Ainsi l’explication peut nommer l’erreur que vous avez probablement commise, au lieu de se contenter de vous dire que vous en avez commis une.',
         },
       ],
+
+      /** La démonstration la plus convaincante du site, enfin déployée. */
+      proof: {
+        heading: 'La vérification, sur un item',
+        lede: 'Chaque item généré doit survivre à un solveur qui le re-dérive de zéro. Voici ce que cela écarte.',
+        sequence: 'Quel terme vient ensuite ?',
+        readingA: 'Lu comme un doublement',
+        readingAWork: 'chaque terme vaut le double du précédent',
+        readingAAnswer: '16',
+        readingB: 'Lu comme un écart croissant',
+        readingBWork: 'les écarts sont 2, puis 4, puis 8',
+        readingBAnswer: '14',
+        verdict:
+          'Deux règles collent à ce qui est visible et elles se contredisent : il n’y a donc pas de réponse défendable — et l’item est écarté avant que quiconque le voie.',
+        verdictLabel: 'écarté',
+      },
 
       difficultyHeading: 'La difficulté est contrôlée, pas devinée',
       difficultyP1:

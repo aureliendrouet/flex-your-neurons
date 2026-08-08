@@ -85,10 +85,18 @@ test.describe('the mistake is named, not just marked', () => {
     const item = expectedItem('matrix', OPTS.seed, 0, OPTS.difficulty);
     await page.getByTestId(`option-${item.answerIndex}`).click();
 
-    await expect(page.locator('.option-tag')).toHaveCount(item.options.length - 1);
-    await expect(page.getByTestId(`option-${item.answerIndex}`).locator('.option-tag')).toHaveCount(
-      0,
-    );
+    /*
+     * Every option is tagged, the answer included. Marking only the distractors would leave
+     * "this is the answer" carried by the absence of a chip plus a colour tint — and under
+     * deuteranopia the correct and chosen-wrong tints are near-identical, so the tint is not a
+     * channel. Both states are named in words.
+     */
+    await expect(page.locator('.option-tag')).toHaveCount(item.options.length);
+    await expect(
+      page.getByTestId(`option-${item.answerIndex}`).locator('.option-tag--correct'),
+    ).toHaveCount(1);
+    // ...and exactly one option is the answer.
+    await expect(page.locator('.option-tag--correct')).toHaveCount(1);
 
     for (let i = 0; i < item.options.length; i++) {
       await expect(page.getByTestId(`option-${i}`)).toHaveAttribute(

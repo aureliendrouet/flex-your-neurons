@@ -883,17 +883,43 @@ a {
   gap: 0.35rem;
 }
 
-.option-key {
+/*
+ * A real keycap, not a rounded grey square.
+ *
+ * The keyboard support has been complete from the start — number keys select, Enter advances,
+ * nothing is lost between renders — and nobody was ever told. Drawing the affordance as a key
+ * says "this is a key you can press" without a sentence of instructions, which is the cheapest
+ * discoverability win available here. The bottom edge is a second box-shadow rather than a
+ * border, so the cap keeps its size when it depresses.
+ */
+.option-key,
+kbd {
   flex: none;
-  display: grid;
+  display: inline-grid;
   place-items: center;
-  width: 1.75rem;
+  min-width: 1.75rem;
   height: 1.75rem;
-  border-radius: 0.5rem;
-  background: var(--bg-sunken);
-  border: 1px solid var(--border);
-  font: 600 0.8rem/1 var(--font-mono);
+  padding-inline: 0.3rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, var(--bg-raised), var(--bg-sunken));
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 2px 0 var(--border-strong), 0 2px 3px -1px rgb(0 0 0 / 12%);
+  font: 600 0.8rem/1 var(--font-code);
   color: var(--text-muted);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+/* Pressed: the cap travels the exact height of its own edge, so nothing shifts around it. */
+.option:active:not(:disabled) .option-key {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--border-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option-key,
+  kbd {
+    transition: none;
+  }
 }
 
 /* --- Diagnosis: the named mistake ----------------------------------------- */
@@ -930,6 +956,16 @@ a {
 .option[data-state='correct'] .option-key,
 .option[data-state='wrong'] .option-key {
   border-color: currentColor;
+}
+
+/*
+ * The one tag that carries a semantic colour, because it names the correct/wrong channel
+ * itself rather than a category within it. The word does the work; the colour agrees with it.
+ */
+.option-tag--correct {
+  border-color: var(--correct-border);
+  color: var(--correct);
+  font-weight: 600;
 }
 
 /* --- Feedback panel ------------------------------------------------------- */
@@ -1385,6 +1421,120 @@ a {
   gap: 0.6rem;
 }
 
+/* --- The proof, on the About page ----------------------------------------- */
+
+/*
+ * The one argument on this site that deserves staging rather than a sentence.
+ *
+ * Read the base rules first: every panel is fully visible, at full contrast, with no
+ * transform. That is the *only* state that has to work. The scroll-driven reveal below is
+ * additive, guarded, and removable without loss — because an argument that needs a scroll
+ * gesture to be legible is not an argument.
+ */
+.proof-steps {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.proof-step {
+  padding: 1.15rem 1.3rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sm);
+}
+
+.proof-caption {
+  margin: 0 0 0.7rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* The two readings sit side by side: the whole point is that they are simultaneous. */
+@media (width >= 40rem) {
+  .proof-steps {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .proof-step--sequence,
+  .proof-verdict {
+    grid-column: 1 / -1;
+  }
+}
+
+.proof-reading {
+  display: grid;
+  gap: 0.35rem;
+  justify-items: start;
+}
+
+.proof-reading-name {
+  font-size: 0.98rem;
+}
+
+.proof-reading-work {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.proof-answer {
+  margin-top: 0.25rem;
+}
+
+/*
+ * The two candidate answers are marked as *disagreeing*, and that is the only place a
+ * semantic colour appears in this section — the verdict is "no defensible answer", so both
+ * readings are wrong together rather than one being right.
+ */
+.proof-reading[data-reading] .proof-answer {
+  border-color: var(--wrong-border);
+  color: var(--wrong);
+}
+
+.proof-verdict {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+
+.proof-verdict-body {
+  margin: 0;
+}
+
+/*
+ * Scroll-driven, and every part of this block is optional.
+ *
+ * `animation-timeline: view()` ties each panel's reveal to its own position in the viewport,
+ * with no JavaScript, no observer and no scroll listener. It is guarded twice over: on support
+ * for the property, and on the reader not having asked for less motion. Either guard failing
+ * leaves the panels exactly as the rules above draw them.
+ */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .proof-step {
+      animation: proof-reveal linear both;
+      animation-timeline: view();
+      /* Resolved by the time the panel is a third of the way up: it is read, not watched. */
+      animation-range: entry 10% cover 32%;
+    }
+  }
+}
+
+@keyframes proof-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* --- Small text utilities ------------------------------------------------- */
 
 .small {
@@ -1714,6 +1864,75 @@ a {
 .quiz-tip {
   font-size: 0.85rem;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.shortcut-dash {
+  color: var(--text-subtle);
+}
+
+/* A button that reads as a link, for an action that opens something rather than navigating. */
+.link-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-left: 0.35rem;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* --- Shortcuts sheet ------------------------------------------------------ */
+
+.shortcut-sheet {
+  padding: 1rem 1.15rem;
+  display: grid;
+  gap: 0.6rem;
+  max-width: 26rem;
+}
+
+.shortcut-head {
+  --cluster-gap: 1rem;
+}
+
+.shortcut-head .section-heading {
+  margin-bottom: 0;
+}
+
+.shortcut-close {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+}
+
+.shortcut-list {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.shortcut-row {
+  display: grid;
+  /* The key column is sized to the widest cap ("Enter"), so the labels line up. */
+  grid-template-columns: 5.5rem 1fr;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.shortcut-row dt {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.shortcut-row dd {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
 }
 
 .text-response {

@@ -111,6 +111,31 @@ const en = {
   },
 
   /**
+   * The keyboard shortcuts sheet.
+   *
+   * The shortcuts themselves have worked from the beginning; what was missing was any way to
+   * find out about them. A `?` sheet is the convention readers already know from every other
+   * keyboard-driven tool, so it needs no explaining of its own.
+   */
+  shortcuts: {
+    open: 'Keyboard shortcuts',
+    /** Hint shown next to the quiz, which is the only place the shortcuts apply. */
+    hint: 'Press ? for keyboard shortcuts',
+    heading: 'Keyboard shortcuts',
+    lede: 'A whole drill can be answered without touching the mouse.',
+    close: 'Close',
+    keys: {
+      numbers: 'Choose an answer',
+      enter: 'Continue to the next item',
+      tab: 'Move between the options',
+      question: 'Show or hide this list',
+      escape: 'Close this list',
+    },
+    /** Rendered between the first and last option key, e.g. "1 – 8". */
+    range: (first: string, last: string) => ({ first, last }),
+  },
+
+  /**
    * Copy for the build-time social cards.
    *
    * A preview image travels to places where none of the site's surrounding text does, so
@@ -723,6 +748,28 @@ const en = {
           body: 'Distractors are built from specific mistakes — the rule applied down the columns instead of along the rows, the right rule counted one step too far, a cell simply copied. That way the explanation afterwards can name the mistake you probably made rather than only telling you that you made one.',
         },
       ],
+
+      /**
+       * The single most persuasive claim on the site, given room to be persuasive.
+       *
+       * "`2, 4, 8, ?` can never be emitted, because ×2 predicts 16 and a growing gap predicts
+       * 14" is the argument that makes the whole generatability story concrete — and it was one
+       * clause inside a paragraph. Stepped out, it demonstrates the check rather than asserting
+       * it.
+       */
+      proof: {
+        heading: 'The check, on one item',
+        lede: 'Every generated item has to survive a solver that re-derives it from scratch. Here is what that rejects.',
+        sequence: 'What comes next?',
+        readingA: 'Read it as doubling',
+        readingAWork: 'each term is twice the one before',
+        readingAAnswer: '16',
+        readingB: 'Read it as a growing gap',
+        readingBWork: 'the gaps are 2, then 4, then 8',
+        readingBAnswer: '14',
+        verdict: 'Two rules fit what is visible and they disagree, so there is no defensible answer — and the item is discarded before anyone sees it.',
+        verdictLabel: 'discarded',
+      },
 
       difficultyHeading: 'Difficulty is controlled, not guessed',
       difficultyP1:
