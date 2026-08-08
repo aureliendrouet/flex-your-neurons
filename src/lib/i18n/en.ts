@@ -222,10 +222,59 @@ const en = {
     medianTime: 'Median time',
     sessions: 'Sessions',
     dayStreak: 'Day streak',
-    empty:
-      'Nothing recorded yet. Finish a drill and your results will appear here — stored only in this browser.',
     byDomain: 'By cognitive domain',
     domainChartLabel: 'Accuracy by cognitive domain',
+    domainLede:
+      'Your accuracy on the four Cattell–Horn–Carroll broad abilities these formats load on. A profile, not a score: there is no norm behind any of these bars, so they compare you with yourself and with nobody else.',
+    /** Marks a bar with too few attempts to mean anything yet. */
+    provisional: (attempts: number) =>
+      `${attempts} item${attempts === 1 ? '' : 's'} — too few to read anything into`,
+    provisionalKey: 'Faded bars have fewer than ten items behind them.',
+
+    /** The empty state, which for a new reader is the whole page. */
+    emptyHeading: 'Nothing here yet — and that is the point',
+    emptyBody:
+      'This page is the only one that holds your own data, so it starts empty. Finish one drill and it fills with your accuracy, your speed, the formats you find hard, and the specific mistakes you keep making.',
+    emptyCtaPractice: 'Practise one format',
+    emptyCtaTest: 'Take the full test',
+    emptyPrivacy:
+      'Everything stays in this browser. There is no account and no server to send it to.',
+
+    /** Accuracy against latency — the speed/accuracy trade-off. */
+    speed: {
+      heading: 'Accuracy against speed',
+      lede: 'One dot per format, placed by how accurate you are and how long you take. Formats towards the top-left are the ones you have internalised; towards the bottom-right are the ones you are still working out.',
+      label: 'Accuracy against median response time, one point per item format',
+      axisX: 'Median time per correct answer',
+      axisY: 'Accuracy',
+      /** Tooltip and accessible description for one point. */
+      point: (name: string, accuracy: string, time: string, attempts: number) =>
+        `${name}: ${accuracy} accurate over ${attempts} item${attempts === 1 ? '' : 's'}, ${time} median`,
+      needMore:
+        'Answer at least five items in two or more formats and the trade-off between speed and accuracy will show up here.',
+      fastest: 'quickest',
+      mostAccurate: 'most accurate',
+    },
+
+    /** The error-type breakdown, fed by the diagnosis on every wrong answer. */
+    mistakes: {
+      heading: 'The mistakes you keep making',
+      lede: 'Every wrong answer is a specific misreading, named at the time you made it. Across your whole history one or two usually dominate — and those are worth knowing, because they are habits rather than gaps.',
+      label: 'How often each kind of mistake occurs',
+      empty:
+        'No diagnosed mistakes yet. Each wrong answer in a drill is labelled with the misreading behind it, and they accumulate here.',
+      /** Tooltip for one bar. */
+      bar: (tag: string, count: number, share: string) =>
+        `${tag}: ${count} time${count === 1 ? '' : 's'} (${share} of your diagnosed mistakes)`,
+      colShare: 'Share',
+    },
+
+    /** Small multiples: one trend per format. */
+    wall: {
+      heading: 'Every format, over time',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than ten lines on one axis — ten colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      never: 'not attempted yet',
+    },
     byItemType: 'By item type',
     colType: 'Type',
     colDomain: 'Domain',

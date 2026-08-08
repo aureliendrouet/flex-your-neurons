@@ -2069,6 +2069,108 @@ a {
   color: var(--text);
 }
 
+.bar-rows {
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+  color: var(--text);
+  /* Native `<title>` tooltips need a cursor that invites the hover. */
+  cursor: default;
+}
+
+.scatter-figure {
+  margin: 0;
+  max-width: 40rem;
+}
+
+.scatter-caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.scatter-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/*
+ * A ring, matching the halo drawn around the two named dots in the plot. The swatch carries
+ * the identity; the text stays in a text token, never in the data colour.
+ */
+.scatter-swatch {
+  inline-size: 0.6rem;
+  block-size: 0.6rem;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-raised), 0 0 0 3px color-mix(in oklab, var(--accent) 55%, transparent);
+  flex: none;
+}
+
+/* --- The sparkline wall --------------------------------------------------- */
+
+/*
+ * Small multiples, one per format. Ten traces on one axis would need ten hues, which is past
+ * the point where adjacent categorical colours stay distinguishable — and this site does not
+ * spend hue on identity anywhere it can avoid it. Ten small charts side by side say the same
+ * thing with no colour at all, and each one is a link to the drill it describes.
+ */
+.sparkline-wall {
+  --card-gap: 0.6rem;
+}
+
+.wall-cell {
+  display: grid;
+  gap: 0.3rem;
+  justify-items: start;
+  padding: 0.7rem 0.8rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.wall-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.wall-value {
+  font: 600 0.85rem/1.4 var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.wall-attempts {
+  font-weight: 400;
+}
+
+.wall-never,
+.wall-cell .sparkline {
+  font-size: 0.75rem;
+}
+
+/* A format never attempted is stated, not left as an empty box. */
+.wall-never {
+  min-height: 1.6rem;
+  display: grid;
+  align-content: center;
+}
+
+/* --- Dashboard empty state ------------------------------------------------ */
+
+.dash-empty-card {
+  margin-top: 1.25rem;
+  display: grid;
+  gap: 0.75rem;
+  max-width: 44rem;
+}
+
+.dash-empty-actions {
+  --cluster-gap: 0.6rem;
+}
+
 /* --- Utility -------------------------------------------------------------- */
 
 .sr-only {

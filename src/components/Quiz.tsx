@@ -15,6 +15,7 @@ import GridView from './GridView';
 import { generateItem, getItemText, getMeta } from '../lib/generators';
 import { deriveSeed, normaliseSeed, randomSeed } from '../lib/rng';
 import { dict, type Locale } from '../lib/i18n';
+import { localeHref } from '../lib/links';
 import {
   advanceLadder,
   formatDuration,
@@ -780,14 +781,3 @@ function Stat({ label, value, testid }: { label: string; value: string; testid: 
   );
 }
 
-/**
- * Builds an in-app link. Both the base path and the active locale are stamped on
- * `<html>` by the layout, so islands can link correctly without needing to know the
- * routing scheme.
- */
-export function localeHref(path: string): string {
-  const root = document.documentElement;
-  const base = (root.dataset.base ?? '/').replace(/\/$/, '');
-  const locale = root.dataset.locale ?? 'en';
-  return `${base}/${locale}/${path}`;
-}

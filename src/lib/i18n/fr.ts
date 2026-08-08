@@ -210,10 +210,52 @@ const fr: Dict = {
     medianTime: 'Temps médian',
     sessions: 'Sessions',
     dayStreak: 'Jours d’affilée',
-    empty:
-      'Rien d’enregistré pour l’instant. Terminez une série et vos résultats apparaîtront ici — stockés uniquement dans ce navigateur.',
     byDomain: 'Par domaine cognitif',
     domainChartLabel: 'Précision par domaine cognitif',
+    domainLede:
+      'Votre précision sur les quatre aptitudes larges du modèle Cattell–Horn–Carroll que ces formats sollicitent. Un profil, pas un score : aucun étalonnage ne sous-tend ces barres, elles vous comparent à vous-même et à personne d’autre.',
+    provisional: (attempts: number) =>
+      `${attempts} item${attempts === 1 ? '' : 's'} — bien trop peu pour en tirer quoi que ce soit`,
+    provisionalKey: 'Les barres estompées reposent sur moins de dix items.',
+
+    emptyHeading: 'Rien ici pour l’instant — et c’est normal',
+    emptyBody:
+      'Cette page est la seule à contenir vos propres données : elle démarre donc vide. Terminez une série et elle se remplira de votre précision, de votre vitesse, des formats qui vous résistent et des erreurs précises que vous répétez.',
+    emptyCtaPractice: 'S’entraîner sur un format',
+    emptyCtaTest: 'Passer le test complet',
+    emptyPrivacy:
+      'Tout reste dans ce navigateur. Il n’y a ni compte ni serveur où l’envoyer.',
+
+    speed: {
+      heading: 'Précision et vitesse',
+      lede: 'Un point par format, placé selon votre précision et le temps que vous y passez. Les formats en haut à gauche sont ceux que vous avez intégrés ; en bas à droite, ceux que vous êtes encore en train de démêler.',
+      label: 'Précision en fonction du temps de réponse médian, un point par format d’item',
+      axisX: 'Temps médian par bonne réponse',
+      axisY: 'Précision',
+      point: (name: string, accuracy: string, time: string, attempts: number) =>
+        `${name} : ${accuracy} de précision sur ${attempts} item${attempts === 1 ? '' : 's'}, ${time} de médiane`,
+      needMore:
+        'Répondez à au moins cinq items dans deux formats ou plus et l’arbitrage entre vitesse et précision apparaîtra ici.',
+      fastest: 'le plus rapide',
+      mostAccurate: 'le plus précis',
+    },
+
+    mistakes: {
+      heading: 'Les erreurs que vous répétez',
+      lede: 'Chaque mauvaise réponse correspond à une lecture erronée précise, nommée au moment où vous l’avez faite. Sur l’ensemble de votre historique, une ou deux dominent en général — et ce sont celles qui comptent, car il s’agit d’habitudes et non de lacunes.',
+      label: 'Fréquence de chaque type d’erreur',
+      empty:
+        'Aucune erreur diagnostiquée pour l’instant. Chaque mauvaise réponse est étiquetée avec la lecture erronée qui la sous-tend, et elles s’accumulent ici.',
+      bar: (tag: string, count: number, share: string) =>
+        `${tag} : ${count} fois (${share} de vos erreurs diagnostiquées)`,
+      colShare: 'Part',
+    },
+
+    wall: {
+      heading: 'Chaque format, dans le temps',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que dix courbes sur un même axe : dix couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      never: 'pas encore tenté',
+    },
     byItemType: 'Par type d’item',
     colType: 'Type',
     colDomain: 'Domaine',

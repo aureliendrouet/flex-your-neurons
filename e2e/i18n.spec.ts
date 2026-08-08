@@ -234,7 +234,8 @@ test.describe('French content', () => {
     await page.goto('fr/progress/');
     await expect(page.getByTestId('dashboard')).toHaveAttribute('data-locale', 'fr');
     await expect(page.getByTestId('total-attempts')).toContainText(fr.dashboard.itemsAnswered);
-    await expect(page.getByTestId('empty-state')).toContainText('Rien d’enregistré');
+    await expect(page.getByTestId('empty-state')).toContainText(fr.dashboard.emptyHeading);
+    await expect(page.getByTestId('empty-state')).toContainText(fr.dashboard.emptyCtaPractice);
     await expect(page.getByTestId('setting-adaptive')).toBeVisible();
     await expect(page.getByText(fr.dashboard.settingAdaptive)).toBeVisible();
   });

@@ -132,7 +132,9 @@ test.describe('local persistence', () => {
     await page.goto('en/progress/');
     await expect(page.getByTestId('empty-state')).toHaveCount(0);
     await expect(page.getByTestId('domain-chart')).toBeVisible();
-    await expect(page.locator('[data-domain-bar="Fluid reasoning"]')).toBeVisible();
+    // Keyed on the CHC code rather than the translated label, so the hook is stable
+    // across locales.
+    await expect(page.locator('[data-bar="Gf"]')).toBeVisible();
   });
 
   test('two sessions accumulate rather than overwrite', async ({ page }) => {

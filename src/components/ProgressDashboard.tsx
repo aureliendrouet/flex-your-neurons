@@ -8,8 +8,11 @@
 import { useState } from 'preact/hooks';
 import { useStore } from '@nanostores/preact';
 import { ALL_META, getItemText } from '../lib/generators';
+import { typeHue } from '../lib/identity';
 import ActivityChart from './charts/ActivityChart';
+import BarRows from './charts/BarRows';
 import Sparkline from './charts/Sparkline';
+import SpeedAccuracy from './charts/SpeedAccuracy';
 import TrendChart, { type Series } from './charts/TrendChart';
 import {
   dailyActivity,
@@ -19,7 +22,7 @@ import {
   sessionTrend,
   typeTrend,
 } from '../lib/charts';
-import { formatDuration, formatPercent } from '../lib/scoring';
+import { allResponses, formatDuration, formatPercent, tallyErrorTypes } from '../lib/scoring';
 import {
   $sessions,
   $settings,
@@ -31,6 +34,8 @@ import {
   updateSettings,
 } from '../lib/store';
 import { dict, type Locale } from '../lib/i18n';
+import { localeHref, practiceHref } from '../lib/links';
+import type { Session } from '../lib/types';
 
 export default function ProgressDashboard({ locale }: { locale: Locale }) {
   const t = dict(locale);
@@ -65,11 +70,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
           <Stat label={t.dashboard.sessions} value={String(overall.sessions)} testid="total-sessions" />
           <Stat label={t.dashboard.dayStreak} value={String(overall.dayStreak)} testid="day-streak" />
         </div>
-        {!hasData && (
-          <p class="muted dash-empty" data-testid="empty-state">
-            {t.dashboard.empty}
-          </p>
-        )}
+        {!hasData && <EmptyState locale={locale} />}
       </section>
 
       {hasData && (
@@ -146,17 +147,112 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
       )}
 
       {hasData && (
-        <section>
-          <h2 class="dash-heading">{t.dashboard.byDomain}</h2>
-          <DomainChart
-            label={t.dashboard.domainChartLabel}
-            locale={locale}
-            data={byDomain.map((d) => ({
-              label: t.domains[d.domain],
-              value: d.accuracy ?? 0,
-              n: d.attempts,
-            }))}
-          />
+        <section data-testid="profile-section">
+          <h2 class="dash-heading dash-heading--tight">{t.dashboard.byDomain}</h2>
+          <p class="muted dash-lede">{t.dashboard.domainLede}</p>
+          <div class="card domain-chart-card scroll-x">
+            <BarRows
+              testid="domain-chart"
+              label={t.dashboard.domainChartLabel}
+              rows={byDomain.map((d) => ({
+                key: d.domain,
+                label: `${t.domains[d.domain]} (${d.domain})`,
+                value: d.accuracy ?? 0,
+                display: formatPercent(d.accuracy, locale),
+                provisional: d.attempts < PROVISIONAL_BELOW,
+                title:
+                  d.attempts < PROVISIONAL_BELOW
+                    ? `${t.domains[d.domain]} — ${t.dashboard.provisional(d.attempts)}`
+                    : `${t.domains[d.domain]} — ${formatPercent(d.accuracy, locale)}, ${d.attempts}`,
+              }))}
+            />
+            {byDomain.some((d) => d.attempts < PROVISIONAL_BELOW) && (
+              <p class="subtle chart-legend" data-testid="provisional-key">
+                {t.dashboard.provisionalKey}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {hasData && (
+        <section data-testid="speed-section">
+          <h2 class="dash-heading dash-heading--tight">{t.dashboard.speed.heading}</h2>
+          <p class="muted dash-lede">{t.dashboard.speed.lede}</p>
+          <div class="card chart-card scroll-x">
+            <SpeedAccuracy
+              locale={locale}
+              label={t.dashboard.speed.label}
+              axisX={t.dashboard.speed.axisX}
+              axisY={t.dashboard.speed.axisY}
+              emptyMessage={t.dashboard.speed.needMore}
+              fastestLabel={t.dashboard.speed.fastest}
+              mostAccurateLabel={t.dashboard.speed.mostAccurate}
+              describePoint={t.dashboard.speed.point}
+              points={byType.flatMap((stats) =>
+                /*
+                 * Both coordinates have to mean something. Median latency is computed over
+                 * correct answers only, so a format with no correct answers has no x
+                 * position at all, and under five attempts the median is not a median.
+                 */
+                stats.attempts >= SPEED_MIN_ATTEMPTS &&
+                stats.accuracy !== null &&
+                stats.medianLatencyMs !== null
+                  ? [
+                      {
+                        key: stats.type,
+                        name: getItemText(stats.type, locale).name,
+                        accuracy: stats.accuracy,
+                        medianLatencyMs: stats.medianLatencyMs,
+                        attempts: stats.attempts,
+                      },
+                    ]
+                  : [],
+              )}
+            />
+          </div>
+        </section>
+      )}
+
+      {hasData && <MistakeProfile locale={locale} sessions={sessions} />}
+
+      {hasData && (
+        <section data-testid="wall-section">
+          <h2 class="dash-heading dash-heading--tight">{t.dashboard.wall.heading}</h2>
+          <p class="muted dash-lede">{t.dashboard.wall.lede}</p>
+          <div class="card-grid sparkline-wall" style={{ '--card-min': '9rem' } as never}>
+            {ALL_META.map((meta) => {
+              const buckets = typeTrend(sessions, meta.id, TREND_BUCKETS);
+              const stats = byType.find((x) => x.type === meta.id);
+              const name = getItemText(meta.id, locale).name;
+              return (
+                <a
+                  key={meta.id}
+                  class="card card--interactive wall-cell"
+                  href={practiceHref(meta.id)}
+                  data-testid={`wall-${meta.id}`}
+                  style={{ '--type-hue': typeHue(meta.id) } as never}
+                >
+                  <span class="wall-name">{name}</span>
+                  {buckets.length > 0 ? (
+                    <>
+                      <Sparkline
+                        testid={`trend-${meta.id}`}
+                        label={t.dashboard.charts.trendLabel(name)}
+                        values={buckets.map((b) => b.accuracy)}
+                      />
+                      <span class="wall-value">
+                        {formatPercent(stats?.accuracy ?? null, locale)}
+                        <span class="subtle wall-attempts"> · {stats?.attempts ?? 0}</span>
+                      </span>
+                    </>
+                  ) : (
+                    <span class="subtle wall-never">{t.dashboard.wall.never}</span>
+                  )}
+                </a>
+              );
+            })}
+          </div>
         </section>
       )}
 
@@ -173,7 +269,6 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
                 <th class="num">{t.dashboard.colMedianTime}</th>
                 <th class="num">{t.dashboard.colBestRun}</th>
                 <th class="num">{t.dashboard.colPeakLevel}</th>
-                <th class="num">{t.dashboard.charts.colTrend}</th>
               </tr>
             </thead>
             <tbody>
@@ -192,13 +287,6 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
                     <td class="num">{formatDuration(stats?.medianLatencyMs ?? null, locale)}</td>
                     <td class="num">{stats?.bestStreak ?? 0}</td>
                     <td class="num">{stats?.peakDifficulty ?? '—'}</td>
-                    <td class="num">
-                      <Sparkline
-                        testid={`trend-${meta.id}`}
-                        label={t.dashboard.charts.trendLabel(getItemText(meta.id, locale).name)}
-                        values={typeTrend(sessions, meta.id, TREND_BUCKETS).map((b) => b.accuracy)}
-                      />
-                    </td>
                   </tr>
                 );
               })}
@@ -306,74 +394,96 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
   );
 }
 
-function DomainChart({
-  data,
-  label,
-  locale,
-}: {
-  data: { label: string; value: number; n: number }[];
-  label: string;
-  locale: Locale;
-}) {
-  if (data.length === 0) return null;
-  const rowHeight = 34;
-  const height = data.length * rowHeight + 8;
-  const labelWidth = 148;
-  const barWidth = 300;
+/**
+ * The mistake breakdown, across the whole history.
+ *
+ * The payoff of Phase 1: because every wrong answer was diagnosed at the moment it was made,
+ * this page can report *which* misreadings recur rather than only how often the reader was
+ * wrong. Sorted by frequency, so the habit is the first row.
+ *
+ * Note what is not here: no total, no grade, no comparison. A count and a name.
+ */
+function MistakeProfile({ locale, sessions }: { locale: Locale; sessions: Session[] }) {
+  const t = dict(locale);
+  const tally = tallyErrorTypes(allResponses(sessions));
+  const total = tally.reduce((sum, x) => sum + x.count, 0);
 
   return (
-    <div class="card domain-chart-card scroll-x">
-      <svg
-        viewBox={`0 0 ${labelWidth + barWidth + 52} ${height}`}
-        class="domain-chart"
-        role="img"
-        aria-label={label}
-        data-testid="domain-chart"
-      >
-        {data.map((d, i) => {
-          const y = i * rowHeight + 4;
-          return (
-            <g key={d.label} data-domain-bar={d.label}>
-              <text x={0} y={y + 17} font-size="12" fill="currentColor" opacity="0.75">
-                {d.label}
-              </text>
-              <rect
-                x={labelWidth}
-                y={y + 6}
-                width={barWidth}
-                height={14}
-                rx={7}
-                fill="currentColor"
-                opacity="0.08"
-              />
-              <rect
-                x={labelWidth}
-                y={y + 6}
-                width={Math.max(2, barWidth * d.value)}
-                height={14}
-                rx={7}
-                fill="var(--accent)"
-              />
-              <text
-                x={labelWidth + barWidth + 8}
-                y={y + 17}
-                font-size="12"
-                fill="currentColor"
-                opacity="0.75"
-                font-variant-numeric="tabular-nums"
-              >
-                {formatPercent(d.value, locale)}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+    <section data-testid="mistake-section">
+      <h2 class="dash-heading dash-heading--tight">{t.dashboard.mistakes.heading}</h2>
+      <p class="muted dash-lede">{t.dashboard.mistakes.lede}</p>
+      <div class="card domain-chart-card scroll-x" data-testid="mistake-profile" data-count={String(total)}>
+        {total === 0 ? (
+          <p class="muted chart-empty" data-testid="mistake-profile-empty">
+            {t.dashboard.mistakes.empty}
+          </p>
+        ) : (
+          <BarRows
+            testid="mistake-chart"
+            label={t.dashboard.mistakes.label}
+            labelWidth={130}
+            rows={tally.map((x) => {
+              const share = x.count / total;
+              return {
+                key: x.errorType,
+                label: t.diagnosis.tags[x.errorType],
+                // Scaled against the commonest mistake, not against the total: the question
+                // this chart answers is "which of these dominates", and a share-of-total
+                // scale flattens everything when the errors are spread.
+                value: x.count / tally[0]!.count,
+                display: String(x.count),
+                title: t.dashboard.mistakes.bar(
+                  t.diagnosis.tags[x.errorType],
+                  x.count,
+                  formatPercent(share, locale),
+                ),
+              };
+            })}
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The empty state.
+ *
+ * For a new reader this page *is* this component, so it gets designed rather than left as a
+ * bare sentence over an empty table: it explains why the page is empty, says what will appear,
+ * and offers the two ways to fill it.
+ */
+function EmptyState({ locale }: { locale: Locale }) {
+  const t = dict(locale);
+  return (
+    <div class="card note note--accent dash-empty-card" data-testid="empty-state">
+      <h3 class="section-heading section-heading--sm">{t.dashboard.emptyHeading}</h3>
+      <p class="note-body">{t.dashboard.emptyBody}</p>
+      <div class="cluster dash-empty-actions">
+        <a class="btn btn-primary" href={localeHref('practice/')}>
+          {t.dashboard.emptyCtaPractice}
+        </a>
+        <a class="btn" href={localeHref('test/')}>
+          {t.dashboard.emptyCtaTest}
+        </a>
+      </div>
+      <p class="subtle small flush">{t.dashboard.emptyPrivacy}</p>
     </div>
   );
 }
 
 /** Eight weeks is long enough to show a habit, short enough to stay readable. */
 const ACTIVITY_DAYS = 56;
+/**
+ * Below this many attempts a bar is drawn faded and labelled as provisional.
+ *
+ * Ten is not a statistical threshold — nothing here is calibrated — but a domain read off
+ * three items would be presented with exactly the same confidence as one read off three
+ * hundred, and that is the overclaiming this whole site is built to avoid.
+ */
+const PROVISIONAL_BELOW = 10;
+/** A median over fewer than five attempts is not a median. */
+const SPEED_MIN_ATTEMPTS = 5;
 const ROLLING_WINDOW = 3;
 const TREND_BUCKETS = 8;
 
@@ -455,13 +565,6 @@ function Toggle({
       <p class="subtle toggle-hint">{hint}</p>
     </div>
   );
-}
-
-function practiceHref(id: string): string {
-  const root = document.documentElement;
-  const base = (root.dataset.base ?? '/').replace(/\/$/, '');
-  const locale = root.dataset.locale ?? 'en';
-  return `${base}/${locale}/practice/${id}/`;
 }
 
 function download(payload: unknown): void {
