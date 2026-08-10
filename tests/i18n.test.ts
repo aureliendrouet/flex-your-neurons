@@ -265,18 +265,18 @@ describe('locale helpers', () => {
   });
 
   it('reads the locale out of a path', () => {
-    expect(localeFromPath('/iq/fr/practice/matrix/', '/iq/')).toBe('fr');
-    expect(localeFromPath('/iq/en/', '/iq/')).toBe('en');
-    expect(localeFromPath('/iq/', '/iq/')).toBe(DEFAULT_LOCALE);
+    expect(localeFromPath('/flex-your-neurons/fr/practice/matrix/', '/flex-your-neurons/')).toBe('fr');
+    expect(localeFromPath('/flex-your-neurons/en/', '/flex-your-neurons/')).toBe('en');
+    expect(localeFromPath('/flex-your-neurons/', '/flex-your-neurons/')).toBe(DEFAULT_LOCALE);
     expect(localeFromPath('/fr/about/', '/')).toBe('fr');
   });
 
   it('swaps the locale while keeping the page', () => {
-    expect(pathForLocale('/iq/en/practice/matrix/', 'fr', '/iq/')).toBe('/iq/fr/practice/matrix/');
-    expect(pathForLocale('/iq/fr/about/', 'en', '/iq/')).toBe('/iq/en/about/');
-    expect(pathForLocale('/iq/en/', 'fr', '/iq/')).toBe('/iq/fr/');
+    expect(pathForLocale('/flex-your-neurons/en/practice/matrix/', 'fr', '/flex-your-neurons/')).toBe('/flex-your-neurons/fr/practice/matrix/');
+    expect(pathForLocale('/flex-your-neurons/fr/about/', 'en', '/flex-your-neurons/')).toBe('/flex-your-neurons/en/about/');
+    expect(pathForLocale('/flex-your-neurons/en/', 'fr', '/flex-your-neurons/')).toBe('/flex-your-neurons/fr/');
     // A path with no locale yet gains one.
-    expect(pathForLocale('/iq/', 'fr', '/iq/')).toBe('/iq/fr/');
+    expect(pathForLocale('/flex-your-neurons/', 'fr', '/flex-your-neurons/')).toBe('/flex-your-neurons/fr/');
   });
 
   it('negotiates from a browser language list', () => {

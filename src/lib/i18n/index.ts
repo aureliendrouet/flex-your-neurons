@@ -36,7 +36,7 @@ export function localeOptions(): { locale: Locale; nativeName: string }[] {
 }
 
 /**
- * Extracts the locale from a pathname such as `/iq/fr/practice/matrix/`.
+ * Extracts the locale from a pathname such as `/flex-your-neurons/fr/practice/matrix/`.
  * Returns the default when the path carries no known locale segment.
  */
 export function localeFromPath(pathname: string, base = '/'): Locale {
@@ -47,7 +47,7 @@ export function localeFromPath(pathname: string, base = '/'): Locale {
 
 /**
  * Rewrites a path to a different locale, keeping the page.
- * `/iq/en/practice/matrix/` + 'fr' -> `/iq/fr/practice/matrix/`
+ * `/flex-your-neurons/en/practice/matrix/` + 'fr' -> `/flex-your-neurons/fr/practice/matrix/`
  */
 export function pathForLocale(pathname: string, target: Locale, base = '/'): string {
   const normalisedBase = base.endsWith('/') ? base : `${base}/`;

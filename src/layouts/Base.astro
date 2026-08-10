@@ -10,7 +10,7 @@ interface Props {
   /** Rendered under the page heading. */
   lede?: string;
   /**
-   * Root-relative path to this page's social card, e.g. `/iq/en/og/matrix.svg`.
+   * Root-relative path to this page's social card, e.g. `/flex-your-neurons/en/og/matrix.svg`.
    * Omit and the page previews as title and description alone, as before.
    */
   ogImage?: string;
@@ -21,7 +21,7 @@ const t = dict(locale);
 
 const base = import.meta.env.BASE_URL;
 const root = base.replace(/\/$/, '');
-/** Locale-aware in-app link: href('practice/') -> /iq/fr/practice/ */
+/** Locale-aware in-app link: href('practice/') -> /flex-your-neurons/fr/practice/ */
 const href = (path: string) => `${root}/${locale}/${path}`;
 
 const current = Astro.url.pathname.replace(/\/$/, '');

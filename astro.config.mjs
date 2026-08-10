@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 // GitHub Pages project site: https://<user>.github.io/<repo>/
 // Both are overridable so a fork (or a user/organisation page) needs no code change.
 const SITE = process.env.SITE_URL ?? 'https://aureliendrouet.github.io';
-const BASE = process.env.BASE_PATH ?? '/iq';
+const BASE = process.env.BASE_PATH ?? '/flex-your-neurons';
 
 export default defineConfig({
   site: SITE,

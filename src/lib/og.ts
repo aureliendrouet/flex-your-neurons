@@ -400,7 +400,7 @@ export interface OgCard {
   domain: string;
   /** The CHC code, e.g. "Gf". */
   domainCode: string;
-  /** The site wordmark, translated only in the sense that it never is. */
+  /** The site wordmark. Translated per locale; the URL slug stays English. */
   brand: string;
   /** The standing disclaimer. Shortened for the card. */
   disclaimer: string;

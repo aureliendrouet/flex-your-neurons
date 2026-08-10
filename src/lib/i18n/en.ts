@@ -23,7 +23,7 @@ const en = {
   },
 
   nav: {
-    brand: 'Reason',
+    brand: 'Flex Your Neurons',
     home: 'Home',
     practice: 'Practice',
     test: 'Full test',
@@ -925,7 +925,7 @@ const en = {
       publisherLabel: 'Publisher / contact',
       publisher: 'TODO — publisher name not yet supplied (see docs/PLAN-2026-08.md §1.2)',
       contactLabel: 'Contact',
-      contact: 'https://github.com/aureliendrouet/iq/issues',
+      contact: 'https://github.com/aureliendrouet/flex-your-neurons/issues',
       hostLabel: 'Host',
       host: 'GitHub, Inc., 88 Colin P. Kelly Jr Street, San Francisco, CA 94107, USA',
     },

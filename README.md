@@ -1,4 +1,7 @@
-# Reason — training on reasoning-test item formats
+# Flex Your Neurons — training on reasoning-test item formats
+
+*Muscle Tes Neurones* in French. The name is translated per locale, title-cased in both; the URL
+slug stays English.
 
 A static site for practising the item formats used in IQ and aptitude tests, **in English and
 French**. Every item is **generated from a seed**, **proved to have exactly one defensible
@@ -13,7 +16,7 @@ It deliberately reports **no IQ score**. See [Why there is no score](#why-there-
 
 ```bash
 npm install
-npm run dev            # http://localhost:4321/iq/ — redirects to /iq/en/ or /iq/fr/
+npm run dev            # http://localhost:4321/flex-your-neurons/ — redirects to /flex-your-neurons/en/ or /flex-your-neurons/fr/
 
 npm test               # unit tests (generators, solvers, rng, geometry)
 npm run build          # static output in dist/

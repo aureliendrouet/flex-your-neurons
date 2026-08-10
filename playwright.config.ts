@@ -24,7 +24,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    // The trailing slash matters. `new URL('practice/', '…/iq/')` keeps the base path,
+    // The trailing slash matters. `new URL('practice/', '…/flex-your-neurons/')` keeps the base path,
     // whereas a leading-slash path would resolve against the origin and drop it — so
     // every test navigates with a RELATIVE path ('practice/matrix/', './' for the home
     // page). That also means these tests genuinely exercise the deployed base path.

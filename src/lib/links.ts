@@ -10,7 +10,7 @@
  * generator into the dashboard's bundle for the sake of two lines of string concatenation.
  */
 
-/** `localeHref('practice/')` -> `/iq/fr/practice/` */
+/** `localeHref('practice/')` -> `/flex-your-neurons/fr/practice/` */
 export function localeHref(path: string): string {
   const root = document.documentElement;
   const base = (root.dataset.base ?? '/').replace(/\/$/, '');
