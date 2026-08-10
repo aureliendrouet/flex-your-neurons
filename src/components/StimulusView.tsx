@@ -30,6 +30,14 @@ export default function StimulusView({
     case 'none':
       return null;
 
+    /*
+     * Nothing here. A trail's stimulus *is* its response surface — the board is interactive, so it is
+     * rendered once by `TrailBoard` in the answer tray rather than twice, and drawing a second
+     * inert copy above it would be both confusing and clickable-looking.
+     */
+    case 'trail':
+      return null;
+
     case 'matrix':
       return (
         <div class="matrix-grid" data-stimulus="matrix" role="group" aria-label={t.patternMatrix}>

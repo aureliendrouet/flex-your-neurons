@@ -21,6 +21,7 @@ import { headCountGenerator } from './head-count';
 import { figureWeightsGenerator } from './figure-weights';
 import { arithmeticGenerator } from './arithmetic';
 import { interferenceGenerator } from './interference';
+import { trailMakingGenerator } from './trail-making';
 
 /**
  * Presentation order: reasoning first, then spatial, then memory, then speed, with the
@@ -43,6 +44,7 @@ export const GENERATORS: Generator[] = [
   headCountGenerator,
   codingGenerator,
   interferenceGenerator,
+  trailMakingGenerator,
   arithmeticGenerator,
 ];
 

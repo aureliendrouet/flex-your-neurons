@@ -71,6 +71,9 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   // Level 3, where most trials are incongruent: a congruent card (three 3s) advertises the format
   // as "count these", which is the one reading the task is built to defeat.
   interference: { seed: 'PRVSTROO', difficulty: 3 },
+  // Level 1, eight nodes: enough for the wandering path to read as a search, few enough that the
+  // labels are still legible at card size.
+  'trail-making': { seed: 'PRVTRAIL', difficulty: 1 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */

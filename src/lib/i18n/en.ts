@@ -300,6 +300,12 @@ const en = {
   },
 
   dashboard: {
+    switchHeading: 'Switch cost',
+    switchLede:
+      'From the trail boards: how much longer the number-and-letter boards take than the numbers-only ones. Both kinds are matched on how much searching and clicking they need, so the gap between them is the cost of holding two sequences at once and alternating between them — the part of the task that is not simply speed.',
+    switchGap: 'Cost of switching',
+    switchFormA: (n: number) => `Numbers only (${n} boards)`,
+    switchFormB: (n: number) => `Numbers and letters (${n} boards)`,
     interferenceHeading: 'Interference',
     interferenceLede:
       'From the counting task: how much slower you are when the digit disagrees with how many there are. This is the one figure here that is a difference rather than a total, and the difference is the point — everything else about the two kinds of trial is identical, so what is left is the cost of holding back the answer your eye offered first.',
@@ -376,7 +382,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than sixteen lines on one axis — sixteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than seventeen lines on one axis — seventeen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -526,6 +532,13 @@ const en = {
       description:
         'A stream of letters goes past one at a time. Count how many of them match the letter a fixed number of places earlier — one place back at first, up to three. Span asks you to hold a list still; this asks you to keep a moving window of the last few elements and rewrite it at every step, which is why it measures updating rather than storage. The stream is gone when you answer, and it does not replay.',
       seenIn: 'Cognitive-training and working-memory research (Jaeggi et al.), Cogmed, the dual n-back literature',
+    },
+    'trail-making': {
+      name: 'Trail making',
+      blurb: 'Join the targets in order. Against the clock.',
+      description:
+        'Targets are scattered across the board and you connect them in order, as fast as you can. Half the boards are numbers alone; the other half alternate numbers and letters — 1, A, 2, B — which adds the work of holding two sequences and switching between them without losing either. The form is not a difficulty level, deliberately: levels differ only in how many targets there are, so the two forms stay matched on search and motor demand and the gap between your times is a measure of switching alone. Scored on completion time; a click on the wrong target counts against the run but does not end it.',
+      seenIn: 'Trail Making Test A and B (Army Individual Test Battery, 1944), the Halstead–Reitan battery, Delis–Kaplan trail making',
     },
     interference: {
       name: 'Count, don’t read',
@@ -747,6 +760,27 @@ const en = {
       ruleUpdating:
         'Counting these means holding the last few letters and replacing the oldest at every step. That updating, rather than how much you can store, is what this format measures.',
     },
+    trailMaking: {
+      promptA: 'Join the targets from 1 upwards, in order.',
+      promptB: 'Join the targets alternating numbers and letters: 1, A, 2, B…',
+      summary: (nodes: number, formB: boolean) =>
+        formB
+          ? `${nodes} targets, alternating numbers and letters.`
+          : `${nodes} targets, in numerical order.`,
+      ruleSequence: 'The order is the numbers, ascending. Nothing has to be worked out — the whole task is finding each next target and getting to it.',
+      ruleAlternate:
+        'The order alternates: 1, A, 2, B, and so on. Two sequences have to be held at once, and each switch is a chance to lose your place in the other one.',
+      ruleTimed:
+        'What is scored is the time to finish, not whether you finish — everyone finishes. A click on a wrong target is counted and the run continues.',
+      ruleContrast:
+        'The measure worth watching is the gap between your times on the two kinds of board. The number-and-letter boards are matched to the number-only ones on search and motor demand, so what is left is the cost of switching.',
+      /** Live board copy. Announced to a screen reader as progress is made. */
+      next: (label: string) => `Next: ${label}`,
+      progress: (done: number, total: number) => `${done} of ${total} joined`,
+      misses: (n: number) => `${n} wrong ${n === 1 ? 'click' : 'clicks'}`,
+      done: 'Finished',
+      nodeLabel: (label: string) => `Target ${label}`,
+    },
     interference: {
       prompt: 'How many are there?',
       summary: (count: number, digit: string) =>
@@ -800,7 +834,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Sixteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Seventeen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -871,7 +905,7 @@ const en = {
     test: {
       title: 'Full test',
       description:
-        'A mixed run across all sixteen reasoning-test formats, two items each, with no feedback until the end.',
+        'A mixed run across all seventeen reasoning-test formats, two items each, with no feedback until the end.',
       lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
       differsHeading: 'How this differs from a real battery',
       differs: [
@@ -1032,7 +1066,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these sixteen formats is evidence about these sixteen formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these seventeen formats is evidence about these seventeen formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',

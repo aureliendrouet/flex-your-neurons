@@ -11,6 +11,7 @@ import { useStore } from '@nanostores/preact';
 import SeedChip from './SeedChip';
 import ShortcutSheet from './ShortcutSheet';
 import StimulusView from './StimulusView';
+import TrailBoard from './TrailBoard';
 import FigureView, { describeFigure } from './FigureView';
 import GridView from './GridView';
 import { generateItem, getItemText, getMeta } from '../lib/generators';
@@ -46,6 +47,7 @@ import type {
   Response,
   Session,
   SessionMode,
+  TrailNode,
 } from '../lib/types';
 
 /**
@@ -356,10 +358,15 @@ export default function Quiz({
   }, [windowMs, startResponseClock]);
 
   const submit = useCallback(
-    (choiceIndex: number | null, text?: string) => {
+    /**
+     * `trailMisses` is only ever passed by the trail board, where correctness is a binarisation of a
+     * timed run rather than a fact about an answer: a trail always completes, so "correct" is set to
+     * "finished without a misclick". The latency is the measurement.
+     */
+    (choiceIndex: number | null, text?: string, trailMisses?: number) => {
       if (!item || !session || phase !== 'answering') return;
 
-      const correct = isCorrect(item, choiceIndex, text);
+      const correct = isCorrect(item, choiceIndex, text, trailMisses);
       const response = makeResponse(
         item.type,
         item.seed,
@@ -762,7 +769,19 @@ export default function Quiz({
         </div>
 
         <div class="quiz-answer" data-testid="answer-tray">
-        {item.responseMode === 'text' ? (
+        {item.responseMode === 'trail' ? (
+          /*
+           * The board owns its own progress and reports once, when the path is finished. It is left
+           * mounted and frozen after submitting so the completed trail stays on screen beside the
+           * feedback — the shape of the path is the most informative thing about the run.
+           */
+          <TrailBoard
+            nodes={(item.stimulus as { kind: 'trail'; nodes: TrailNode[] }).nodes}
+            locale={locale}
+            frozen={revealed}
+            onComplete={(misses) => submit(null, undefined, misses)}
+          />
+        ) : item.responseMode === 'text' ? (
           <form
             data-testid="text-response"
             onSubmit={(e) => {

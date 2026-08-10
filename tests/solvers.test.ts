@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateItem } from '@/lib/generators';
+import { NODE_RADIUS } from '@/lib/generators/trail-making';
 import { DIFFICULTIES, type Difficulty } from '@/lib/types';
 import { isUnambiguous, solveSeries } from '@/lib/solvers/series';
 import { predict, solveAttribute, type Rule } from '@/lib/rules';
@@ -720,5 +721,129 @@ describe('interference presents a real congruency contrast', () => {
         .join(','),
     );
     expect(new Set(shapes).size, `option sets across levels: ${shapes.join(' | ')}`).toBe(1);
+  });
+});
+
+/**
+ * Trail making: the layout properties that make a board playable at all.
+ *
+ * There is no answer to re-derive here — the order is printed on the targets — so what has to be
+ * checked is the geometry. A board whose targets overlap is not a hard item, it is an unclickable
+ * one, and no amount of generator confidence substitutes for measuring the distances.
+ */
+describe('trail-making boards are playable', () => {
+  const SEEDS = Array.from({ length: 40 }, (_, i) => `TM${i}`);
+
+  function nodesOf(seed: string, difficulty: Difficulty) {
+    const item = generateItem('trail-making', seed, difficulty);
+    if (item.stimulus.kind !== 'trail') throw new Error('unexpected stimulus');
+    return item.stimulus.nodes;
+  }
+
+  /**
+   * The radius the generator places around, imported rather than restated — a hand-copied constant
+   * here would drift from the one the placement is built on, and the whole point of this suite is to
+   * measure the geometry rather than to agree with it.
+   */
+  const RADIUS = NODE_RADIUS;
+
+  it('never overlaps two targets', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const nodes = nodesOf(seed, difficulty);
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const dx = nodes[i]!.x - nodes[j]!.x;
+            const dy = nodes[i]!.y - nodes[j]!.y;
+            const distance = Math.hypot(dx, dy);
+            expect(
+              distance,
+              `trail-making ${seed} d${difficulty}: ${nodes[i]!.label} and ${nodes[j]!.label} are ${distance.toFixed(3)} apart`,
+            ).toBeGreaterThan(RADIUS * 2);
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps every target inside the board', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        for (const node of nodesOf(seed, difficulty)) {
+          const where = `trail-making ${seed} d${difficulty} node ${node.label}`;
+          // Inset by a radius, or a target would be clipped by the edge it sits on.
+          expect(node.x, `${where} x`).toBeGreaterThanOrEqual(RADIUS);
+          expect(node.x, `${where} x`).toBeLessThanOrEqual(1 - RADIUS);
+          expect(node.y, `${where} y`).toBeGreaterThanOrEqual(RADIUS);
+          expect(node.y, `${where} y`).toBeLessThanOrEqual(1 - RADIUS);
+        }
+      }
+    }
+  });
+
+  it('labels the path uniquely and in the documented order', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const nodes = nodesOf(seed, difficulty);
+        const labels = nodes.map((n) => n.label);
+        const where = `trail-making ${seed} d${difficulty}`;
+        expect(new Set(labels).size, `${where}: duplicate labels`).toBe(labels.length);
+
+        const isFormB = labels.some((l) => /[A-Z]/.test(l));
+        if (isFormB) {
+          // 1, A, 2, B … — numbers on the even positions, letters on the odd ones.
+          labels.forEach((label, i) => {
+            if (i % 2 === 0) expect(label, `${where} position ${i}`).toBe(String(i / 2 + 1));
+            else expect(/^[A-Z]$/.test(label), `${where} position ${i} is "${label}"`).toBe(true);
+          });
+        } else {
+          expect(labels).toEqual(labels.map((_, i) => String(i + 1)));
+        }
+      }
+    }
+  });
+
+  /**
+   * The path has to wander.
+   *
+   * If consecutive targets were always neighbours the board would be a dotted line, and following it
+   * would need no reading at all — the search is the task. Measured as the mean step length against
+   * the board's diagonal: a wandering path averages a substantial fraction of it, a laid-out one
+   * would not.
+   */
+  it('scatters the path rather than laying it out in order', () => {
+    for (const difficulty of DIFFICULTIES) {
+      let total = 0;
+      let steps = 0;
+      for (const seed of SEEDS) {
+        const nodes = nodesOf(seed, difficulty);
+        for (let i = 1; i < nodes.length; i++) {
+          total += Math.hypot(nodes[i]!.x - nodes[i - 1]!.x, nodes[i]!.y - nodes[i - 1]!.y);
+          steps++;
+        }
+      }
+      const mean = total / steps;
+      expect(mean, `trail-making d${difficulty}: mean step ${mean.toFixed(3)}`).toBeGreaterThan(0.25);
+    }
+  });
+
+  it('produces both forms, at every difficulty', () => {
+    for (const difficulty of DIFFICULTIES) {
+      const formB = SEEDS.filter((seed) => nodesOf(seed, difficulty).some((n) => /[A-Z]/.test(n.label)));
+      expect(formB.length, `trail-making d${difficulty}: no form B boards`).toBeGreaterThan(0);
+      expect(
+        SEEDS.length - formB.length,
+        `trail-making d${difficulty}: no form A boards`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('scales the search load with difficulty, and only that', () => {
+    const counts = DIFFICULTIES.map((d) => nodesOf('SCALE', d).length);
+    for (let i = 1; i < counts.length; i++) {
+      expect(counts[i]!, `d${i + 1} has ${counts[i]} nodes, d${i} has ${counts[i - 1]}`).toBeGreaterThan(
+        counts[i - 1]!,
+      );
+    }
   });
 });

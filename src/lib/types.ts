@@ -28,7 +28,8 @@ export type ItemTypeId =
   | 'head-count'
   | 'figure-weights'
   | 'arithmetic'
-  | 'interference';
+  | 'interference'
+  | 'trail-making';
 
 /**
  * CHC broad ability. See docs/IQ-TESTS.md §2.
@@ -151,6 +152,12 @@ export type Stimulus =
    */
   | { kind: 'interference'; glyphs: string[] }
   /**
+   * A trail-making board. `nodes` is in the order they must be clicked, and each position is in the
+   * unit box so the renderer owns the pixel geometry. The order is not a secret — the labels state
+   * it — so there is nothing to hide by shuffling the array.
+   */
+  | { kind: 'trail'; nodes: TrailNode[] }
+  /**
    * Balance-scale algebra. Each premise is a pair of pans that balance, establishing the
    * shapes' relative weights; `target` is the pan the chosen option must balance.
    */
@@ -159,6 +166,13 @@ export type Stimulus =
       premises: { left: Figure; right: Figure }[];
       target: Figure;
     };
+
+/** One target on a trail-making board. Centre position in the unit box, both in [0, 1]. */
+export interface TrailNode {
+  label: string;
+  x: number;
+  y: number;
+}
 
 export type Fold = 'left' | 'right' | 'top' | 'bottom';
 
@@ -217,7 +231,13 @@ export interface Explanation {
  * formats just to fit a multiple-choice model — that would measure a different construct —
  * so text entry is a first-class response mode.
  */
-export type ResponseMode = 'choice' | 'text';
+/**
+ * `trail` is a third kind of response, and a different shape from the other two: not one decision
+ * but a *sequence* of clicks that is timed as a unit. There is no option list and no expected
+ * string — the item completes when the last target is reached, and what it records is how long that
+ * took and how many clicks went astray.
+ */
+export type ResponseMode = 'choice' | 'text' | 'trail';
 
 /**
  * A stimulus shown only briefly before the response is collected, for formats where the

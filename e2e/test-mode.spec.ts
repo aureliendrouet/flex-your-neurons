@@ -36,6 +36,16 @@ async function answerCurrent(page: import('@playwright/test').Page, index: numbe
 
   // Outside the branch: n-back is gated and answered by choice. No-op where there is no gate.
   await startSpanIfGated(page);
+  if (item.responseMode === 'trail') {
+    if (item.stimulus.kind !== 'trail') throw new Error('expected a trail stimulus');
+    const nodes = item.stimulus.nodes;
+    // A trail always finishes; "wrong" means finishing with one click that went astray.
+    if (!correct && nodes.length > 1) {
+      await page.getByTestId(`trail-node-${nodes.at(-1)!.label}`).click();
+    }
+    for (const node of nodes) await page.getByTestId(`trail-node-${node.label}`).click();
+    return;
+  }
   if (item.responseMode === 'text') {
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 25_000 });
@@ -62,14 +72,16 @@ test.describe('full test mode', () => {
    * waiting-smarter can remove. Wall time therefore scales with how many *transient* formats exist,
    * not with how many formats exist.
    *
-   * It has been raised twice. It first went past the 45-second default when head count shipped, and
-   * then past 120 seconds under full-suite load — solo it runs in under thirty, so eight workers
-   * competing for the machine cost it roughly a factor of four. The pinned difficulty was dropped to
-   * level 1 at the same time, which is where most of the saving came from. Expect to revisit this
-   * when the next transient format lands.
+   * The budget is now deliberately far larger than the test needs, because raising it in small steps
+   * was a losing game: 45 seconds, then 120, then 300, each one passing solo and timing out again under
+   * full-suite load. Solo it runs in about twenty-five seconds; eight workers competing for the machine
+   * have cost it more than a factor of ten. Since the floor is playback — real time that cannot be
+   * waited-smarter away — the honest move is a ceiling with room in it rather than one that will need
+   * raising again. The pinned difficulty is level 1 for the same reason, and that is where most of the
+   * saving came from.
    */
   test('rotates through every item type', async ({ page }) => {
-    test.setTimeout(180_000);
+    test.setTimeout(600_000);
     await page.goto(testUrl());
     await waitForQuiz(page);
 

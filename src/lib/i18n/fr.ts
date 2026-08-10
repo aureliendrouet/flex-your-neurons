@@ -267,6 +267,12 @@ const fr: Dict = {
   },
 
   dashboard: {
+    switchHeading: 'Coût du basculement',
+    switchLede:
+      'Issu des plateaux à relier : de combien les plateaux mêlant nombres et lettres prennent plus de temps que ceux à nombres seuls. Les deux sortes exigent autant de recherche et de clics, si bien que l’écart mesure le coût de tenir deux suites à la fois et d’alterner entre elles — la part de la tâche qui n’est pas de la simple vitesse.',
+    switchGap: 'Coût du basculement',
+    switchFormA: (n: number) => `Nombres seuls (${n} plateaux)`,
+    switchFormB: (n: number) => `Nombres et lettres (${n} plateaux)`,
     interferenceHeading: 'Interférence',
     interferenceLede:
       'Issu de l’épreuve de comptage : de combien vous ralentissez quand le chiffre contredit leur nombre. C’est le seul chiffre de cette page qui soit un écart et non un total, et l’écart est justement l’essentiel — tout le reste est identique entre les deux types d’essais, si bien qu’il ne subsiste que le coût de retenir la réponse offerte d’emblée par l’œil.',
@@ -336,7 +342,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que seize courbes sur un même axe : seize couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que dix-sept courbes sur un même axe : dix-sept couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -487,6 +493,13 @@ const fr: Dict = {
       description:
         'Un flux de lettres défile, une à la fois. Comptez celles qui reprennent la lettre apparue un nombre fixe de rangs plus tôt — un rang d’abord, jusqu’à trois. La mémoire des chiffres demande de retenir une liste immobile ; cette épreuve demande de tenir une fenêtre glissante des derniers éléments et de la réécrire à chaque pas, d’où une mesure de la mise à jour plutôt que du stockage. Le flux a disparu au moment de répondre, et il ne se rejoue pas.',
       seenIn: 'Recherche sur l’entraînement cognitif et la mémoire de travail (Jaeggi et al.), Cogmed, littérature sur le double n-back',
+    },
+    'trail-making': {
+      name: 'Pistes à relier',
+      blurb: 'Reliez les cibles dans l’ordre. Contre le chronomètre.',
+      description:
+        'Des cibles sont dispersées sur le plateau et vous les reliez dans l’ordre, le plus vite possible. La moitié des plateaux ne comportent que des nombres ; les autres alternent nombres et lettres — 1, A, 2, B — ce qui ajoute le travail de tenir deux suites et de passer de l’une à l’autre sans perdre le fil. La forme n’est délibérément pas un niveau de difficulté : les niveaux ne diffèrent que par le nombre de cibles, si bien que les deux formes restent appariées sur la recherche visuelle et la motricité, et que l’écart entre vos temps mesure le basculement seul. Évalué sur le temps de parcours ; cliquer une mauvaise cible pénalise la série sans l’interrompre.',
+      seenIn: 'Trail Making Test A et B (Army Individual Test Battery, 1944), batterie de Halstead–Reitan, trail making de Delis–Kaplan',
     },
     interference: {
       name: 'Comptez, ne lisez pas',
@@ -711,6 +724,27 @@ const fr: Dict = {
       ruleUpdating:
         'Les compter suppose de retenir les dernières lettres et de remplacer la plus ancienne à chaque pas. C’est cette mise à jour, et non la quantité stockée, que ce format mesure.',
     },
+    trailMaking: {
+      promptA: 'Reliez les cibles à partir de 1, dans l’ordre.',
+      promptB: 'Reliez les cibles en alternant nombres et lettres : 1, A, 2, B…',
+      summary: (nodes: number, formB: boolean) =>
+        formB
+          ? `${nodes} cibles, en alternant nombres et lettres.`
+          : `${nodes} cibles, dans l’ordre numérique.`,
+      ruleSequence:
+        'L’ordre, ce sont les nombres croissants. Il n’y a rien à déduire : toute la tâche consiste à trouver la cible suivante et à l’atteindre.',
+      ruleAlternate:
+        'L’ordre alterne : 1, A, 2, B, et ainsi de suite. Deux suites doivent être tenues en même temps, et chaque bascule est une occasion de perdre sa place dans l’autre.',
+      ruleTimed:
+        'Ce qui est évalué, c’est le temps mis à finir, non le fait de finir — tout le monde finit. Un clic sur une mauvaise cible est comptabilisé et la série se poursuit.',
+      ruleContrast:
+        'La mesure à suivre est l’écart entre vos temps sur les deux sortes de plateaux. Ceux qui mêlent nombres et lettres sont appariés aux autres sur la recherche visuelle et la motricité : il ne reste donc que le coût du basculement.',
+      next: (label: string) => `Suivant : ${label}`,
+      progress: (done: number, total: number) => `${done} sur ${total} reliées`,
+      misses: (n: number) => `${n} clic${n === 1 ? '' : 's'} erroné${n === 1 ? '' : 's'}`,
+      done: 'Terminé',
+      nodeLabel: (label: string) => `Cible ${label}`,
+    },
     interference: {
       prompt: 'Combien y en a-t-il ?',
       summary: (count: number, digit: string) =>
@@ -764,7 +798,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Seize formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Dix-sept formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -837,7 +871,7 @@ const fr: Dict = {
     test: {
       title: 'Test complet',
       description:
-        'Une série mixte sur les seize formats, deux items chacun, sans retour avant la fin.',
+        'Une série mixte sur les dix-sept formats, deux items chacun, sans retour avant la fin.',
       lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
       differs: [
@@ -992,7 +1026,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces seize formats est une information sur ces seize formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces dix-sept formats est une information sur ces dix-sept formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

@@ -71,6 +71,27 @@ export async function startSpanIfGated(page: Page): Promise<void> {
   if (await start.isVisible().catch(() => false)) await start.click();
 }
 
+/**
+ * Walks a trail board's path in order.
+ *
+ * A trail has no options and no expected string, so neither of the other two answering routes
+ * applies: the item completes when the last target is clicked, and that is the only way to finish it.
+ * `misclickFirst` deliberately taps a target out of turn first, which is counted against the run
+ * without ending it — the only way to make a trail score as "not clean".
+ */
+async function walkTrail(
+  page: Page,
+  nodes: { label: string }[],
+  misclickFirst: boolean,
+): Promise<void> {
+  if (misclickFirst && nodes.length > 1) {
+    await page.getByTestId(`trail-node-${nodes.at(-1)!.label}`).click();
+  }
+  for (const node of nodes) {
+    await page.getByTestId(`trail-node-${node.label}`).click();
+  }
+}
+
 /** Answers the current item correctly, using the answer computed in Node. */
 export async function answerCorrectly(
   page: Page,
@@ -84,6 +105,11 @@ export async function answerCorrectly(
    * not a property of the response mode. A no-op for the formats with no gate.
    */
   await startSpanIfGated(page);
+  if (item.responseMode === 'trail') {
+    if (item.stimulus.kind !== 'trail') throw new Error('expected a trail stimulus');
+    await walkTrail(page, item.stimulus.nodes, false);
+    return;
+  }
   if (item.responseMode === 'text') {
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 20_000 });
@@ -103,6 +129,12 @@ export async function answerIncorrectly(
 ): Promise<void> {
   const item = expectedItem(type, opts.seed, index, opts.difficulty, localeOf(opts));
   await startSpanIfGated(page);
+  if (item.responseMode === 'trail') {
+    if (item.stimulus.kind !== 'trail') throw new Error('expected a trail stimulus');
+    // A trail always finishes; "wrong" means finishing with a click that went astray.
+    await walkTrail(page, item.stimulus.nodes, true);
+    return;
+  }
   if (item.responseMode === 'text') {
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 20_000 });

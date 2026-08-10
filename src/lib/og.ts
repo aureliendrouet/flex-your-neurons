@@ -286,6 +286,33 @@ function stage(item: Item): string {
     }
 
     /*
+     * The board, with the path drawn in. A scatter of labelled circles alone would not say what the
+     * task is; the line through them in order is the whole idea, and it is the one card where the
+     * *answer* is the illustration — there is nothing to spoil, since the labels state the order.
+     */
+    case 'trail': {
+      const nodes = s.nodes;
+      const r = 26;
+      const pad = r + 6;
+      const px = (n: { x: number; y: number }) => ({
+        x: STAGE.x + pad + n.x * (STAGE.w - pad * 2),
+        y: STAGE.y + pad + n.y * (STAGE.h - pad * 2),
+      });
+      const points = nodes.map(px);
+      const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${round(p.x)} ${round(p.y)}`).join(' ');
+      return (
+        `<path d="${path}" fill="none" stroke="${ACCENT}" stroke-width="4" stroke-linejoin="round" stroke-opacity="0.55"/>` +
+        points
+          .map(
+            (p, i) =>
+              `<circle cx="${round(p.x)}" cy="${round(p.y)}" r="${r}" fill="${RAISED}" stroke="${INK}" stroke-width="2.5"/>` +
+              `<text x="${round(p.x)}" y="${round(p.y)}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="24" font-weight="700" fill="${INK}">${esc(nodes[i]!.label)}</text>`,
+          )
+          .join('')
+      );
+    }
+
+    /*
      * The glyphs in a row, large. The card has to show both readings at once — several copies of a
      * digit, and nothing telling you which of the two numbers is wanted — because the tension
      * between them is the format.

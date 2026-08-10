@@ -14,7 +14,7 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
 /** How many formats ship. See the registry test below before changing this. */
-const EXPECTED_TYPES = 16;
+const EXPECTED_TYPES = 17;
 
 function optionKey(o: Option): string {
   switch (o.kind) {
@@ -145,7 +145,19 @@ describe.each(ITEM_TYPE_IDS)('generator: %s', (id) => {
         expect(item.explanation.rules.length, where).toBeGreaterThan(0);
         expect(item.suggestedSeconds, where).toBeGreaterThan(0);
 
-        if (item.responseMode === 'text') {
+        if (item.responseMode === 'trail') {
+          /*
+           * A trail has no option list and no expected string: it is answered by walking a path, and
+           * it always completes. What has to hold instead is that the path itself is well formed —
+           * the labels are unique and the targets are inside the box — which the solver suite checks
+           * in detail. Here it is enough that the option machinery is properly empty rather than
+           * half-populated.
+           */
+          expect(item.options, where).toHaveLength(0);
+          expect(item.answerIndex, where).toBe(-1);
+          expect(item.errorTypes, where).toHaveLength(0);
+          expect(item.stimulus.kind, where).toBe('trail');
+        } else if (item.responseMode === 'text') {
           // Recall formats carry an expected string and no options.
           expect(item.options, where).toHaveLength(0);
           expect(item.answerIndex, where).toBe(-1);
@@ -203,7 +215,8 @@ describe.each(ITEM_TYPE_IDS)('generator: %s', (id) => {
   it('places the answer without a positional tell', () => {
     const gen = getGenerator(id);
     const first = gen.generate(SEEDS[0]!, 3, 'en');
-    if (first.responseMode === 'text' || first.options.length < 4) return; // n/a
+    // No options, no positions to balance.
+    if (first.responseMode !== 'choice' || first.options.length < 4) return; // n/a
 
     const counts = new Map<number, number>();
     let total = 0;
@@ -264,6 +277,8 @@ describe('cross-generator properties', () => {
         const answers = SEEDS.map((s) => {
           const item = generateItem(id, s, d);
           if (item.responseMode === 'text') return item.answerText!;
+          // A trail has no answer *value* at all — it is a path, and its variety is its layout.
+          if (item.responseMode === 'trail') return null;
           const chosen = item.options[item.answerIndex]!;
           return chosen.kind === 'text' ? chosen.text : null;
         });

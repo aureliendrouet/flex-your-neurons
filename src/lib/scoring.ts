@@ -6,16 +6,37 @@
  * (docs/IQ-TESTS.md §8). What is reported instead is the user's own accuracy, speed, and
  * change over time — quantities this app can actually measure.
  */
-import type { ChcDomain, Difficulty, ErrorType, ItemTypeId, Response, Session } from './types';
+import type {
+  ChcDomain,
+  Difficulty,
+  ErrorType,
+  ItemTypeId,
+  Response,
+  ResponseMode,
+  Session,
+} from './types';
 import { generateItem, getMeta } from './generators';
 import { isCongruent } from './generators/interference';
+import { isFormB } from './generators/trail-making';
 import { dict, DEFAULT_LOCALE, type Locale } from './i18n';
 
+/**
+ * `trailMisses` applies only to the trail format, where "correct" is a binarisation rather than a
+ * fact about an answer.
+ *
+ * A trail always completes, and what the real task scores is the time taken; there is no wrong
+ * answer to give. So the site's own notion of correctness is set to "finished without a misclick",
+ * which keeps a trail out of the accuracy statistics as a permanent free point while still recording
+ * something meaningful. The measurement that matters is the latency, and the format's own copy says
+ * so rather than letting the tick imply otherwise.
+ */
 export function isCorrect(
-  item: { responseMode: 'choice' | 'text'; answerIndex: number; answerText?: string },
+  item: { responseMode: ResponseMode; answerIndex: number; answerText?: string },
   chosenIndex: number | null,
   chosenText?: string,
+  trailMisses?: number,
 ): boolean {
+  if (item.responseMode === 'trail') return trailMisses === 0;
   if (item.responseMode === 'text') {
     if (chosenText === undefined) return false;
     return normaliseTextAnswer(chosenText) === normaliseTextAnswer(item.answerText ?? '');
@@ -260,6 +281,58 @@ export function interferenceScore(sessions: Session[]): InterferenceScore | null
     interferenceMs: incongruentMs - congruentMs,
     congruentTrials: congruent.length,
     incongruentTrials: incongruent.length,
+  };
+}
+
+/**
+ * The switch cost: how much longer a number-and-letter board takes than a numbers-only one.
+ *
+ * The same shape of measurement as `interferenceScore`, and for the same reason — the two kinds of
+ * board are matched on visual search and motor demand, so the difference between them isolates the
+ * cost of alternating between two sequences. In the literature this is the B-minus-A contrast, and it
+ * is the part of the Trail Making Test that indexes executive function rather than plain speed.
+ *
+ * Like congruency, form was never stored: it is a property of the item, and the item regenerates from
+ * its seed. Unlike the interference score this one uses *every completed* trail rather than only the
+ * error-free ones — a trail is scored on time in the real task, and a run with one misclick is a
+ * slightly slower run, not an invalid one.
+ */
+export interface SwitchCostScore {
+  formAMs: number;
+  formBMs: number;
+  /** Form B minus form A. Positive is the expected direction. */
+  switchCostMs: number;
+  formATrials: number;
+  formBTrials: number;
+}
+
+/** Fewest completed boards needed of each form. Lower than the Stroop threshold because a trail is
+ *  a whole task rather than a single trial: five of each is already several minutes of data. */
+export const MIN_TRAIL_RUNS = 4;
+
+export function switchCostScore(sessions: Session[]): SwitchCostScore | null {
+  const formA: number[] = [];
+  const formB: number[] = [];
+
+  for (const session of sessions) {
+    for (const response of session.responses) {
+      if (response.type !== 'trail-making') continue;
+      const item = generateItem('trail-making', response.seed, response.difficulty);
+      if (item.stimulus.kind !== 'trail') continue;
+      (isFormB(item.stimulus.nodes) ? formB : formA).push(response.latencyMs);
+    }
+  }
+
+  if (formA.length < MIN_TRAIL_RUNS || formB.length < MIN_TRAIL_RUNS) return null;
+
+  const formAMs = median(formA)!;
+  const formBMs = median(formB)!;
+  return {
+    formAMs,
+    formBMs,
+    switchCostMs: formBMs - formAMs,
+    formATrials: formA.length,
+    formBTrials: formB.length,
   };
 }
 

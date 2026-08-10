@@ -264,6 +264,43 @@ function ThumbBody({ item }: { item: Item }) {
      * the total is the thing the format asks for, so the total is what the miniature shows.
      */
     /*
+     * The board with its path drawn through it. The line is not decoration: a scatter of numbered
+     * circles could be any format, and it is the wandering path that says "join these in order".
+     */
+    case 'trail': {
+      const points = s.nodes.map((n) => ({ x: 8 + n.x * 84, y: 8 + n.y * 84, label: n.label }));
+      return (
+        <svg class="thumb-trail" viewBox="0 0 100 100" role="presentation">
+          <polyline
+            points={points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-opacity="0.4"
+            stroke-linejoin="round"
+          />
+          {points.map((p, i) => (
+            <g key={i}>
+              {/* Unfilled: a miniature may paint only currentColor, none, or a pattern (see previews.spec). */}
+              <circle cx={p.x} cy={p.y} r={6} fill="none" stroke="currentColor" stroke-width="1.2" />
+              <text
+                x={p.x}
+                y={p.y}
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-size="6"
+                font-weight="700"
+                fill="currentColor"
+              >
+                {p.label}
+              </text>
+            </g>
+          ))}
+        </svg>
+      );
+    }
+
+    /*
      * The glyphs, and nothing else. No count and no label: a card that showed the answer would give
      * away the one thing the format asks, and the tension between "which digit" and "how many" is
      * legible from the row on its own.

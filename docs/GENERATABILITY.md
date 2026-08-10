@@ -52,17 +52,18 @@ Legend: ✅ pass · ⚠️ passes with engineering · ❌ fails
 | 14 | **Head count** / running-count updating | Gwm | ✅ | ✅ | ✅ | **SHIP** |
 | 15 | **Mental arithmetic** (latency-scored) | Gq | ✅ | ✅ | ✅ | **SHIP** |
 | 16 | **Counting Stroop** / interference | Gs | ✅ | ✅ | ✅ | **SHIP** |
-| 17 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
-| 18 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
-| 19 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
-| 20 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
-| 21 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
-| 22 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 23 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 24 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
-| 25 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
-| 26 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
-| 27 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
+| 17 | **Trail making** A/B | Gs/Gf | ✅ | ✅ | ✅ | **SHIP** |
+| 18 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
+| 19 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
+| 20 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
+| 21 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
+| 22 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
+| 23 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 24 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 25 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
+| 26 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
+| 27 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
+| 28 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
 
 ### Why the Gc items are rejected
 
@@ -91,7 +92,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Sixteen generators across five CHC domains:
+Seventeen generators across five CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -111,6 +112,7 @@ Sixteen generators across five CHC domains:
 | `coding` | digit→symbol lookup, latency-scored | key size; symbol confusability |
 | `arithmetic` | evaluate a short expression, 4 options | operators available; operand size; chaining |
 | `interference` | count the glyphs, ignore what they say | share of incongruent trials |
+| `trail-making` | join the targets in order, timed as one run | number of targets |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. In
@@ -151,8 +153,10 @@ Sixteen generators across five CHC domains:
 > of seconds. A format carrying a `presentation` can never qualify, since the block would be spent
 > watching — asserted in `tests/generators.test.ts` rather than left to reviewer discipline.
 >
-> The block was also the prerequisite named here for the speeded formats still unbuilt. Two have now
-> shipped on top of it — `arithmetic` and `interference` — leaving Trail Making.
+> The block was also the prerequisite named here for the speeded formats that were then unbuilt.
+> `arithmetic` and `interference` shipped on top of it; `trail-making` did not need it, because a trail
+> *is* a timed block — one item under one clock, which is how the real task is administered. Putting it
+> inside a sprint would nest two clocks and score neither, which is why it is not `sprintable`.
 >
 > `arithmetic` is the one format designed for the block from the start rather than adapted to it,
 > and one decision follows from that: the answer is **picked, not typed**. A typed answer would put
@@ -191,6 +195,25 @@ Sixteen generators across five CHC domains:
 > stored on a response — it did not need to be, because every item regenerates exactly from
 > `(type, seed, difficulty)`, so the partition is re-derived at read time from history written before
 > the read-out existed.
+
+> **On trail making, the third response mode, and a deviation worth naming.** Every other format
+> collects one decision. A trail collects a *path*: targets are joined in order and the whole run is
+> timed as a unit, so `responseMode: 'trail'` exists alongside `'choice'` and `'text'`. Correctness is
+> a binarisation rather than a fact — a trail always completes, so "correct" is set to "finished
+> without a misclick" and the copy says plainly that the time is the measurement. A wrong click is
+> counted and the run continues, as it does when an examiner says "no, that one".
+>
+> Form A (numbers) and form B (numbers alternating with letters) are a *within-format* condition and
+> not difficulty levels, for the same reason the incongruent share is not spread across levels in the
+> Stroop format: making level 4 a different construct from level 1 would leave the levels
+> incomparable. Difficulty scales the target count; form varies per item. That buys the **B-minus-A
+> switch cost**, the classic executive measure, recoverable from history by regenerating items — the
+> second contrast on the site built out of the seed architecture rather than out of a stored field.
+>
+> The deviation: **sixteen targets at the top level, not the twenty-five of the paper test.**
+> Twenty-five circles fit an A4 sheet; on a phone-width board they cannot be placed without either
+> overlapping or shrinking below a tappable size. Fewer targets changes the amount of search while
+> leaving the task intact, which is the only one of the three options that does not break something.
 
 Every generator implements one interface:
 

@@ -9,9 +9,16 @@
  * screen to say the measurement underneath had changed. So it is asserted, not assumed.
  */
 import { describe, expect, it } from 'vitest';
-import { interferenceScore, sprintSummary, summarise, untimedSessions } from '@/lib/scoring';
+import {
+  interferenceScore,
+  sprintSummary,
+  summarise,
+  switchCostScore,
+  untimedSessions,
+} from '@/lib/scoring';
 import { generateItem } from '@/lib/generators';
 import { isCongruent } from '@/lib/generators/interference';
+import { isFormB } from '@/lib/generators/trail-making';
 import type { Difficulty, ItemTypeId, Response, Session, SessionMode } from '@/lib/types';
 
 function response(correct: boolean, latencyMs: number, difficulty: Difficulty = 2): Response {
@@ -231,5 +238,78 @@ describe('the interference score', () => {
     const noise = Array.from({ length: 40 }, () => response(true, 5000));
     const score = interferenceScore([session('practice', [...congruent, ...incongruent, ...noise])]);
     expect(score!.interferenceMs).toBe(200);
+  });
+});
+
+/**
+ * The trail-making switch cost, built and checked the same way as the interference score.
+ *
+ * Form was never stored on a response either — it is a property of the item, recoverable by
+ * regenerating from the seed. The one deliberate difference from the Stroop contrast: this uses every
+ * completed board rather than only the error-free ones, because a trail is scored on time in the real
+ * task and a run with one misclick is a slightly slower run, not an invalid one.
+ */
+describe('the switch cost', () => {
+  function seedsByForm(difficulty: Difficulty, wantFormB: boolean, count: number): string[] {
+    const found: string[] = [];
+    for (let i = 0; found.length < count && i < 4000; i++) {
+      const seed = `SW${i}`;
+      const item = generateItem('trail-making', seed, difficulty);
+      if (item.stimulus.kind !== 'trail') continue;
+      if (isFormB(item.stimulus.nodes) === wantFormB) found.push(seed);
+    }
+    expect(found.length, `only found ${found.length} form-${wantFormB ? 'B' : 'A'} seeds`).toBe(count);
+    return found;
+  }
+
+  function trailResponse(seed: string, latencyMs: number, correct = true): Response {
+    return {
+      type: 'trail-making',
+      seed,
+      difficulty: 2,
+      chosenIndex: null,
+      answerIndex: -1,
+      correct,
+      latencyMs,
+    };
+  }
+
+  it('re-derives the form from the seed and reports the contrast', () => {
+    const formA = seedsByForm(2, false, 5).map((s) => trailResponse(s, 9_000));
+    const formB = seedsByForm(2, true, 5).map((s) => trailResponse(s, 15_000));
+    const score = switchCostScore([session('practice', [...formA, ...formB])]);
+
+    expect(score).not.toBeNull();
+    expect(score!.formAMs).toBe(9_000);
+    expect(score!.formBMs).toBe(15_000);
+    expect(score!.switchCostMs).toBe(6_000);
+    expect(score!.formATrials).toBe(5);
+    expect(score!.formBTrials).toBe(5);
+  });
+
+  it('reports nothing until both forms have enough boards', () => {
+    const formA = seedsByForm(2, false, 5).map((s) => trailResponse(s, 9_000));
+    const formB = seedsByForm(2, true, 2).map((s) => trailResponse(s, 15_000));
+    expect(switchCostScore([session('practice', [...formA, ...formB])])).toBeNull();
+  });
+
+  /**
+   * Unlike the Stroop contrast, a run with a misclick still counts. It finished, and the correction is
+   * already inside the time — which is exactly what the real task scores.
+   */
+  it('counts every completed board, including ones with a wrong click', () => {
+    const formA = seedsByForm(2, false, 5).map((s) => trailResponse(s, 9_000));
+    const formB = seedsByForm(2, true, 5).map((s, i) => trailResponse(s, 15_000, i !== 0));
+    const score = switchCostScore([session('practice', [...formA, ...formB])]);
+    expect(score!.formBTrials).toBe(5);
+    expect(score!.formBMs).toBe(15_000);
+  });
+
+  it('ignores every other format', () => {
+    const formA = seedsByForm(2, false, 5).map((s) => trailResponse(s, 9_000));
+    const formB = seedsByForm(2, true, 5).map((s) => trailResponse(s, 15_000));
+    const noise = Array.from({ length: 30 }, () => response(true, 400));
+    const score = switchCostScore([session('practice', [...formA, ...formB, ...noise])]);
+    expect(score!.switchCostMs).toBe(6_000);
   });
 });

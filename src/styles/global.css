@@ -3343,3 +3343,152 @@ table.data th.num {
   font: 700 1.35rem/1 var(--font-code);
   font-variant-numeric: tabular-nums;
 }
+
+/* --- Trail making: the one item answered by a path ------------------------- */
+
+.trail {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.trail-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.trail-next {
+  font: 700 var(--step-1) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.trail-misses {
+  color: var(--text-muted);
+}
+
+/*
+ * A square-ish board with an explicit aspect ratio rather than a height.
+ *
+ * The node positions are percentages, so the board has to have a size of its own before they mean
+ * anything — and it has to keep the same *shape* at every viewport, or a layout that scatters nicely
+ * on a desktop becomes a vertical column on a phone and the search becomes a scan.
+ */
+.trail-board {
+  /* The container the node size is a share of. `inline-size` containment gives `cqw`, and it also
+     makes the board the containing block for the absolutely-positioned targets — which it already
+     was via `position: relative`. */
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 4 / 3;
+  width: 100%;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+
+/* Behind the nodes and never clickable: the path is feedback, not a control. */
+.trail-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: var(--accent);
+  opacity: 0.5;
+}
+
+.trail-node {
+  position: absolute;
+  /* Centred on its coordinate rather than offset from it, so the maths in the generator is the
+     maths on screen. */
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  /*
+   * Both axes sized from the board's *width*, in container units.
+   *
+   * Two earlier attempts got this wrong. A percentage on each axis drew ellipses, because a
+   * percentage inline-size resolves against the board's width and a percentage block-size against its
+   * height — and the board is 4:3, so the two were never the same length. Adding `aspect-ratio: 1`
+   * did not fix it either: the button's own content box kept it taller than the ratio asked for.
+   * `cqw` is the only unit here that means "a share of the board's width" on both axes, which is
+   * exactly what the separation guarantee is expressed in.
+   *
+   * The floor is 1.25rem and not the usual 2.75rem touch target, which is a deliberate trade rather
+   * than an oversight. The generator guarantees the targets are separated by more than a diameter *in
+   * units of board width*, so a size floor that exceeds that share stops being a floor and starts
+   * being an overlap: at 2.75rem on a phone-width board, targets collided by several pixels. A target
+   * slightly smaller than the guideline can be mis-tapped; two targets on top of each other cannot be
+   * told apart at all. 1.25rem only binds below about 250px of board width, which is narrower than any
+   * real viewport, so in practice the size is always the geometric one.
+   */
+  inline-size: max(1.25rem, calc(var(--trail-size) * 1cqw));
+  block-size: max(1.25rem, calc(var(--trail-size) * 1cqw));
+  padding: 0;
+  border: 2px solid var(--border-strong, var(--border));
+  border-radius: 999px;
+  background: var(--bg-raised);
+  color: var(--text);
+  font: 700 var(--step--1) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+/*
+ * The next target is marked, and marked by weight and a ring rather than by hue alone. A trail is a
+ * search task, so the mark has to be findable without being so loud that it does the searching.
+ */
+.trail-node[data-trail-state='next'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 28%, transparent);
+}
+
+.trail-node[data-trail-state='joined'] {
+  background: color-mix(in oklch, var(--accent) 16%, var(--bg-raised));
+  border-color: var(--accent);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+/* A wrong click is marked on the node that took it, and fades on its own. */
+.trail-node[data-trail-wrong] {
+  animation: trail-wrong 550ms var(--ease-out);
+}
+
+@keyframes trail-wrong {
+  0%,
+  60% {
+    border-color: var(--text);
+    border-style: dashed;
+  }
+  100% {
+    border-color: var(--border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trail-node[data-trail-wrong] {
+    animation: none;
+    border-style: dashed;
+  }
+}
+
+.thumb-trail {
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+}
+
+/*
+ * Portrait on a narrow viewport. The node positions are proportions, so the board's *shape* decides
+ * the layout: at 4:3 on a phone the targets are squeezed into a 320-by-240 strip and the scatter
+ * becomes a row, which is a scan rather than a search. Taller gives the same board the area it needs.
+ */
+@media (max-width: 40rem) {
+  .trail-board {
+    aspect-ratio: 3 / 4;
+  }
+}

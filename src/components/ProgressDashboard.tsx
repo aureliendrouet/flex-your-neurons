@@ -27,6 +27,7 @@ import {
   formatDuration,
   formatPercent,
   interferenceScore,
+  switchCostScore,
   tallyErrorTypes,
 } from '../lib/scoring';
 import {
@@ -225,6 +226,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
 
       {sprints.length > 0 && <SprintBoard locale={locale} sprints={sprints} />}
       <InterferenceCard locale={locale} sessions={sessions} />
+      <SwitchCostCard locale={locale} sessions={sessions} />
       {hasData && <MistakeProfile locale={locale} sessions={sessions} />}
 
       {hasData && (
@@ -510,6 +512,44 @@ function InterferenceCard({ locale, sessions }: { locale: Locale; sessions: Sess
           ? t.dashboard.interferenceExpected
           : t.dashboard.interferenceUnexpected}
       </p>
+    </section>
+  );
+}
+
+/**
+ * The trail-making switch cost, when there is enough of it to report.
+ *
+ * The second contrast on this page, and deliberately built the same way as the first: form B minus
+ * form A, with both absolute times beside it because the gap alone is uninterpretable. The two kinds
+ * of board are matched on search and motor demand, so what is left between them is the cost of
+ * alternating between two sequences.
+ */
+function SwitchCostCard({ locale, sessions }: { locale: Locale; sessions: Session[] }) {
+  const t = dict(locale);
+  const score = switchCostScore(sessions);
+  if (!score) return null;
+
+  return (
+    <section data-testid="switch-cost-section">
+      <h3 class="section-heading section-heading--sm">{t.dashboard.switchHeading}</h3>
+      <p class="muted dashboard-lede">{t.dashboard.switchLede}</p>
+      <div class="card-grid card-grid--fit stat-grid">
+        <Stat
+          label={t.dashboard.switchGap}
+          value={formatDuration(score.switchCostMs, locale)}
+          testid="stat-switch-cost"
+        />
+        <Stat
+          label={t.dashboard.switchFormA(score.formATrials)}
+          value={formatDuration(score.formAMs, locale)}
+          testid="stat-form-a"
+        />
+        <Stat
+          label={t.dashboard.switchFormB(score.formBTrials)}
+          value={formatDuration(score.formBMs, locale)}
+          testid="stat-form-b"
+        />
+      </div>
     </section>
   );
 }
