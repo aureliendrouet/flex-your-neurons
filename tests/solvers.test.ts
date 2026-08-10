@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { generateItem } from '@/lib/generators';
 import { NODE_RADIUS } from '@/lib/generators/trail-making';
+import { BLOCKS, BLOCK_RADIUS, encodeTaps, hasStraightRun } from '@/lib/generators/block-span';
+import { diagnoseTaps, isCorrect } from '@/lib/scoring';
 import { DIFFICULTIES, type Difficulty } from '@/lib/types';
 import { isUnambiguous, solveSeries } from '@/lib/solvers/series';
 import { predict, solveAttribute, type Rule } from '@/lib/rules';
@@ -845,5 +847,202 @@ describe('trail-making boards are playable', () => {
         counts[i - 1]!,
       );
     }
+  });
+});
+
+describe('block-span boards are playable', () => {
+  const SEEDS = Array.from({ length: 40 }, (_, i) => `BS${i}`);
+
+  function boardOf(seed: string, difficulty: Difficulty) {
+    const item = generateItem('block-span', seed, difficulty);
+    if (item.stimulus.kind !== 'block-span') throw new Error('unexpected stimulus');
+    return item.stimulus;
+  }
+
+  /**
+   * The layout is a hand-written literal, so its two geometric properties are checked here rather
+   * than trusted. A "small tidy-up" of those nine coordinates is exactly the kind of change that
+   * looks harmless in a diff and produces two blocks on top of each other on the board.
+   */
+  it('never overlaps two blocks', () => {
+    for (let i = 0; i < BLOCKS.length; i++) {
+      for (let j = i + 1; j < BLOCKS.length; j++) {
+        const distance = Math.hypot(BLOCKS[i]!.x - BLOCKS[j]!.x, BLOCKS[i]!.y - BLOCKS[j]!.y);
+        expect(
+          distance,
+          `blocks ${i + 1} and ${j + 1} are ${distance.toFixed(3)} apart`,
+        ).toBeGreaterThan(BLOCK_RADIUS * 2);
+      }
+    }
+  });
+
+  it('keeps every block inside the board', () => {
+    BLOCKS.forEach((block, i) => {
+      expect(block.x, `block ${i + 1} x`).toBeGreaterThanOrEqual(BLOCK_RADIUS);
+      expect(block.x, `block ${i + 1} x`).toBeLessThanOrEqual(1 - BLOCK_RADIUS);
+      expect(block.y, `block ${i + 1} y`).toBeGreaterThanOrEqual(BLOCK_RADIUS);
+      expect(block.y, `block ${i + 1} y`).toBeLessThanOrEqual(1 - BLOCK_RADIUS);
+    });
+  });
+
+  /**
+   * The load-bearing claim of the format: the board is a constant, so the sequence is the only
+   * thing that changes between items. If a future edit made the layout depend on the seed, every
+   * item would silently start measuring search as well as span.
+   */
+  it('shows the same board on every item, at every level', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        expect(boardOf(seed, difficulty).blocks, `block-span ${seed} d${difficulty}`).toEqual([
+          ...BLOCKS,
+        ]);
+      }
+    }
+  });
+
+  it('never lights the same block twice in one sequence', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const { sequence } = boardOf(seed, difficulty);
+        expect(new Set(sequence).size, `block-span ${seed} d${difficulty}`).toBe(sequence.length);
+        for (const index of sequence) {
+          expect(index, `block-span ${seed}: index out of range`).toBeGreaterThanOrEqual(0);
+          expect(index, `block-span ${seed}: index out of range`).toBeLessThan(BLOCKS.length);
+        }
+      }
+    }
+  });
+
+  /**
+   * Difficulty is the sequence length, and *only* the sequence length.
+   *
+   * The three ways this format could have gone wrong are all invisible to the generic contract
+   * tests: a faster presentation at the high levels, a backward trial, or a shrinking board would
+   * each pass every property in `generators.test.ts` while making level 5 a different task from
+   * level 1 rather than a longer one. Two of the three are checked here directly; the third
+   * (backwards recall) cannot exist because the answer is always the sequence in the order shown,
+   * which the round-trip test below pins.
+   */
+  it('scales the sequence length with difficulty, and holds everything else fixed', () => {
+    const lengths = DIFFICULTIES.map((d) => boardOf('SCALE', d).sequence.length);
+    for (let i = 1; i < lengths.length; i++) {
+      expect(lengths[i]!, `d${i + 1} is ${lengths[i]}, d${i} is ${lengths[i - 1]}`).toBeGreaterThan(
+        lengths[i - 1]!,
+      );
+    }
+
+    const presentations = DIFFICULTIES.map(
+      (d) => generateItem('block-span', 'SCALE', d).presentation,
+    );
+    for (const presentation of presentations) {
+      expect(presentation, 'a tap format must play before it can be answered').toBeDefined();
+      expect(presentation, 'the flash rate must not move with difficulty').toEqual(
+        presentations[0],
+      );
+    }
+  });
+
+  /**
+   * No three consecutive blocks in a straight line.
+   *
+   * A straight run chunks: three positions travelled in one direction cost about as much to hold as
+   * one, so a sequence containing them is shorter than its length claims. The guard is rejection
+   * sampling with a bounded number of attempts, so this is a check that the bound is generous
+   * enough in practice rather than a guarantee — hence "every board", asserted over a wide sweep.
+   */
+  it('never lays three blocks out in a straight run', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const { sequence } = boardOf(seed, difficulty);
+        expect(hasStraightRun(sequence), `block-span ${seed} d${difficulty}: ${sequence.join('-')}`).toBe(
+          false,
+        );
+      }
+    }
+  });
+
+  /** The guard has to be able to say yes, or the test above is only asserting that it always says no. */
+  it('recognises a straight run when there is one', () => {
+    /*
+     * The straight runs on this board are the lines *through the middle block*: 1-5-6, 3-5-7 and
+     * 2-5-9 are all within a few degrees of straight. Found by measuring every ordered triple
+     * rather than by eye — the first version of this test asserted that 1-4-7 was a run because
+     * those three sit down the left-hand side, and they are in fact 35 degrees off.
+     */
+    expect(hasStraightRun([0, 4, 5])).toBe(true);
+    expect(hasStraightRun([2, 4, 6])).toBe(true);
+    // Down the left-hand side, but not in a line: this is the case that fooled the eye.
+    expect(hasStraightRun([0, 3, 6])).toBe(false);
+    // A path that turns is not a run, however long.
+    expect(hasStraightRun([0, 2, 6, 5])).toBe(false);
+  });
+
+  /**
+   * The guard is not vacuous.
+   *
+   * "No board has a straight run" passes trivially if straight runs are impossible on this layout,
+   * and a rejection filter that never rejects is dead code that will be deleted by someone tidying
+   * up. So the unfiltered rate is measured directly: draw sequences the way the generator does but
+   * without the filter, and check that a real fraction of them would have shipped with a run in.
+   *
+   * Twelve of the 504 ordered triples on this board are near-collinear, which works out at about a
+   * one-in-nine chance for a seven-long sequence — small enough to be invisible in casual play, big
+   * enough that a reader would meet several a week.
+   */
+  it('rejects a meaningful share of the draws it makes', () => {
+    const indices = BLOCKS.map((_, i) => i);
+    let withRun = 0;
+    const trials = 600;
+    for (let i = 0; i < trials; i++) {
+      if (hasStraightRun(createRng(`unfiltered${i}`).sample(indices, 7))) withRun++;
+    }
+    const share = withRun / trials;
+    expect(share, `only ${(share * 100).toFixed(1)}% of raw draws contain a straight run`).toBeGreaterThan(
+      0.04,
+    );
+  });
+
+  /**
+   * The round trip: what the board shows is exactly what grading expects back.
+   *
+   * This is what makes "no backwards trials" a property rather than a promise — a reversed
+   * expectation would fail here — and it is also the only check that the tap encoding and the
+   * answer string cannot drift apart.
+   */
+  it('accepts the sequence in the order it was shown, and nothing else', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS.slice(0, 12)) {
+        const item = generateItem('block-span', seed, difficulty);
+        if (item.stimulus.kind !== 'block-span') throw new Error('unexpected stimulus');
+        const { sequence } = item.stimulus;
+        const where = `block-span ${seed} d${difficulty}`;
+
+        expect(item.answerText, where).toBe(encodeTaps(sequence));
+        expect(isCorrect(item, null, encodeTaps(sequence)), where).toBe(true);
+        expect(isCorrect(item, null, encodeTaps([...sequence].reverse())), `${where} backwards`).toBe(
+          false,
+        );
+        // A prefix of the right answer is not a partial success.
+        expect(isCorrect(item, null, encodeTaps(sequence.slice(0, -1))), `${where} short`).toBe(false);
+      }
+    }
+  });
+});
+
+describe('tapped-sequence diagnosis', () => {
+  /**
+   * The one diagnosis in the app that is computed rather than keyed, so it is the one that can be
+   * wrong without a generator being wrong. Each case is a distinct failure a reader can actually
+   * produce, and the ordering matters: a reversal is also a transposition, and must be reported as
+   * the more specific of the two.
+   */
+  it('separates a lost order from a lost item', () => {
+    expect(diagnoseTaps('4821', '4821')).toBe('correct');
+    expect(diagnoseTaps('4821', '1284')).toBe('wrong-direction');
+    expect(diagnoseTaps('4821', '4812')).toBe('transposition');
+    // A block that never lit: the set differs, so the order is not what went wrong.
+    expect(diagnoseTaps('4821', '4823')).toBe('plausible');
+    // Same block tapped twice — a repeat is never in the answer, so it cannot be a transposition.
+    expect(diagnoseTaps('4821', '4822')).toBe('plausible');
   });
 });

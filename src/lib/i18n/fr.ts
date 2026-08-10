@@ -208,6 +208,7 @@ const fr: Dict = {
       mirror: 'image miroir',
       'wrong-direction': 'sens inversé',
       carry: 'report oublié',
+      transposition: 'ordre perdu',
       plausible: 'presque juste',
     },
     bodies: {
@@ -227,6 +228,8 @@ const fr: Dict = {
         'Le chiffre des unités est juste, un rang supérieur est faux. C’est la signature d’un report oublié ou compté deux fois — la part du calcul qui relève de la tenue de comptes plutôt que de l’arithmétique. C’est aussi pourquoi l’une des réponses fausses se termine toujours par le même chiffre que la bonne : sans cela, l’item pourrait se résoudre en ne calculant qu’un seul chiffre.',
       'wrong-direction':
         'La bonne quantité, mais dans le sens inverse. Vous teniez la taille du pas, mais vous l’avez appliqué à l’envers : ajouté ce qu’il fallait retrancher, ou l’inverse. Sur un flux qui ne se rejoue pas, un pas inversé coûte deux fois plus qu’un pas manqué.',
+      transposition:
+        'Tous les éléments, mais dans le désordre. Vous avez retenu ce qu’il y avait à retenir et vous en avez perdu l’agencement : c’est un autre échec que d’oublier un élément, et un échec plus encourageant, car dans une tâche d’empan le plus dur est d’ordinaire de retenir. L’ordre revient souvent avec un rythme délibéré : restituez la séquence à l’allure où elle vous a été donnée, plutôt qu’aussi vite que possible.',
       plausible:
         'Presque juste, sans diagnostic unique : cette option casse le motif de plusieurs façons à la fois, il n’y a donc pas une seule règle à corriger.',
     },
@@ -342,7 +345,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que dix-sept courbes sur un même axe : dix-sept couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que dix-huit courbes sur un même axe : dix-huit couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -500,6 +503,13 @@ const fr: Dict = {
       description:
         'Des cibles sont dispersées sur le plateau et vous les reliez dans l’ordre, le plus vite possible. La moitié des plateaux ne comportent que des nombres ; les autres alternent nombres et lettres — 1, A, 2, B — ce qui ajoute le travail de tenir deux suites et de passer de l’une à l’autre sans perdre le fil. La forme n’est délibérément pas un niveau de difficulté : les niveaux ne diffèrent que par le nombre de cibles, si bien que les deux formes restent appariées sur la recherche visuelle et la motricité, et que l’écart entre vos temps mesure le basculement seul. Évalué sur le temps de parcours ; cliquer une mauvaise cible pénalise la série sans l’interrompre.',
       seenIn: 'Trail Making Test A et B (Army Individual Test Battery, 1944), batterie de Halstead–Reitan, trail making de Delis–Kaplan',
+    },
+    'block-span': {
+      name: 'Empan spatial',
+      blurb: 'Regardez les blocs s’allumer. Retapez-les dans l’ordre.',
+      description:
+        'Neuf blocs occupent la même disposition éparpillée à chaque item. Certains s’allument l’un après l’autre, et vous les retouchez dans l’ordre où ils se sont allumés. C’est l’empan de chiffres avec des lieux à la place des chiffres — la même exigence de retenir une liste et de la restituer, faite de positions que l’on ne peut pas se répéter à voix basse, ce qui explique que les deux se dissocient et que les deux figurent ici. Le plateau ne bouge jamais d’un item à l’autre, délibérément : une nouvelle disposition à chaque fois vous obligerait à chercher les blocs avant de pouvoir en retenir l’ordre, et cette recherche se mêlerait à l’empan. Les niveaux ne diffèrent que par la longueur de la séquence — ni la vitesse des flashs, ni le nombre de blocs, et jamais un essai à rebours, car restituer une séquence à l’envers est une tâche plus difficile et non une tâche plus longue.',
+      seenIn: 'Tâche des blocs de Corsi (Corsi, 1972), Empan spatial des échelles de Wechsler (WMS), littérature sur le calepin visuospatial',
     },
     interference: {
       name: 'Comptez, ne lisez pas',
@@ -745,6 +755,31 @@ const fr: Dict = {
       done: 'Terminé',
       nodeLabel: (label: string) => `Cible ${label}`,
     },
+    blockSpan: {
+      prompt: (length: number) => `Touchez les ${length} blocs dans l’ordre où ils se sont allumés.`,
+      summary: (length: number) =>
+        `${length} blocs se sont allumés ; le plateau porte désormais cet ordre en chiffres.`,
+      ruleOrder:
+        'L’ordre est celui de l’allumage, à l’endroit. Un bloc ne s’allume jamais deux fois dans une même séquence.',
+      ruleExact:
+        'La séquence entière doit être juste. Quatre blocs sur cinq dans le bon ordre, c’est un essai raté et non quatre cinquièmes de réussite : ce qui se mesure est la survie de la séquence, et une séquence à moitié retenue n’a pas survécu.',
+      ruleBoard:
+        'Les neuf blocs occupent les mêmes places à chaque item. C’est voulu : une disposition nouvelle à chaque fois vous ferait chercher les blocs avant de pouvoir en retenir l’ordre, et cette recherche serait comptée dans votre empan.',
+      ruleSpatial:
+        'Les positions se disent mal, et c’est précisément l’intérêt : cette tâche sollicite la part de la mémoire de travail qui retient où sont les choses, plutôt que celle qui se répète des sons. C’est pourquoi un bon empan de chiffres ne prédit pas un bon empan spatial.',
+      /** Textes du plateau en direct. */
+      ready: (length: number) => `${length} blocs vont s’allumer, un par un. Regardez où.`,
+      start: 'Lancer la séquence',
+      watching: 'Observez…',
+      nowTapThemBack: 'À vous : touchez-les dans l’ordre.',
+      progress: (done: number, total: number) => `${done} sur ${total} touchés`,
+      undo: 'Annuler le dernier',
+      blockLabel: (position: number) => `Bloc ${position}`,
+      revealRight: 'C’était bien l’ordre.',
+      revealWrong: 'L’ordre est chiffré ci-dessous.',
+      legendAnswer: 'Trait plein : l’ordre d’allumage',
+      legendTapped: 'Trait pointillé : l’ordre que vous avez touché',
+    },
     interference: {
       prompt: 'Combien y en a-t-il ?',
       summary: (count: number, digit: string) =>
@@ -871,7 +906,7 @@ const fr: Dict = {
     test: {
       title: 'Test complet',
       description:
-        'Une série mixte sur les dix-sept formats, deux items chacun, sans retour avant la fin.',
+        'Une série mixte sur les dix-huit formats, deux items chacun, sans retour avant la fin.',
       lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
       differs: [
@@ -1026,7 +1061,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces dix-sept formats est une information sur ces dix-sept formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces dix-huit formats est une information sur ces dix-huit formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

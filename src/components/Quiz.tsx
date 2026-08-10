@@ -12,6 +12,7 @@ import SeedChip from './SeedChip';
 import ShortcutSheet from './ShortcutSheet';
 import StimulusView from './StimulusView';
 import TrailBoard from './TrailBoard';
+import BlockSpanBoard from './BlockSpanBoard';
 import FigureView, { describeFigure } from './FigureView';
 import GridView from './GridView';
 import { generateItem, getItemText, getMeta } from '../lib/generators';
@@ -20,6 +21,7 @@ import { dict, type Locale } from '../lib/i18n';
 import { localeHref } from '../lib/links';
 import {
   advanceLadder,
+  diagnoseTaps,
   formatDuration,
   formatPercent,
   dominantErrorType,
@@ -205,6 +207,20 @@ export default function Quiz({
     shownAt.current = performance.now();
   }, []);
 
+  /**
+   * "Answering is possible from this moment": the clock starts and the controls unlock.
+   *
+   * Shared by every gated format rather than written once per surface. Two of them now finish
+   * playing somewhere other than `StimulusView` — the block-span board plays itself, because the
+   * flashes have to happen on the board the reader will tap — and a second copy of this would be a
+   * second place for the response clock to start from the wrong moment.
+   */
+  const beginResponse = useCallback(() => {
+    startResponseClock();
+    setStimulusReady(true);
+    setTimeout(() => textInput.current?.focus(), 30);
+  }, [startResponseClock]);
+
   const index = cursor.index;
   /**
    * How many items the run contains — and for a sprint, deliberately unbounded.
@@ -367,6 +383,18 @@ export default function Quiz({
       if (!item || !session || phase !== 'answering') return;
 
       const correct = isCorrect(item, choiceIndex, text, trailMisses);
+      /*
+       * Every other format looks its diagnosis up: the generator built each distractor to embody one
+       * misreading, so the error type is `errorTypes[chosen]`. A tapped sequence has no distractors
+       * to look up, so it is the one response whose diagnosis is *computed* — from the sequence the
+       * reader produced against the one that was shown.
+       */
+      const errorType =
+        item.responseMode === 'tap'
+          ? diagnoseTaps(item.answerText ?? '', text ?? '')
+          : choiceIndex === null
+            ? undefined
+            : item.errorTypes[choiceIndex];
       const response = makeResponse(
         item.type,
         item.seed,
@@ -376,7 +404,7 @@ export default function Quiz({
         correct,
         Math.max(0, Math.round(performance.now() - shownAt.current)),
         text,
-        choiceIndex === null ? undefined : item.errorTypes[choiceIndex],
+        errorType,
       );
       const all = [...responses, response];
       setResponses(all);
@@ -600,15 +628,21 @@ export default function Quiz({
   const typeText = getItemText(item.type, locale);
   const answered = responses.length;
   const revealed = phase === 'revealed';
-  const wasCorrect = revealed && responses[responses.length - 1]?.correct === true;
+  const lastResponse = revealed ? responses[responses.length - 1] : undefined;
+  const wasCorrect = lastResponse?.correct === true;
   const tip = t.quiz.tip(item.options.length);
 
   /**
-   * The named mistake for the option actually chosen, or `null` when there is nothing to
-   * diagnose: a correct answer, a text-entry format (no distractors exist to diagnose),
-   * or a generator that left the slot as `'correct'`.
+   * The named mistake for the response just given, or `null` when there is nothing to diagnose: a
+   * correct answer, a format with no distractors and no computable diagnosis (digit span), or a
+   * generator that left the slot as `'correct'`.
+   *
+   * Read off the recorded response rather than recomputed from the chosen index. It is the same
+   * value — `makeResponse` stores exactly that — but not every mode *has* a chosen index, and a
+   * tapped sequence's diagnosis is derived at submit time. Reading the record keeps one source of
+   * truth for what this panel and the progress page both report.
    */
-  const chosenErrorType = chosen === null ? undefined : item.errorTypes[chosen];
+  const chosenErrorType = lastResponse?.errorType;
   const diagnosis =
     revealed && !wasCorrect && chosenErrorType && chosenErrorType !== 'correct'
       ? chosenErrorType
@@ -751,19 +785,14 @@ export default function Quiz({
               locale={locale}
               presentation={item.presentation}
               reducedMotion={settings.reducedMotion}
-              onPresentationDone={() => {
-                /*
-                 * PLAN-2026-08 §2.2. A span item plays its sequence before a response is
-                 * possible, and the playback lengthens with difficulty. Timing from the
-                 * mount would therefore record "the harder the item, the longer you
-                 * thought", which is a property of the animation, not the user. The clock
-                 * starts here, at the same moment as every other format's: when answering
-                 * becomes possible.
-                 */
-                startResponseClock();
-                setStimulusReady(true);
-                setTimeout(() => textInput.current?.focus(), 30);
-              }}
+              /*
+               * PLAN-2026-08 §2.2. A span item plays its sequence before a response is possible,
+               * and the playback lengthens with difficulty. Timing from the mount would therefore
+               * record "the harder the item, the longer you thought", which is a property of the
+               * animation, not the user. The clock starts when answering becomes possible, which is
+               * the same moment for every format.
+               */
+              onPresentationDone={beginResponse}
             />
           </div>
         </div>
@@ -780,6 +809,26 @@ export default function Quiz({
             locale={locale}
             frozen={revealed}
             onComplete={(misses) => submit(null, undefined, misses)}
+          />
+        ) : item.responseMode === 'tap' && item.stimulus.kind === 'block-span' ? (
+          /*
+           * The board plays the sequence itself rather than leaving it to `StimulusView`, because the
+           * flashes have to appear on the same blocks that will be tapped. That makes it the only
+           * response surface that also owns a presentation — hence `onRecallStart`, which is this
+           * format's version of "the stimulus has finished playing".
+           *
+           * Left mounted and frozen after submitting, like the trail board: the reveal is the order
+           * drawn on the board it happened on, which no amount of prose could replace.
+           */
+          <BlockSpanBoard
+            blocks={item.stimulus.blocks}
+            sequence={item.stimulus.sequence}
+            presentation={item.presentation}
+            reducedMotion={settings.reducedMotion}
+            locale={locale}
+            frozen={revealed}
+            onRecallStart={beginResponse}
+            onComplete={(tapped) => submit(null, tapped)}
           />
         ) : item.responseMode === 'text' ? (
           <form

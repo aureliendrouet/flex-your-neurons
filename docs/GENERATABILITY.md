@@ -57,7 +57,7 @@ Legend: ✅ pass · ⚠️ passes with engineering · ❌ fails
 | 19 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
 | 20 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
 | 21 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
-| 22 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
+| 22 | **Corsi block-tapping** / block span | Gwm | ✅ | ✅ | ✅ | **SHIP** |
 | 23 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
 | 24 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
 | 25 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
@@ -92,7 +92,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Seventeen generators across five CHC domains:
+Eighteen generators across five CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -106,6 +106,7 @@ Seventeen generators across five CHC domains:
 | `paper-folding` | folds + punches, 5 options | # folds; # punches |
 | `figure-weights` | balance-scale algebra, 4 options | # shapes in the chain; objects in the target pan |
 | `span` | digit/letter span, fwd & backward | span length (adaptive) |
+| `block-span` | watch nine blocks light, tap them back | sequence length, and nothing else |
 | `n-back` | count the N-back repeats in a stream | N; stream length; step rate |
 | `head-count` | track arrivals and departures, report the total | # steps; step rate; group size |
 | `symbol-search` | target detection, latency-scored | set size; distractor similarity |
@@ -214,6 +215,36 @@ Seventeen generators across five CHC domains:
 > Twenty-five circles fit an A4 sheet; on a phone-width board they cannot be placed without either
 > overlapping or shrinking below a tappable size. Fewer targets changes the amount of search while
 > leaving the task intact, which is the only one of the three options that does not break something.
+
+> **On block span (Corsi), and the fourth response mode.** Nine blocks light one after another and are
+> tapped back in order — digit span with places instead of digits, and the pair dissociate, which is
+> the reason to have both rather than one with more levels. The response is a *sequence* of taps, like
+> a trail, but it is not the same mode: a trail is scored on time because its order is written on the
+> targets, while a tapped sequence is scored on whether it matches, because the order was shown once
+> and taken away. Hence `responseMode: 'tap'`, which reuses `answerText`/`chosenText` — a tapped
+> sequence really is a short string, and comparing it is the comparison `'text'` already does.
+>
+> Two things are held fixed on purpose, and both are the same mistake in different costumes:
+>
+> - **The board never changes.** A layout redrawn per item would make the reader *find* the blocks
+>   before they could remember an order among them, mixing a search into a span. Same argument as the
+>   fixed keypad in the Stroop format, arrived at from the other direction.
+> - **Difficulty is sequence length and nothing else.** Not the flash rate (that trades storage for
+>   encoding speed), not the block count (that is a selection demand), and never a backward trial. A
+>   backward spatial span is a harder task rather than a longer one; mixed into the ladder it would
+>   make accuracy at a level bimodal, and unlike trail making's two forms there is no timed contrast
+>   to redeem the variance, because this format is scored right or wrong.
+>
+> It is the first format whose diagnosis is **computed rather than keyed**. Every other format builds
+> each distractor to embody one misreading and records which; a tap has no distractors, so the error
+> type is derived from the response — and "you had the blocks and lost the order" (`transposition`) is
+> a materially different finding from tapping a block that never lit.
+>
+> Not built: a **spatial-versus-verbal span contrast**, the obvious third read-out after the Stroop
+> and switch-cost ones. The two formats are not matched — `span` runs four to seven items with a
+> backward condition from level 3, `block-span` runs three to seven forwards only — so the difference
+> between them would be a fact about the two ladders rather than about the reader. Matching them would
+> mean redesigning `span`, which is a change to a shipped measurement, not an addition to it.
 
 Every generator implements one interface:
 

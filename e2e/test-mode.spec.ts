@@ -3,16 +3,17 @@ import { ITEM_TYPE_IDS, generateItem } from '../src/lib/generators';
 import { deriveSeed } from '../src/lib/rng';
 import { dict } from '../src/lib/i18n';
 import {
+  answerCorrectly,
+  answerIncorrectly,
   clearAppStorage,
   readLocalStorageSessions,
-  startSpanIfGated,
   waitForQuiz,
 } from './helpers';
 import type { Difficulty, ItemTypeId } from '../src/lib/types';
 
 const SEED = 'FULLTEST';
 /*
- * Level 1, chosen for wall-clock cost rather than coverage. Three formats play themselves before
+ * Level 1, chosen for wall-clock cost rather than coverage. Four formats play themselves before
  * they can be answered, and their playback is real time no test can compress: at level 2 the n-back
  * stream alone runs about eleven seconds. Nothing in this file depends on the level — these tests are
  * about rotation order, withheld feedback and scoring — so the cheapest one that still exercises
@@ -30,31 +31,20 @@ function typeAt(index: number): ItemTypeId {
   return ITEM_TYPE_IDS[index % ITEM_TYPE_IDS.length]!;
 }
 
+/**
+ * Answers whatever is on screen, right or wrong, by delegating to the shared helpers.
+ *
+ * This used to be a local copy of the same branch-per-response-mode logic, and the copy is what
+ * broke when a fourth response mode shipped: `helpers.ts` learned to tap a block-span board, this
+ * file did not, and the only symptom was a timeout waiting for an option that does not exist.
+ * There is no reason for two implementations of "answer the current item" — the next format should
+ * have exactly one place to teach.
+ */
 async function answerCurrent(page: import('@playwright/test').Page, index: number, correct: boolean) {
   const type = typeAt(index);
-  const item = generateItem(type, deriveSeed(SEED, type, index), DIFFICULTY);
-
-  // Outside the branch: n-back is gated and answered by choice. No-op where there is no gate.
-  await startSpanIfGated(page);
-  if (item.responseMode === 'trail') {
-    if (item.stimulus.kind !== 'trail') throw new Error('expected a trail stimulus');
-    const nodes = item.stimulus.nodes;
-    // A trail always finishes; "wrong" means finishing with one click that went astray.
-    if (!correct && nodes.length > 1) {
-      await page.getByTestId(`trail-node-${nodes.at(-1)!.label}`).click();
-    }
-    for (const node of nodes) await page.getByTestId(`trail-node-${node.label}`).click();
-    return;
-  }
-  if (item.responseMode === 'text') {
-    const input = page.getByTestId('span-input');
-    await expect(input).toBeEnabled({ timeout: 25_000 });
-    await input.fill(correct ? item.answerText! : 'XXXXXX');
-    await page.getByTestId('submit-text').click();
-    return;
-  }
-  const pick = correct ? item.answerIndex : item.answerIndex === 0 ? 1 : 0;
-  await page.getByTestId(`option-${pick}`).click();
+  const opts = { seed: SEED, difficulty: DIFFICULTY, length: LENGTH };
+  if (correct) await answerCorrectly(page, type, opts, index);
+  else await answerIncorrectly(page, type, opts, index);
 }
 
 test.describe('full test mode', () => {
@@ -64,13 +54,13 @@ test.describe('full test mode', () => {
   });
 
   /**
-   * The only test that walks all fourteen formats, and the slowest thing in the suite by a wide
+   * The only test that walks every format, and the slowest thing in the suite by a wide
    * margin — so it gets its own budget rather than the default 45 seconds.
    *
-   * The cost is not the item count. Three formats play themselves before they can be answered
-   * (span, n-back, head count), and their playback is real wall-clock time that no amount of
-   * waiting-smarter can remove. Wall time therefore scales with how many *transient* formats exist,
-   * not with how many formats exist.
+   * The cost is not the item count. Four formats play themselves before they can be answered
+   * (span, n-back, head count, block span), and their playback is real wall-clock time that no
+   * amount of waiting-smarter can remove. Wall time therefore scales with how many *transient*
+   * formats exist, not with how many formats exist.
    *
    * The budget is now deliberately far larger than the test needs, because raising it in small steps
    * was a losing game: 45 seconds, then 120, then 300, each one passing solo and timing out again under

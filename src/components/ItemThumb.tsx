@@ -301,6 +301,69 @@ function ThumbBody({ item }: { item: Item }) {
     }
 
     /*
+     * The board with the lit order numbered on it — which is the answer, and that is correct here.
+     *
+     * A card is an advertisement, not an item: it has to say what the format asks of you, and a
+     * scatter of blank circles says nothing at all. The numbers are what make it legible as "this
+     * order, then reproduce it". Live items never draw them until the answer is out.
+     */
+    case 'block-span': {
+      /*
+       * A wide box rather than the square the live board is drawn in.
+       *
+       * The card slot is about 300 by 84, so a square drawing can never be wider than 84px however
+       * it is scaled: the height binds first, two thirds of the card stays empty, and the order
+       * numbers come out too small to read. Spreading the layout horizontally costs the board's true
+       * proportions and buys legibility — the same trade the social card already makes by mapping the
+       * unit box onto its own stage — and nothing about what the format asks depends on the board
+       * being square. The height is what it is: nine blocks and their numbers inside 5.25rem is the
+       * floor this slot imposes on every scattered-board format, the trail card included.
+       */
+      const points = s.blocks.map((b) => ({ x: 12 + b.x * 176, y: 11 + b.y * 63 }));
+      const order = new Map(s.sequence.map((index, position) => [index, position + 1]));
+      return (
+        <svg class="thumb-blocks" viewBox="0 0 200 85" role="presentation">
+          <polyline
+            points={s.sequence.map((i) => `${points[i]!.x.toFixed(1)},${points[i]!.y.toFixed(1)}`).join(' ')}
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            stroke-opacity="0.4"
+            stroke-linejoin="round"
+          />
+          {points.map((p, i) => (
+            <g key={i} opacity={order.has(i) ? 1 : 0.35}>
+              {/* Unfilled: a miniature may paint only currentColor, none, or a pattern. */}
+              <rect
+                x={p.x - 9}
+                y={p.y - 9}
+                width={18}
+                height={18}
+                rx={3.5}
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.4"
+              />
+              {order.has(i) && (
+                <text
+                  x={p.x}
+                  y={p.y}
+                  text-anchor="middle"
+                  dominant-baseline="central"
+                  font-size="10"
+                  font-weight="700"
+                  fill="currentColor"
+                >
+                  {order.get(i)}
+                </text>
+              )}
+            </g>
+          ))}
+        </svg>
+      );
+    }
+
+    /*
      * The glyphs, and nothing else. No count and no label: a card that showed the answer would give
      * away the one thing the format asks, and the tension between "which digit" and "how many" is
      * legible from the row on its own.

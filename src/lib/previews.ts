@@ -74,6 +74,12 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   // Level 1, eight nodes: enough for the wandering path to read as a search, few enough that the
   // labels are still legible at card size.
   'trail-making': { seed: 'PRVTRAIL', difficulty: 1 },
+  /*
+   * Level 2, four blocks. Long enough that the numbered path visibly wanders — a three-block card
+   * reads as a corner rather than as an order — and short enough that five of the nine blocks stay
+   * blank, which is what says the board is bigger than the sequence.
+   */
+  'block-span': { seed: 'PRVBLOCK', difficulty: 2 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */

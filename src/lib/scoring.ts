@@ -37,11 +37,42 @@ export function isCorrect(
   trailMisses?: number,
 ): boolean {
   if (item.responseMode === 'trail') return trailMisses === 0;
-  if (item.responseMode === 'text') {
+  /*
+   * A tapped sequence is graded exactly as a typed one: both are the response itself rather than a
+   * choice among options, and both come down to "is this the expected string". The all-or-nothing
+   * result is the standard scoring for a span trial — four of five blocks in the right order is a
+   * failed trial, not four fifths of a success, because what is being measured is whether the whole
+   * sequence survived.
+   */
+  if (item.responseMode === 'text' || item.responseMode === 'tap') {
     if (chosenText === undefined) return false;
     return normaliseTextAnswer(chosenText) === normaliseTextAnswer(item.answerText ?? '');
   }
   return chosenIndex !== null && chosenIndex === item.answerIndex;
+}
+
+/**
+ * Names the mistake in a tapped sequence.
+ *
+ * Every other format diagnoses by *construction*: the generator builds each distractor to embody one
+ * misreading and records which, so `errorTypes[chosen]` is a lookup. A tap has no distractors — the
+ * reader produces the response rather than selecting it — so the diagnosis has to be computed from
+ * what they did, and this is the one place in the app where a diagnosis is derived rather than keyed.
+ *
+ * The interesting distinction is the middle one. A response containing exactly the right blocks in
+ * the wrong order means the positions were encoded and their *order* was lost, which is a different
+ * failure from tapping a block that never lit — and the two call for different practice. The reversal
+ * is split out from it because recalling a sequence backwards is a specific, common slip rather than
+ * generic disorder.
+ */
+export function diagnoseTaps(expected: string, tapped: string): ErrorType {
+  const want = normaliseTextAnswer(expected);
+  const got = normaliseTextAnswer(tapped);
+  if (want === got) return 'correct';
+  if ([...want].reverse().join('') === got) return 'wrong-direction';
+  const sorted = (value: string) => [...value].sort().join('');
+  if (want.length === got.length && sorted(want) === sorted(got)) return 'transposition';
+  return 'plausible';
 }
 
 /** Spaces, dashes and case are noise in a recall answer, not errors. */
@@ -448,10 +479,12 @@ export interface ErrorTally {
  * Counts the named mistakes among a set of responses, commonest first.
  *
  * Only wrong answers are counted, and only those carrying a diagnosis: text-entry formats
- * (digit span) have no distractors to diagnose, and histories written before the taxonomy
- * was surfaced have no `errorType` at all. Both are absences, not zeroes, so they are
- * dropped rather than bucketed — a "plausible" bucket inflated by every old response would
- * make the breakdown say something false about the user's habits.
+ * (digit span) have no distractors to diagnose and nothing to compute a diagnosis from, and
+ * histories written before the taxonomy was surfaced have no `errorType` at all. Both are
+ * absences, not zeroes, so they are dropped rather than bucketed — a "plausible" bucket
+ * inflated by every old response would make the breakdown say something false about the
+ * user's habits. Tapped sequences do appear here: their diagnosis is computed at submit time
+ * by `diagnoseTaps` and stored on the response like any other.
  */
 export function tallyErrorTypes(responses: Response[]): ErrorTally[] {
   const counts = new Map<ErrorType, number>();

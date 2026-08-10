@@ -29,7 +29,8 @@ export type ItemTypeId =
   | 'figure-weights'
   | 'arithmetic'
   | 'interference'
-  | 'trail-making';
+  | 'trail-making'
+  | 'block-span';
 
 /**
  * CHC broad ability. See docs/IQ-TESTS.md §2.
@@ -158,6 +159,15 @@ export type Stimulus =
    */
   | { kind: 'trail'; nodes: TrailNode[] }
   /**
+   * A block-span board: fixed, unlabelled positions, and the order in which they light.
+   *
+   * `sequence` holds indices into `blocks`, and it is the *stimulus* rather than the answer key —
+   * the reader is shown it and then asked to reproduce it, so the same array is both what plays and
+   * what is graded against. `blocks` is carried even though every item shares one layout, so an item
+   * still describes everything drawn for it and the renderers need no second copy of the geometry.
+   */
+  | { kind: 'block-span'; blocks: BlockPosition[]; sequence: number[] }
+  /**
    * Balance-scale algebra. Each premise is a pair of pans that balance, establishing the
    * shapes' relative weights; `target` is the pan the chosen option must balance.
    */
@@ -170,6 +180,18 @@ export type Stimulus =
 /** One target on a trail-making board. Centre position in the unit box, both in [0, 1]. */
 export interface TrailNode {
   label: string;
+  x: number;
+  y: number;
+}
+
+/**
+ * One block on a block-span board. Centre position in the unit box, both in [0, 1].
+ *
+ * Deliberately not a `TrailNode` without its label: a block has no label, and that absence is the
+ * format. A trail states its own order on the targets; a block-span board states nothing, which is
+ * why one is a search task and the other a memory task.
+ */
+export interface BlockPosition {
   x: number;
   y: number;
 }
@@ -213,6 +235,14 @@ export type ErrorType =
    * single digit.
    */
   | 'carry'
+  /*
+   * Every element recalled, in the wrong order — the classic serial-recall transposition. Named
+   * because it is the one diagnosis a span task can offer that an accuracy figure cannot: it
+   * separates "you did not encode the items" from "you encoded them and lost their order", which
+   * are different failures with different remedies. Only reachable from the `tap` response mode,
+   * where the response is a sequence and can therefore be compared as one.
+   */
+  | 'transposition'
   | 'plausible'; // a generic near-miss with no single diagnosis
 
 export interface Explanation {
@@ -236,8 +266,19 @@ export interface Explanation {
  * but a *sequence* of clicks that is timed as a unit. There is no option list and no expected
  * string — the item completes when the last target is reached, and what it records is how long that
  * took and how many clicks went astray.
+ *
+ * `tap` is also a sequence of clicks, and it is deliberately *not* the same mode. A trail is graded
+ * on time because there is no wrong answer to give: the order is written on the targets. A tap is
+ * graded on whether the sequence matches, because the order was shown once and then taken away.
+ * That difference decides everything downstream — a trail must not end on a mistake, a tap must not
+ * be corrected towards the right answer, and only one of the two has anything to diagnose.
+ *
+ * It reuses `answerText` and `chosenText` rather than inventing a parallel pair of fields, because
+ * a tapped sequence really is a short string ("48213", one character per target) and comparing it is
+ * exactly the comparison `text` already does. What differs is how the string is *collected*, which
+ * is a fact about the response surface, not about the grading.
  */
-export type ResponseMode = 'choice' | 'text' | 'trail';
+export type ResponseMode = 'choice' | 'text' | 'trail' | 'tap';
 
 /**
  * A stimulus shown only briefly before the response is collected, for formats where the
@@ -258,11 +299,11 @@ export interface Item {
   prompt: string;
   stimulus: Stimulus;
   responseMode: ResponseMode;
-  /** Empty when `responseMode === 'text'`. */
+  /** Empty for every mode but `choice`. */
   options: Option[];
-  /** Index into `options`; `-1` when `responseMode === 'text'`. Derived by construction. */
+  /** Index into `options`; `-1` for every mode but `choice`. Derived by construction. */
   answerIndex: number;
-  /** The expected string when `responseMode === 'text'`. Compared case-insensitively. */
+  /** The expected string for `text` and `tap`. Compared case-insensitively. */
   answerText?: string;
   /** Parallel to `options`; `errorTypes[answerIndex]` is always `'correct'`. */
   errorTypes: ErrorType[];
@@ -322,7 +363,13 @@ export interface Response {
   difficulty: Difficulty;
   /** Index the user chose, or `null` if they skipped, timed out, or typed an answer. */
   chosenIndex: number | null;
-  /** What the user typed, for `responseMode === 'text'` items. */
+  /**
+   * What the user typed, for a `text` item — or the sequence they tapped, for a `tap` one.
+   *
+   * One field for both, because both are the same kind of evidence: the response itself rather
+   * than a reference to one of a fixed set of options. A tapped sequence is stored as the target
+   * numbers in the order they were touched, which is what makes a wrong answer reviewable at all.
+   */
   chosenText?: string;
   answerIndex: number;
   correct: boolean;

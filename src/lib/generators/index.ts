@@ -22,6 +22,7 @@ import { figureWeightsGenerator } from './figure-weights';
 import { arithmeticGenerator } from './arithmetic';
 import { interferenceGenerator } from './interference';
 import { trailMakingGenerator } from './trail-making';
+import { blockSpanGenerator } from './block-span';
 
 /**
  * Presentation order: reasoning first, then spatial, then memory, then speed, with the
@@ -38,6 +39,7 @@ export const GENERATORS: Generator[] = [
   rotationGenerator,
   paperFoldingGenerator,
   spanGenerator,
+  blockSpanGenerator,
   symbolSearchGenerator,
   figureWeightsGenerator,
   nBackGenerator,

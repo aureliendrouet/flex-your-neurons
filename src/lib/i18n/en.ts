@@ -237,6 +237,7 @@ const en = {
       mirror: 'mirrored',
       'wrong-direction': 'wrong direction',
       carry: 'carry slip',
+      transposition: 'order lost',
       plausible: 'near miss',
     } as Record<ErrorType, string>,
     bodies: {
@@ -256,6 +257,8 @@ const en = {
         'The units digit is right and a higher place is wrong. That is the signature of a dropped or doubled carry — the part of the calculation that is bookkeeping rather than arithmetic. It is also why one wrong option always ends in the same digit as the answer: otherwise the item could be answered by working out a single digit.',
       'wrong-direction':
         'Right amount, opposite direction. You had the size of the step but applied it the wrong way — adding what should have come off, or the reverse. On a stream that does not repeat, a reversed step costs twice what a missed one does.',
+      transposition:
+        'Every item, in the wrong order. You held what there was to hold and lost the arrangement of it, which is a different failure from forgetting an item — and a more encouraging one, since the hard part of a span task is usually the holding. Order tends to come back with a deliberate rhythm: reproduce the sequence at the pace it was given rather than as fast as you can.',
       plausible:
         'A near miss with no single diagnosis — it breaks the pattern in more than one way at once, so there is no one rule to correct.',
     } as Record<ErrorType, string>,
@@ -382,7 +385,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than seventeen lines on one axis — seventeen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than eighteen lines on one axis — eighteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -539,6 +542,13 @@ const en = {
       description:
         'Targets are scattered across the board and you connect them in order, as fast as you can. Half the boards are numbers alone; the other half alternate numbers and letters — 1, A, 2, B — which adds the work of holding two sequences and switching between them without losing either. The form is not a difficulty level, deliberately: levels differ only in how many targets there are, so the two forms stay matched on search and motor demand and the gap between your times is a measure of switching alone. Scored on completion time; a click on the wrong target counts against the run but does not end it.',
       seenIn: 'Trail Making Test A and B (Army Individual Test Battery, 1944), the Halstead–Reitan battery, Delis–Kaplan trail making',
+    },
+    'block-span': {
+      name: 'Block span',
+      blurb: 'Watch the blocks light. Tap them back in order.',
+      description:
+        'Nine blocks sit in the same scattered arrangement every time. Some of them light one after another, and you tap those blocks back in the order they lit. This is digit span with places instead of digits — the same demand to hold a list and reproduce it, made of positions you cannot say to yourself, which is why the two dissociate and why both are here. The board never moves between items, deliberately: a new layout each time would make you search for the blocks before you could remember an order among them, and the searching would be mixed into the span. Levels differ in the length of the sequence and in nothing else — not the speed of the flashes, not the number of blocks, and never a backwards trial, since recalling a sequence backwards is a harder task rather than a longer one.',
+      seenIn: 'The Corsi block-tapping task (Corsi, 1972), WMS Spatial Span, the visuospatial sketchpad literature',
     },
     interference: {
       name: 'Count, don’t read',
@@ -781,6 +791,31 @@ const en = {
       done: 'Finished',
       nodeLabel: (label: string) => `Target ${label}`,
     },
+    blockSpan: {
+      prompt: (length: number) => `Tap the ${length} blocks in the order they lit.`,
+      summary: (length: number) =>
+        `${length} blocks lit, and the board now has that order numbered on it.`,
+      ruleOrder:
+        'The order is the order they lit, forwards. A block never lights twice in one sequence.',
+      ruleExact:
+        'The whole sequence has to be right. Four blocks out of five in the correct order is a failed trial rather than four fifths of a success — what is being measured is whether the sequence survived, and a partly-remembered one did not.',
+      ruleBoard:
+        'The nine blocks are in the same places on every item. That is deliberate: a new arrangement each time would make you find the blocks before you could remember an order among them, and the searching would be counted as part of your span.',
+      ruleSpatial:
+        'Positions are hard to say to yourself, which is the point — this loads the part of working memory that holds where things are, rather than the part that rehearses sounds. It is the reason a strong digit span does not predict a strong block span.',
+      /** Live board copy. */
+      ready: (length: number) => `${length} blocks will light, one at a time. Watch where.`,
+      start: 'Start the sequence',
+      watching: 'Watch…',
+      nowTapThemBack: 'Now tap them back, in order.',
+      progress: (done: number, total: number) => `${done} of ${total} tapped`,
+      undo: 'Undo last tap',
+      blockLabel: (position: number) => `Block ${position}`,
+      revealRight: 'That was the order.',
+      revealWrong: 'The order is numbered below.',
+      legendAnswer: 'Solid line: the order they lit',
+      legendTapped: 'Dashed line: the order you tapped',
+    },
     interference: {
       prompt: 'How many are there?',
       summary: (count: number, digit: string) =>
@@ -905,7 +940,7 @@ const en = {
     test: {
       title: 'Full test',
       description:
-        'A mixed run across all seventeen reasoning-test formats, two items each, with no feedback until the end.',
+        'A mixed run across all eighteen reasoning-test formats, two items each, with no feedback until the end.',
       lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
       differsHeading: 'How this differs from a real battery',
       differs: [
@@ -1066,7 +1101,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these seventeen formats is evidence about these seventeen formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these eighteen formats is evidence about these eighteen formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',

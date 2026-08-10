@@ -3105,6 +3105,23 @@ kbd {
   }
 
   /*
+   * The block-span board, sized by the height it has rather than the width.
+   *
+   * It is the one stimulus that lives in the *tray* — it has to be tapped, so it cannot sit in the
+   * item region — and it is square, so width-driven sizing ignores the constraint that actually
+   * binds. Measured on a 1280x720 window: 998px of tray gave a 512px board inside a 465px scroller,
+   * and the top row of blocks was cut off. On any other format a clipped tray is a scroll; here it
+   * is a flash the reader never sees, which is a lost stimulus in a task that does not replay.
+   *
+   * Expressed as the viewport less the chrome above and around the board, in the same hand-tuned
+   * spirit as `--stage-item`. The number is verified rather than reasoned: `block-span.spec.ts`
+   * asserts at three window heights that every block is fully inside the visible tray.
+   */
+  [data-drill] .blocks-board {
+    inline-size: min(100%, 32rem, calc(100dvh - var(--header-h, 5rem) - 19rem));
+  }
+
+  /*
    * On reveal the explanation comes first, ahead of the option grid it is explaining.
    *
    * In document flow the grid-then-explanation order is right: you look back at what you
@@ -3491,4 +3508,163 @@ table.data th.num {
   .trail-board {
     aspect-ratio: 3 / 4;
   }
+}
+
+/* --- Block span: a sequence of places, tapped back ------------------------- */
+
+.blocks {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.blocks-status {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  /* Reserves the line's height, so the board does not jump when the copy changes between the
+     gate, playback and recall — a board that moves mid-item moves the positions being remembered. */
+  min-height: 1.75rem;
+}
+
+.blocks-headline {
+  font: 700 var(--step-0) / 1.2 var(--font-sans);
+  color: var(--accent);
+}
+
+.blocks-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Square, and unlike the trail board it stays square at every width.
+ *
+ * The block positions are proportions of the box, so a non-square board scales the two axes by
+ * different amounts: the geometry guarantee — no two centres closer than a diameter — is stated in
+ * units of board *width*, and it only transfers to the screen unchanged while width and height are
+ * the same length. The trail board can afford 4:3 because its generator lays out more columns than
+ * rows to compensate; this one carries a fixed hand-checked layout, so the cheaper guarantee is to
+ * keep the box the shape the numbers were measured in.
+ */
+.blocks-board {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  /* Capped, so the board does not become a stretch of the arm on a wide screen: a span task should
+     not turn into a reaching task at 1200px. */
+  max-width: 32rem;
+  margin-inline: auto;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+
+/* Behind the blocks and never clickable: drawn only once the answer is out. */
+.blocks-path {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: var(--accent);
+  opacity: 0.65;
+}
+
+.blocks-block {
+  position: absolute;
+  /* Centred on its coordinate, so the maths in the generator is the maths on screen. */
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  /*
+   * Both axes from the board's width in container units, for the reason spelled out on
+   * `.trail-node`: a percentage block-size would resolve against the height and draw rectangles of
+   * the wrong proportion. Here the floor is the full 2.75rem touch target rather than the trail
+   * board's reduced one, and the arithmetic says it is safe: the closest pair of blocks is 0.283 of
+   * the board's width apart, so a 44px floor only starts to overlap below 155px of board — narrower
+   * than the board gets on any real viewport, where a 320px screen still leaves it about 280px.
+   * Sixteen trail targets had no such margin, which is why that board had to trade the guideline away.
+   */
+  inline-size: max(2.75rem, calc(var(--block-size) * 1cqw));
+  block-size: max(2.75rem, calc(var(--block-size) * 1cqw));
+  padding: 0;
+  border: 2px solid var(--border-strong, var(--border));
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--bg-raised);
+  color: var(--text);
+  font: 700 var(--step-0) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.blocks-block:disabled {
+  cursor: default;
+}
+
+/*
+ * A lit block. Filled and ringed rather than merely tinted: this is the stimulus itself, on screen
+ * for about half a second and never repeated, so it has to be unmistakable at a glance and without
+ * depending on hue. No transition — the flash is a state, and easing it in would blur the boundary
+ * between one block and the next, which is the boundary the reader is counting on.
+ */
+.blocks-block[data-block-lit] {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 6px color-mix(in oklch, var(--accent) 26%, transparent);
+}
+
+/*
+ * A tap, acknowledged and then forgotten. It confirms the press landed without leaving a mark that
+ * would tell the reader which blocks are still to come — see the note in `BlockSpanBoard`.
+ */
+.blocks-block[data-block-pulse] {
+  animation: block-pulse 400ms var(--ease-out);
+}
+
+@keyframes block-pulse {
+  0% {
+    border-color: var(--accent);
+    scale: 0.94;
+  }
+  100% {
+    border-color: var(--border-strong, var(--border));
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blocks-block[data-block-pulse] {
+    animation: none;
+    border-style: dashed;
+  }
+}
+
+/* Once the answer is out, the blocks that lit carry their position in the sequence. */
+.blocks-block[data-block-order] {
+  border-color: var(--accent);
+  background: color-mix(in oklch, var(--accent) 14%, var(--bg-raised));
+}
+
+.blocks-order {
+  color: var(--text);
+}
+
+.blocks-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.blocks-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.thumb-blocks {
+  width: 100%;
+  height: 100%;
+  color: var(--text);
 }

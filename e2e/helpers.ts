@@ -61,13 +61,26 @@ export async function waitForQuiz(page: Page): Promise<void> {
 /**
  * Starts playback if the current item is waiting on its gate.
  *
- * Neither transient format — span nor n-back — plays itself on mount: a reader who is still
- * orienting would lose the stream, and there is no replay. Every test that waits for playback
- * has to press start first. It is a no-op for the formats with no gate, so callers that do
- * not know the item type can call it unconditionally.
+ * No transient format plays itself on mount — a reader who is still orienting would lose the
+ * stream, and there is no replay — so every test that waits for playback has to press start first.
+ *
+ * `gated` is the fix for a race that was latent here for a long time. Without it the only way to ask
+ * "is there a gate?" is `isVisible()`, which is a single sample rather than a wait: in a run that
+ * advances straight from one item to the next, that sample can happen before the new item has
+ * painted, the click is skipped, and the response controls stay locked until the test times out ten
+ * minutes later. It surfaced when a fourth gated format shipped and the full-test run got long
+ * enough to hit it, on head count, at item fourteen of eighteen.
+ *
+ * When the caller has the item in hand it knows the answer — `item.presentation !== undefined` is
+ * exactly what "this plays before you can answer" means — so it can ask for a real auto-waiting
+ * click instead of a guess. Callers that do not know the type keep the lenient behaviour.
  */
-export async function startSpanIfGated(page: Page): Promise<void> {
+export async function startSpanIfGated(page: Page, gated?: boolean): Promise<void> {
   const start = page.getByTestId('span-start');
+  if (gated) {
+    await start.click({ timeout: 30_000 });
+    return;
+  }
   if (await start.isVisible().catch(() => false)) await start.click();
 }
 
@@ -92,6 +105,25 @@ async function walkTrail(
   }
 }
 
+/**
+ * Taps a block-span board's sequence back.
+ *
+ * The board plays itself before it will accept anything, so the wait is on the phase attribute
+ * rather than on a timeout: playback is about a second per block and grows with difficulty, and a
+ * fixed sleep would either be too short at level 5 or waste seconds at level 1.
+ *
+ * `reversed` is how a block-span item is answered *wrongly* on purpose. It is a genuine wrong answer
+ * for every sequence this format produces — blocks never repeat, so a sequence can never read the
+ * same in both directions — and it is a mistake with a name, which the diagnosis test relies on.
+ */
+async function tapBlocks(page: Page, sequence: number[], reversed: boolean): Promise<void> {
+  const board = page.getByTestId('block-span-board');
+  await expect(board).toHaveAttribute('data-block-phase', 'recall', { timeout: 30_000 });
+  for (const index of reversed ? [...sequence].reverse() : sequence) {
+    await page.getByTestId(`block-${index + 1}`).click();
+  }
+}
+
 /** Answers the current item correctly, using the answer computed in Node. */
 export async function answerCorrectly(
   page: Page,
@@ -102,12 +134,18 @@ export async function answerCorrectly(
   const item = expectedItem(type, opts.seed, index, opts.difficulty, localeOf(opts));
   /*
    * Before the branch, not inside it: n-back is gated *and* answered by choice, so gating is
-   * not a property of the response mode. A no-op for the formats with no gate.
+   * not a property of the response mode. Carrying a `presentation` is what gating *is*, so the
+   * helper is told rather than left to guess — see the note on `startSpanIfGated`.
    */
-  await startSpanIfGated(page);
+  await startSpanIfGated(page, item.presentation !== undefined);
   if (item.responseMode === 'trail') {
     if (item.stimulus.kind !== 'trail') throw new Error('expected a trail stimulus');
     await walkTrail(page, item.stimulus.nodes, false);
+    return;
+  }
+  if (item.responseMode === 'tap') {
+    if (item.stimulus.kind !== 'block-span') throw new Error('expected a block-span stimulus');
+    await tapBlocks(page, item.stimulus.sequence, false);
     return;
   }
   if (item.responseMode === 'text') {
@@ -128,11 +166,16 @@ export async function answerIncorrectly(
   index: number,
 ): Promise<void> {
   const item = expectedItem(type, opts.seed, index, opts.difficulty, localeOf(opts));
-  await startSpanIfGated(page);
+  await startSpanIfGated(page, item.presentation !== undefined);
   if (item.responseMode === 'trail') {
     if (item.stimulus.kind !== 'trail') throw new Error('expected a trail stimulus');
     // A trail always finishes; "wrong" means finishing with a click that went astray.
     await walkTrail(page, item.stimulus.nodes, true);
+    return;
+  }
+  if (item.responseMode === 'tap') {
+    if (item.stimulus.kind !== 'block-span') throw new Error('expected a block-span stimulus');
+    await tapBlocks(page, item.stimulus.sequence, true);
     return;
   }
   if (item.responseMode === 'text') {

@@ -38,6 +38,15 @@ export default function StimulusView({
     case 'trail':
       return null;
 
+    /*
+     * Nothing here either, and for a stronger reason than the trail board's. A block-span board must
+     * flash the sequence on the very blocks the reader will tap — a copy played somewhere else would
+     * be a different board, and remembering positions on one to reproduce them on another is not the
+     * task. So `BlockSpanBoard` owns both the playback and the response.
+     */
+    case 'block-span':
+      return null;
+
     case 'matrix':
       return (
         <div class="matrix-grid" data-stimulus="matrix" role="group" aria-label={t.patternMatrix}>

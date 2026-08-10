@@ -313,6 +313,40 @@ function stage(item: Item): string {
     }
 
     /*
+     * The board, with the lit order numbered and joined. Same editorial call as the trail card: this
+     * is the one place the *answer* is the illustration, because a scatter of blank squares does not
+     * say what the format asks. Blocks that never lit are drawn faintly, so the card also shows that
+     * some of the board is a distraction.
+     */
+    case 'block-span': {
+      const half = 30;
+      const pad = half + 8;
+      const px = (b: { x: number; y: number }) => ({
+        x: STAGE.x + pad + b.x * (STAGE.w - pad * 2),
+        y: STAGE.y + pad + b.y * (STAGE.h - pad * 2),
+      });
+      const points = s.blocks.map(px);
+      const order = new Map(s.sequence.map((index, position) => [index, position + 1]));
+      const line = s.sequence
+        .map((index, i) => `${i === 0 ? 'M' : 'L'}${round(points[index]!.x)} ${round(points[index]!.y)}`)
+        .join(' ');
+      return (
+        `<path d="${line}" fill="none" stroke="${ACCENT}" stroke-width="4" stroke-linejoin="round" stroke-opacity="0.55"/>` +
+        points
+          .map((p, i) => {
+            const position = order.get(i);
+            return (
+              `<rect x="${round(p.x - half)}" y="${round(p.y - half)}" width="${half * 2}" height="${half * 2}" rx="10" fill="${position ? RAISED : SUNKEN}" stroke="${position ? INK : LINE}" stroke-width="2.5"/>` +
+              (position
+                ? `<text x="${round(p.x)}" y="${round(p.y)}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="26" font-weight="700" fill="${INK}">${position}</text>`
+                : '')
+            );
+          })
+          .join('')
+      );
+    }
+
+    /*
      * The glyphs in a row, large. The card has to show both readings at once — several copies of a
      * digit, and nothing telling you which of the two numbers is wanted — because the tension
      * between them is the format.
