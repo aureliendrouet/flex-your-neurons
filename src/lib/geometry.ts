@@ -11,18 +11,32 @@ import type { CellGrid, ColorLevel, ShapeType, SizeLevel, SlotLayout } from './t
 export const VIEWBOX = 100;
 
 /**
- * Radius in user units for each size level.
+ * Ratio between the radii of adjacent size levels, per layout.
  *
- * Roughly geometric, with a ~1.3x ratio between adjacent levels. A linear ramp made the
- * top of the scale nearly indistinguishable (26 vs 33 is a 27% step at the largest sizes,
- * where it is hardest to judge), and adjacent levels are what the Progression rule
- * actually asks the reader to tell apart.
+ * Size is judged *relatively*: the reader compares one shape against its neighbours, so
+ * what has to be legible is the ratio between adjacent levels, not the absolute range. A
+ * geometric ramp anchored at the layout's cap gives every neighbouring pair the same
+ * ratio — which is exactly what Progression and Distribute-Three ask the reader to read.
+ *
+ * The ratios are the largest each layout can afford while keeping level 1 above the
+ * visibility floor of ~8 units, since `radiusIn` divides down from the cap.
+ *
+ * This replaced a linear interpolation into a floor..cap band, which was fine at `center`
+ * (~30-37% steps) but produced only 17-20% steps at `grid2x2` — below what a reader can
+ * reliably call apart when the two shapes sit in different cells and other attributes are
+ * changing at the same time. Odd-one-out uses `grid2x2` with size as an oddness dimension,
+ * so a size-odd item there was close to unanswerable.
+ *
+ * `grid3x3` cannot reach the same step: nine slots cap the radius at 14, and 14/1.25^4
+ * falls under the floor. That is precisely why the matrix generator drops `size` from the
+ * ruled attributes at 3x3 (see `generators/matrix.ts`), and no generator varies size
+ * there — so its ratio only governs incidental appearance, never an answer.
  */
-const SIZE_RADIUS: Record<SizeLevel, number> = { 1: 11, 2: 15, 3: 20.5, 4: 27, 5: 35 };
-
-export function radiusFor(size: SizeLevel): number {
-  return SIZE_RADIUS[size];
-}
+const SIZE_RATIO: Record<SlotLayout, number> = {
+  center: 1.32,
+  grid2x2: 1.25,
+  grid3x3: 1.14,
+};
 
 /** Number of vertices for the regular polygons. `star` and `cross` are special-cased. */
 const POLYGON_SIDES: Partial<Record<ShapeType, number>> = {
@@ -53,10 +67,19 @@ function regularPolygon(cx: number, cy: number, r: number, sides: number, angleD
   return pts;
 }
 
+/**
+ * A five-pointed star.
+ *
+ * The inner radius is the arm thickness. At 0.42 the arms were narrow enough that a fill
+ * texture had almost nowhere to land — the star read as an outline whatever its shading
+ * level, which silently cost one of the five attributes a rule can act on. 0.5 is still
+ * unmistakably a star (the classic pentagram sits near 0.38, decorative stars run to 0.55)
+ * and gives the pattern real area to show in.
+ */
 function starPolygon(cx: number, cy: number, r: number, angleDeg: number): Point[] {
   const pts: Point[] = [];
   for (let i = 0; i < 10; i++) {
-    const rr = i % 2 === 0 ? r : r * 0.42;
+    const rr = i % 2 === 0 ? r : r * 0.5;
     const a = ((angleDeg + 36 * i) * Math.PI) / 180;
     pts.push([cx + rr * Math.cos(a), cy + rr * Math.sin(a)]);
   }
@@ -172,35 +195,32 @@ export function maxRadiusFor(layout: SlotLayout): number {
 }
 
 /**
- * Smallest radius a layout will draw, as a fraction of its cap.
+ * Radius for a shape given the layout it sits in.
  *
- * Scaling the full 11..35 range down by the layout cap made the smallest shapes vanish:
- * at 3x3 a level-1 shape came out at ~4 user units, a handful of pixels on screen. The
- * size *ordering* is what the Size rule needs, not the full dynamic range, so tighter
- * layouts compress the range upwards from a floor instead.
- */
-const SIZE_FLOOR: Record<SlotLayout, number> = {
-  center: 0.31,
-  grid2x2: 0.5,
-  grid3x3: 0.62,
-};
-
-/**
- * Radius for a shape given the layout it sits in. Sizes stay *relatively* ordered
- * (which is what the Size rule depends on) while being scaled down enough that
- * neighbouring slots never collide, and never below a visible floor.
+ * Level 5 sits at the layout's cap — large enough to fill its slot without colliding with
+ * the neighbours — and each level below divides by `SIZE_RATIO`, so adjacent levels differ
+ * by a constant, legible proportion rather than by whatever a linear ramp left over.
  */
 export function radiusIn(size: SizeLevel, layout: SlotLayout): number {
-  const cap = maxRadiusFor(layout);
-  const floor = cap * SIZE_FLOOR[layout];
-  const span = SIZE_RADIUS[5] - SIZE_RADIUS[1];
-  const t = (SIZE_RADIUS[size] - SIZE_RADIUS[1]) / span;
-  return floor + t * (cap - floor);
+  return maxRadiusFor(layout) * SIZE_RATIO[layout] ** (size - 5);
 }
 
-/** Geometry of one pattern tile, in figure user units. */
+/**
+ * Geometry of one pattern tile, in figure user units.
+ *
+ * The tiles are sized so their *ink coverage* forms an even ramp, because coverage is what
+ * the reader actually perceives as "more filled". A 9-unit dots tile carrying a 1.5-unit
+ * dot covered 8.7% of its area against hatch's 28% — three times lighter than the next
+ * step up, which made level 1 read as empty rather than as the lightest fill. It failed
+ * worst inside a star, whose arms are narrow enough that a 9-unit lattice could miss them
+ * entirely. A 5-unit tile puts roughly four times as many dots in the same area, so even a
+ * thin arm catches several.
+ *
+ * `patternUnits` is `userSpaceOnUse`, so tiles do not scale with the shape: a small tile
+ * also means a small shape still gets enough repetitions to read as textured.
+ */
 export const PATTERN_TILE: Record<PatternName, number> = {
-  dots: 9,
+  dots: 5,
   hatch: 8,
   cross: 8,
   dense: 4.5,

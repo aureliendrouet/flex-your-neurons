@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  * server. GitHub Pages will serve exactly these files, so this is the artefact worth
  * testing — it also catches base-path mistakes, which a dev server hides.
  */
-const BASE_PATH = process.env.BASE_PATH ?? '/iq';
+const BASE_PATH = process.env.BASE_PATH ?? '/flex-your-neurons';
 /**
  * Deliberately NOT Astro's default 4321. A dev server left running on that port would be
  * picked up as the "existing server" and the whole suite would silently run against it —

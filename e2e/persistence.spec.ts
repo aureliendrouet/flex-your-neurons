@@ -6,6 +6,7 @@ import {
   expectedItem,
   practiceUrl,
   readLocalStorageSessions,
+  startSpanIfGated,
   waitForQuiz,
   type DrillOptions,
 } from './helpers';
@@ -68,6 +69,7 @@ test.describe('local persistence', () => {
       5000,
     );
 
+    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 25_000 });
     await input.fill(item.answerText!);

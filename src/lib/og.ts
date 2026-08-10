@@ -70,7 +70,7 @@ function round(n: number): number {
  */
 function patternDefs(): string {
   const tiles: Record<PatternName, string> = {
-    dots: `<circle cx="${PATTERN_TILE.dots / 2}" cy="${PATTERN_TILE.dots / 2}" r="1.5" fill="${INK}" fill-opacity="0.95"/>`,
+    dots: `<circle cx="${PATTERN_TILE.dots / 2}" cy="${PATTERN_TILE.dots / 2}" r="1.3" fill="${INK}" fill-opacity="0.95"/>`,
     hatch: `<line x1="0" y1="${PATTERN_TILE.hatch}" x2="${PATTERN_TILE.hatch}" y2="0" stroke="${INK}" stroke-opacity="0.95" stroke-width="1.6" stroke-linecap="round"/>`,
     cross:
       `<line x1="0" y1="${PATTERN_TILE.cross}" x2="${PATTERN_TILE.cross}" y2="0" stroke="${INK}" stroke-opacity="0.95" stroke-width="1.5" stroke-linecap="round"/>` +

@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
-import { expectedItem, practiceUrl, waitForQuiz, type DrillOptions } from './helpers';
+import {
+  expectedItem,
+  practiceUrl,
+  startSpanIfGated,
+  waitForQuiz,
+  type DrillOptions,
+} from './helpers';
 import { dict } from '../src/lib/i18n';
 
 const OPTS: DrillOptions = { seed: 'SHORTCUT', difficulty: 2, length: 3 };
@@ -77,6 +83,7 @@ test.describe('the keyboard support is discoverable', () => {
     await page.goto(practiceUrl('span', OPTS));
     await waitForQuiz(page);
 
+    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 25_000 });
     await input.click();

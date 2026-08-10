@@ -81,6 +81,9 @@ const fr: Dict = {
     watching: 'Observez…',
     submit: 'Valider',
     nowTypeItBack: 'À vous de la saisir.',
+    spanReady: (length: number) =>
+      `${length} caractères, un à la fois. Chacun disparaît au passage — puis vous les saisissez.`,
+    spanStart: 'Lancer la séquence',
     missingCell: 'case manquante',
     missingFigure: 'figure manquante',
     patternMatrix: 'Matrice de motifs',
@@ -130,7 +133,7 @@ const fr: Dict = {
     close: 'Fermer',
     keys: {
       numbers: 'Choisir une réponse',
-      enter: 'Passer à l’item suivant',
+      enter: 'Lancer une séquence, ou passer à l’item suivant',
       tab: 'Se déplacer entre les réponses',
       question: 'Afficher ou masquer cette liste',
       escape: 'Fermer cette liste',

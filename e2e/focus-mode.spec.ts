@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { answerCorrectly, expectedItem, practiceUrl, waitForQuiz, type DrillOptions } from './helpers';
+import {
+  answerCorrectly,
+  expectedItem,
+  practiceUrl,
+  startSpanIfGated,
+  waitForQuiz,
+  type DrillOptions,
+} from './helpers';
 
 const OPTS: DrillOptions = { seed: 'FOCUSMOD', difficulty: 2, length: 3 };
 
@@ -125,6 +132,7 @@ test.describe('speeded formats carry no motion', () => {
     await expect(page.locator('[data-stimulus="span"]')).toBeVisible();
 
     // The sequence still plays and still finishes, i.e. it was not neutralised.
+    await startSpanIfGated(page);
     await expect(page.locator('[data-span-finished="true"]')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('span-input')).toBeEnabled();
   });

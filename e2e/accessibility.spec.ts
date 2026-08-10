@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { expectedItem, paintedColour, practiceUrl, waitForQuiz, type DrillOptions } from './helpers';
+import {
+  expectedItem,
+  paintedColour,
+  practiceUrl,
+  startSpanIfGated,
+  waitForQuiz,
+  type DrillOptions,
+} from './helpers';
 
 const OPTS: DrillOptions = { seed: 'A11YTEST', difficulty: 2, length: 3 };
 
@@ -63,6 +70,7 @@ test.describe('keyboard operation', () => {
     await page.goto(practiceUrl('span', OPTS));
     await waitForQuiz(page);
 
+    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 25_000 });
     await input.click();
@@ -138,9 +146,12 @@ test.describe('semantics for assistive technology', () => {
     await expect(page.getByLabel('Your answer')).toBeAttached();
   });
 
-  test('the span input is disabled while the sequence is playing', async ({ page }) => {
+  test('the span input is disabled before and while the sequence plays', async ({ page }) => {
     await page.goto(practiceUrl('span', OPTS));
     await waitForQuiz(page);
+    await expect(page.getByTestId('span-input')).toBeDisabled();
+    await expect(page.getByTestId('submit-text')).toBeDisabled();
+    await startSpanIfGated(page);
     await expect(page.getByTestId('span-input')).toBeDisabled();
     await expect(page.getByTestId('submit-text')).toBeDisabled();
   });

@@ -519,6 +519,14 @@ function PaperFolding({
 /**
  * Plays a sequence one element at a time. The whole point of a span task is that the
  * sequence is *gone* when you answer, so the elements are unmounted as they pass.
+ *
+ * Playback waits for an explicit start, because this is the only item that can be lost by
+ * not looking at the right moment. It used to begin 400ms after the page appeared: a reader
+ * who was still orienting — or who had just landed from a link — watched the sequence go by
+ * before realising it had begun, and there is deliberately no replay. The gate also makes
+ * the task fairer than the timing accident it was, since everyone now starts attending at
+ * the moment they chose. Latency is unaffected either way: the response clock is reset by
+ * `onDone`, so neither the playback nor the wait before it counts towards the answer.
  */
 function SpanPlayer({
   sequence,
@@ -538,8 +546,43 @@ function SpanPlayer({
   const gapMs = reducedMotion ? 300 : (presentation?.gapMs ?? 200);
   const [index, setIndex] = useState(-1);
   const [finished, setFinished] = useState(false);
+  const [started, setStarted] = useState(false);
+
+  const key = sequence.join('');
+
+  /*
+   * A new item must re-arm the gate. This is keyed on the sequence rather than done in the
+   * playback effect, because that effect no longer runs on a new item until the reader asks
+   * it to — so it is not a place where "reset for the next item" can live.
+   */
+  useEffect(() => {
+    setStarted(false);
+    setIndex(-1);
+    setFinished(false);
+  }, [key]);
+
+  /*
+   * Enter starts the sequence, so a whole span drill stays on the keyboard like every other
+   * format. The button is a real <button>, so Enter and Space already work once it has
+   * focus; this covers the far more common case of not having tabbed to it.
+   *
+   * There is no clash with the quiz's own Enter binding, which only advances from the
+   * `revealed` phase — the gate is by definition still unanswered. The listener is torn down
+   * the moment playback starts, so a second Enter cannot restart or double-fire it.
+   */
+  useEffect(() => {
+    if (started) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.repeat) return;
+      e.preventDefault();
+      setStarted(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [started, key]);
 
   useEffect(() => {
+    if (!started) return;
     setIndex(-1);
     setFinished(false);
     const timers: ReturnType<typeof setTimeout>[] = [];
@@ -557,12 +600,37 @@ function SpanPlayer({
       }, t),
     );
     return () => timers.forEach(clearTimeout);
-    // Re-play whenever the sequence itself changes (i.e. a new item).
-  }, [sequence.join(''), stepMs, gapMs]);
+    // Re-play whenever the sequence itself changes (i.e. a new item), once started.
+  }, [started, key, stepMs, gapMs]);
 
   return (
-    <div data-stimulus="span" class="span-stage" data-span-finished={String(finished)}>
-      {finished ? (
+    <div
+      data-stimulus="span"
+      class="span-stage"
+      data-span-finished={String(finished)}
+      data-span-started={String(started)}
+    >
+      {!started ? (
+        <div class="span-gate">
+          <p class="subtle" data-span-ready>
+            {t.spanReady(sequence.length)}
+          </p>
+          {/*
+            * The key cap goes inside the button, the way the Next button carries its own —
+            * the shortcut belongs to the control, not to a note beside it. `aria-hidden`
+            * because a screen reader reads the accessible name, and "Start the sequence
+            * return-arrow" is noise; the sheet at `?` is where the bindings are announced.
+            */}
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-testid="span-start"
+            onClick={() => setStarted(true)}
+          >
+            {t.spanStart} <span aria-hidden="true">↵</span>
+          </button>
+        </div>
+      ) : finished ? (
         <span class="subtle" data-span-prompt>
           {t.nowTypeItBack}
         </span>

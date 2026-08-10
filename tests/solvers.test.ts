@@ -216,16 +216,35 @@ describe('figure legibility', () => {
 
   /**
    * A size difference the reader cannot see is not a difference. The Size rule asks people
-   * to judge *adjacent* levels, so adjacent levels are what has to be separable — at every
-   * layout, including the densest one.
+   * to judge *adjacent* levels, so adjacent levels are what has to be separable.
+   *
+   * 1.08 is what this used to assert, and it was too weak to catch anything: an 8% radius
+   * step is invisible once the two shapes sit in different cells with other attributes
+   * changing alongside. `grid2x2` passed at 17% and its size items were still unanswerable.
+   *
+   * The threshold applies to the layouts where a generator actually varies size — `center`
+   * and `grid2x2`. `grid3x3` is excluded on purpose: nine slots cap the radius too low for
+   * a 25% ramp to clear the visibility floor, which is why the matrix generator drops
+   * `size` from the ruled attributes there. Size at 3x3 must still be *ordered*, since it
+   * is drawn, but no answer depends on reading it.
    */
-  it('keeps adjacent size levels visibly apart at every layout', () => {
-    for (const layout of LAYOUTS) {
+  it('keeps adjacent size levels visibly apart wherever size carries meaning', () => {
+    for (const layout of ['center', 'grid2x2'] as const) {
       for (let i = 1; i < SIZES.length; i++) {
         const smaller = radiusIn(SIZES[i - 1]!, layout);
         const larger = radiusIn(SIZES[i]!, layout);
         expect(larger / smaller, `${layout}: size ${SIZES[i - 1]} vs ${SIZES[i]}`).toBeGreaterThan(
-          1.08,
+          1.24,
+        );
+      }
+    }
+  });
+
+  it('keeps size levels ordered at every layout, including the densest', () => {
+    for (const layout of LAYOUTS) {
+      for (let i = 1; i < SIZES.length; i++) {
+        expect(radiusIn(SIZES[i]!, layout), `${layout}: size ${SIZES[i]}`).toBeGreaterThan(
+          radiusIn(SIZES[i - 1]!, layout),
         );
       }
     }

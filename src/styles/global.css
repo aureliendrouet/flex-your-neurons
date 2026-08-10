@@ -2140,14 +2140,44 @@ kbd {
 
 /* --- Digit span ----------------------------------------------------------- */
 
+/*
+ * The stage is centred by its parent, so it takes its width from its content — which for a
+ * single digit meant a 38px-wide box gripping one character. Hence both the inline padding
+ * and the min-width: the frame should read as a place where things appear, and it should be
+ * the *same* place throughout. Without the min-width it resizes three times per item — wide
+ * for the instruction, narrow for each digit, medium for the prompt — and a border that
+ * jumps around draws the eye away from the digits, which are the thing to be remembered.
+ *
+ * `min()` keeps it from forcing horizontal overflow on a narrow phone.
+ */
 .span-stage {
   display: grid;
   place-items: center;
   min-height: 8rem;
+  min-width: min(100%, 26rem);
+  padding: 1.25rem 2.5rem;
   border: 2px dashed var(--border);
   border-radius: var(--radius-lg);
   background: var(--bg-sunken);
 }
+
+/*
+ * The pre-playback gate. Constrained width so the instruction wraps to two or three short
+ * lines rather than one wide one, since it has to be read *before* the reader commits.
+ */
+.span-gate {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  max-width: 32ch;
+  text-align: center;
+}
+
+.span-gate p {
+  margin: 0;
+  text-wrap: balance;
+}
+
 
 .span-element {
   font-family: var(--font-code);

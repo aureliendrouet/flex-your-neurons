@@ -5,6 +5,7 @@ import {
   answerIncorrectly,
   expectedItem,
   practiceUrl,
+  startSpanIfGated,
   waitForQuiz,
   type DrillOptions,
 } from './helpers';
@@ -34,6 +35,7 @@ for (const meta of ALL_META) {
 
       if (item.responseMode === 'text') {
         await expect(page.getByTestId('text-response')).toBeVisible();
+        await startSpanIfGated(page);
         await expect(page.getByTestId('span-input')).toBeEnabled({ timeout: 20_000 });
       } else {
         await expect(page.getByTestId('options').locator('button')).toHaveCount(item.options.length);
@@ -180,6 +182,55 @@ test.describe('format-specific rendering', () => {
   });
 
   /**
+   * The span task is the only item that plays itself, so it is the only one that can be
+   * lost by not looking — and there is deliberately no replay. It must therefore wait to be
+   * started rather than beginning on its own a moment after the page appears.
+   */
+  test('digit span waits to be started, and does not play until it is', async ({ page }) => {
+    await page.goto(practiceUrl('span', OPTS));
+    await waitForQuiz(page);
+
+    const item = expectedItem('span', OPTS.seed, 0, OPTS.difficulty);
+    if (item.stimulus.kind !== 'span') throw new Error('unexpected stimulus');
+
+    const player = page.locator('[data-stimulus="span"]');
+    await expect(player).toHaveAttribute('data-span-started', 'false');
+    await expect(page.getByTestId('span-start')).toBeVisible();
+
+    /*
+     * Well past the 400ms settle the old auto-play used, and past the whole sequence: with
+     * a gate, waiting must leave the item exactly where it was rather than silently
+     * consuming it.
+     */
+    await page.waitForTimeout(3000);
+    await expect(player).toHaveAttribute('data-span-started', 'false');
+    await expect(player).toHaveAttribute('data-span-finished', 'false');
+    for (const element of new Set(item.stimulus.sequence)) {
+      await expect(page.locator(`[data-span-element="${element}"]`)).toHaveCount(0);
+    }
+
+    await page.getByTestId('span-start').click();
+    await expect(player).toHaveAttribute('data-span-started', 'true');
+    await expect(page.getByTestId('span-start')).toHaveCount(0);
+    await expect(player).toHaveAttribute('data-span-finished', 'true', { timeout: 25_000 });
+  });
+
+  /** A span drill has to stay on the keyboard like every other format. */
+  test('digit span can be started with Enter, without focusing the button', async ({ page }) => {
+    await page.goto(practiceUrl('span', OPTS));
+    await waitForQuiz(page);
+
+    const player = page.locator('[data-stimulus="span"]');
+    await expect(player).toHaveAttribute('data-span-started', 'false');
+
+    // Deliberately not focusing the button first — that case works for free.
+    await page.keyboard.press('Enter');
+    await expect(player).toHaveAttribute('data-span-started', 'true');
+    await expect(player).toHaveAttribute('data-span-finished', 'true', { timeout: 25_000 });
+    await expect(page.getByTestId('span-input')).toBeEnabled();
+  });
+
+  /**
    * The span task must actually hide the sequence before asking for it back. If the digits
    * stayed on screen it would be a reading task, not a memory one.
    */
@@ -190,10 +241,12 @@ test.describe('format-specific rendering', () => {
     const item = expectedItem('span', OPTS.seed, 0, OPTS.difficulty);
     if (item.stimulus.kind !== 'span') throw new Error('unexpected stimulus');
 
-    // The input is locked while the sequence plays.
+    // The input is locked before the sequence has been played, and while it plays.
     await expect(page.getByTestId('span-input')).toBeDisabled();
 
     const player = page.locator('[data-stimulus="span"]');
+    await startSpanIfGated(page);
+    await expect(page.getByTestId('span-input')).toBeDisabled();
     await expect(player).toHaveAttribute('data-span-finished', 'true', { timeout: 25_000 });
     await expect(page.locator('[data-span-prompt]')).toBeVisible();
 
@@ -209,6 +262,7 @@ test.describe('format-specific rendering', () => {
     await waitForQuiz(page);
 
     const item = expectedItem('span', OPTS.seed, 0, OPTS.difficulty);
+    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 25_000 });
     await input.fill(item.answerText!.split('').join(' '));

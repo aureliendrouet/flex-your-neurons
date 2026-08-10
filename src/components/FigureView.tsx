@@ -52,7 +52,7 @@ function PatternTile({ name, id }: { name: PatternName; id: string }) {
     case 'dots':
       return (
         <pattern {...common}>
-          <circle cx={size / 2} cy={size / 2} r={1.5} fill="currentColor" fill-opacity={0.95} />
+          <circle cx={size / 2} cy={size / 2} r={1.3} fill="currentColor" fill-opacity={0.95} />
         </pattern>
       );
     case 'hatch':

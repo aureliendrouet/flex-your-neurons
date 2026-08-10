@@ -1,7 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { ITEM_TYPE_IDS, generateItem } from '../src/lib/generators';
 import { deriveSeed } from '../src/lib/rng';
-import { clearAppStorage, readLocalStorageSessions, waitForQuiz } from './helpers';
+import {
+  clearAppStorage,
+  readLocalStorageSessions,
+  startSpanIfGated,
+  waitForQuiz,
+} from './helpers';
 import type { Difficulty, ItemTypeId } from '../src/lib/types';
 
 const SEED = 'FULLTEST';
@@ -22,6 +27,7 @@ async function answerCurrent(page: import('@playwright/test').Page, index: numbe
   const item = generateItem(type, deriveSeed(SEED, type, index), DIFFICULTY);
 
   if (item.responseMode === 'text') {
+    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 25_000 });
     await input.fill(correct ? item.answerText! : 'XXXXXX');

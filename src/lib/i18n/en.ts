@@ -69,6 +69,14 @@ const en = {
     watching: 'Watch…',
     submit: 'Submit',
     nowTypeItBack: 'Now type it back.',
+    /**
+     * The span task is the one item that plays itself, so it is the one item that can be
+     * missed by not looking. It used to begin 400ms after the page appeared, which meant a
+     * reader who was still settling in simply lost the sequence with no way to replay it.
+     */
+    spanReady: (length: number) =>
+      `${length} characters, one at a time. Each disappears as it goes — then you type them back.`,
+    spanStart: 'Start the sequence',
     missingCell: 'missing cell',
     missingFigure: 'missing figure',
     patternMatrix: 'Pattern matrix',
@@ -126,7 +134,7 @@ const en = {
     close: 'Close',
     keys: {
       numbers: 'Choose an answer',
-      enter: 'Continue to the next item',
+      enter: 'Start a sequence, or continue to the next item',
       tab: 'Move between the options',
       question: 'Show or hide this list',
       escape: 'Close this list',
