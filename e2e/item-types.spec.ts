@@ -171,6 +171,61 @@ test.describe('format-specific rendering', () => {
     await expect(page.getByTestId('options').locator('button')).toHaveCount(2);
   });
 
+  /**
+   * Coding is only a speed task if the key has to be read. Two ways it could stop being
+   * one, both checked here: the probed column being visually marked (then the answer is
+   * "the highlighted one"), and the options containing symbols from outside the key (then
+   * the answer is reachable by elimination without reading the pairing at all).
+   */
+  test('digit-symbol coding shows a key that has to actually be read', async ({ page }) => {
+    await page.goto(practiceUrl('coding', { ...OPTS, difficulty: 5 }));
+    await waitForQuiz(page);
+
+    const item = expectedItem('coding', OPTS.seed, 0, 5);
+    if (item.stimulus.kind !== 'coding') throw new Error('unexpected stimulus');
+
+    await expect(page.locator('[data-coding-key] .coding-pair')).toHaveCount(
+      item.stimulus.pairs.length,
+    );
+    await expect(page.locator('[data-coding-probe-digit]')).toHaveText(item.stimulus.probe);
+
+    // The probed column exists in the markup but carries no visual weight of its own.
+    const probed = page.locator('[data-coding-probe="true"]');
+    await expect(probed).toHaveCount(1);
+    const plain = page.locator('[data-coding-probe="false"]').first();
+    for (const prop of ['outlineStyle', 'backgroundColor', 'borderTopWidth'] as const) {
+      const read = (loc: typeof probed) =>
+        loc.evaluate((el, p) => getComputedStyle(el)[p as never] as string, prop);
+      expect(await read(probed), `probed column differs on ${prop}`).toBe(await read(plain));
+    }
+
+    /*
+     * Every option is a symbol that appears in the key.
+     *
+     * Compared on the drawn geometry rather than on innerHTML: each figure mints its own
+     * pattern id (`useId`), so two identical symbols have different markup. Shape, shading
+     * and the point list are the symbol's actual identity — the points encode rotation.
+     */
+    const signatures = (scope: ReturnType<typeof page.locator>) =>
+      scope.evaluateAll((els) =>
+        els.map((el) => {
+          const drawn = el.querySelector('polygon, circle')!;
+          return [
+            drawn.getAttribute('data-shape'),
+            drawn.getAttribute('data-color'),
+            drawn.getAttribute('points') ?? drawn.getAttribute('r'),
+          ].join('|');
+        }),
+      );
+
+    const keySymbols = await signatures(page.locator('[data-coding-key] .coding-symbol svg'));
+    const optionSymbols = await signatures(
+      page.getByTestId('options').locator('svg[data-figure]'),
+    );
+    expect(optionSymbols).toHaveLength(item.options.length);
+    for (const option of optionSymbols) expect(keySymbols).toContain(option);
+  });
+
   test('odd one out presents the figures as the options themselves', async ({ page }) => {
     await page.goto(practiceUrl('odd-one-out', OPTS));
     await waitForQuiz(page);

@@ -358,6 +358,29 @@ function stage(item: Item): string {
         ...place(search.length, midY + 18).map((at, i) => figureTile(search[i]!, at.x, at.y, box)),
       ].join('');
     }
+
+    /*
+     * Digit over symbol, four columns at most. The card advertises the format rather than
+     * posing the item, so it shows what a key *is* and drops the probe entirely — a lone
+     * highlighted column would read as an answer already given.
+     */
+    case 'coding': {
+      const box = 88;
+      const gap = 22;
+      const pairs = s.pairs.slice(0, 4);
+      const total = pairs.length * box + (pairs.length - 1) * gap;
+      const startX = STAGE.x + (STAGE.w - total) / 2;
+      const y = STAGE.y + (STAGE.h - box) / 2 + 16;
+      return pairs
+        .map((pair, i) => {
+          const x = startX + i * (box + gap);
+          return (
+            `<text x="${x + box / 2}" y="${y - 26}" text-anchor="middle" font-size="34" font-weight="600" fill="${INK}">${esc(pair.digit)}</text>` +
+            figureTile(pair.figure, x, y, box)
+          );
+        })
+        .join('');
+    }
   }
 }
 

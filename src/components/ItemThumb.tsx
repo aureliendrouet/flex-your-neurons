@@ -219,6 +219,25 @@ function ThumbBody({ item }: { item: Item }) {
           </div>
         </div>
       );
+
+    /*
+     * The digit is what makes this miniature legible as *coding* rather than as another row
+     * of symbols, so each pair keeps its digit even at card size. Capped at SET_LIMIT for
+     * the same reason as the search row: a nine-column key drawn at 10rem is a smudge.
+     */
+    case 'coding':
+      return (
+        <div class="thumb-coding">
+          {s.pairs.slice(0, SET_LIMIT).map((pair) => (
+            <div class="thumb-coding-pair" key={pair.digit}>
+              <span class="thumb-coding-digit">{pair.digit}</span>
+              <div class="thumb-slot">
+                <Mini figure={pair.figure} />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
   }
 }
 

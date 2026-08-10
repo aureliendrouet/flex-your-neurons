@@ -5,41 +5,16 @@
  * Accuracy sits near ceiling by design, so the site reports median response time for this
  * type rather than percentage correct — reporting accuracy alone would say almost nothing.
  */
-import { createRng, type Rng } from '../rng';
+import { createRng } from '../rng';
 import { dict, type Locale } from '../i18n';
-import type {
-  ColorLevel,
-  Difficulty,
-  ErrorType,
-  Figure,
-  Generator,
-  Item,
-  ItemTypeMeta,
-  ShapeType,
-  SizeLevel,
-} from '../types';
-
-const SHAPES: ShapeType[] = ['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'cross'];
-const ROTATIONS = [0, 30, 60, 90, 120, 150];
-
-interface Symbol {
-  type: ShapeType;
-  color: ColorLevel;
-  rotation: number;
-}
-
-function symbolKey(s: Symbol): string {
-  return `${s.type}|${s.color}|${s.rotation}`;
-}
-
-function toFigure(s: Symbol): Figure {
-  return {
-    layout: 'center',
-    shapes: [
-      { type: s.type, size: 4 as SizeLevel, color: s.color, rotation: s.rotation, x: 0.5, y: 0.5 },
-    ],
-  };
-}
+import {
+  confusableWith,
+  randomSymbol,
+  symbolKey,
+  toFigure,
+  type Symbol,
+} from './symbols';
+import type { Difficulty, ErrorType, Generator, Item, ItemTypeMeta } from '../types';
 
 interface Plan {
   targets: number;
@@ -61,26 +36,6 @@ function planFor(difficulty: Difficulty): Plan {
     case 5:
       return { targets: 2, searchSize: 6, confusable: true };
   }
-}
-
-function randomSymbol(rng: Rng): Symbol {
-  return {
-    type: rng.pick(SHAPES),
-    color: rng.pick([0, 2, 4]) as ColorLevel,
-    rotation: rng.pick(ROTATIONS),
-  };
-}
-
-/** A symbol one dimension away from `s` — the near-misses that make search effortful. */
-function confusableWith(s: Symbol, rng: Rng): Symbol {
-  const dim = rng.pick(['type', 'color', 'rotation'] as const);
-  if (dim === 'type') {
-    return { ...s, type: rng.pick(SHAPES.filter((t) => t !== s.type)) };
-  }
-  if (dim === 'color') {
-    return { ...s, color: rng.pick(([0, 2, 4] as ColorLevel[]).filter((c) => c !== s.color)) };
-  }
-  return { ...s, rotation: rng.pick(ROTATIONS.filter((r) => r !== s.rotation)) };
 }
 
 const meta: ItemTypeMeta = { id: 'symbol-search', domain: 'Gs', icon: '⚡' };
@@ -155,8 +110,8 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
       prompt: t.prompt,
       stimulus: {
         kind: 'symbol-search',
-        targets: targets.map(toFigure),
-        search: shuffled.map(toFigure),
+        targets: targets.map((sym) => toFigure(sym)),
+        search: shuffled.map((sym) => toFigure(sym)),
       },
       responseMode: 'choice',
       options: [

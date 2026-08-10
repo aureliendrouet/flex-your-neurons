@@ -1839,6 +1839,35 @@ kbd {
   background: var(--border-strong);
 }
 
+/* The coding key as a miniature: digit over symbol, wrapping if the key is long. */
+.thumb-coding {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 0.2rem;
+  block-size: 100%;
+}
+
+.thumb-coding-pair {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+}
+
+.thumb-coding-pair .thumb-slot {
+  flex-basis: 1.5rem;
+  block-size: 1.5rem;
+}
+
+.thumb-coding-digit {
+  font-family: var(--font-code);
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--text-subtle);
+}
+
 /* --- The quiz runner ------------------------------------------------------ */
 
 .quiz-loading {
@@ -2086,6 +2115,78 @@ kbd {
 
 .symbol-slot {
   width: 3rem;
+}
+
+/* --- Digit-symbol coding -------------------------------------------------- */
+
+.coding {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: center;
+}
+
+/*
+ * The key is a row of columns, each a digit over its symbol. `auto-fit` rather than a fixed
+ * count because the key runs from four pairs to nine: at nine it must wrap on a phone, and
+ * a wrapped column has to keep its digit attached to its own symbol, which is what the
+ * per-pair grid below guarantees.
+ */
+.coding-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-raised);
+}
+
+.coding-pair {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+  width: 2.9rem;
+  padding: 0.3rem 0.15rem;
+  border-radius: var(--radius-sm);
+}
+
+/*
+ * The probed column is deliberately NOT marked. Finding the digit in the key *is* the task
+ * — highlight its column and the item becomes "look at the outlined box", which measures
+ * nothing. `data-coding-probe` stays on the element for the tests, with no visual weight.
+ */
+
+.coding-digit {
+  font-family: var(--font-code);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.coding-symbol {
+  width: 2.1rem;
+}
+
+.coding-probe {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.coding-probe-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.coding-probe-digit {
+  font-family: var(--font-code);
+  font-size: 2rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
 }
 
 /* --- Paper-folding diagram ------------------------------------------------ */

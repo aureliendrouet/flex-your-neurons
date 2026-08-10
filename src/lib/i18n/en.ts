@@ -77,6 +77,12 @@ const en = {
     spanReady: (length: number) =>
       `${length} characters, one at a time. Each disappears as it goes — then you type them back.`,
     spanStart: 'Start the sequence',
+    /** Labels for the digit-symbol key. View strings, so they live here, not in `gen`. */
+    coding: {
+      keyLabel: 'Key',
+      probeLabel: 'Find this digit',
+      pairLabel: (digit: string, description: string) => `${digit} is paired with ${description}`,
+    },
     missingCell: 'missing cell',
     missingFigure: 'missing figure',
     patternMatrix: 'Pattern matrix',
@@ -442,6 +448,13 @@ const en = {
         'Two target symbols, then a group to scan. Say whether either target appears. Each item is easy on its own — the measure is how fast you can do many of them without slipping. Because accuracy stays near ceiling, this type is scored on median response time rather than on percentage correct.',
       seenIn: 'WAIS Symbol Search, WISC Symbol Search, WAIS Coding (same index)',
     },
+    coding: {
+      name: 'Digit–symbol coding',
+      blurb: 'Read the key. Which symbol goes with the digit?',
+      description:
+        'A key pairs each digit with an abstract symbol. One digit is named; find its symbol in the key. Every option is a symbol that appears in the key, so the answer cannot be reached by elimination — the pairing has to be read. On the real battery this is a two-minute written sprint scored on how many substitutions you complete, so what is measured here is the speed of one substitution rather than sustained output.',
+      seenIn: 'WAIS Coding, WISC Coding, Wechsler Digit Symbol, the Symbol Digit Modalities Test',
+    },
   } as Record<ItemTypeId, { name: string; blurb: string; description: string; seenIn: string }>,
 
   gen: {
@@ -600,6 +613,16 @@ const en = {
       summaryPresent: 'Yes — one of the targets is in the group.',
       summaryAbsent: 'No — none of the targets is in the group.',
       ruleMatch: 'A symbol matches only if its shape, its shading and its orientation all match.',
+      ruleSpeed:
+        'This type is scored on speed: your median response time matters more than your accuracy, which should stay near ceiling.',
+    },
+    coding: {
+      prompt: (digit: string) => `Which symbol is paired with ${digit}?`,
+      summary: (digit: string, column: number) =>
+        `${digit} is in column ${column} of the key, and that column's symbol is the answer.`,
+      ruleLookup: 'The key is the whole item: each digit is paired with exactly one symbol.',
+      ruleColumn:
+        'Every option appears somewhere in the key, so the answer cannot be found by elimination — and the commonest mistake is reading the column beside the right one.',
       ruleSpeed:
         'This type is scored on speed: your median response time matters more than your accuracy, which should stay near ceiling.',
     },

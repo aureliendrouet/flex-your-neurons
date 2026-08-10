@@ -15,6 +15,7 @@ import { rotationGenerator } from './rotation';
 import { paperFoldingGenerator } from './paper-folding';
 import { spanGenerator } from './span';
 import { symbolSearchGenerator } from './symbol-search';
+import { codingGenerator } from './coding';
 
 /** Presentation order: reasoning first, then spatial, then memory and speed. */
 export const GENERATORS: Generator[] = [
@@ -28,6 +29,7 @@ export const GENERATORS: Generator[] = [
   paperFoldingGenerator,
   spanGenerator,
   symbolSearchGenerator,
+  codingGenerator,
 ];
 
 const BY_ID = new Map<ItemTypeId, Generator>(GENERATORS.map((g) => [g.meta.id, g]));

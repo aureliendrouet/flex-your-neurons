@@ -13,6 +13,9 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
+/** How many formats ship. See the registry test below before changing this. */
+const EXPECTED_TYPES = 11;
+
 function optionKey(o: Option): string {
   switch (o.kind) {
     case 'text':
@@ -40,9 +43,14 @@ function allItems(): { item: Item; seed: string; difficulty: Difficulty }[] {
 }
 
 describe('generator registry', () => {
-  it('exposes ten item types with unique ids and complete metadata', () => {
-    expect(GENERATORS).toHaveLength(10);
-    expect(new Set(ITEM_TYPE_IDS).size).toBe(10);
+  /**
+   * The count is asserted explicitly rather than derived, so that losing a generator to a
+   * bad merge fails here instead of silently shrinking the test. Update it deliberately
+   * when a format ships — and update the user-facing copy that counts formats with it.
+   */
+  it('exposes every registered item type with unique ids and complete metadata', () => {
+    expect(GENERATORS).toHaveLength(EXPECTED_TYPES);
+    expect(new Set(ITEM_TYPE_IDS).size).toBe(EXPECTED_TYPES);
     for (const g of GENERATORS) {
       expect(['Gf', 'Gv', 'Gwm', 'Gs']).toContain(g.meta.domain);
       expect(g.meta.icon.length).toBeGreaterThan(0);

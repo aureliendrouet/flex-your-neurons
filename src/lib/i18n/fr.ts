@@ -84,6 +84,11 @@ const fr: Dict = {
     spanReady: (length: number) =>
       `${length} caractères, un à la fois. Chacun disparaît au passage — puis vous les saisissez.`,
     spanStart: 'Lancer la séquence',
+    coding: {
+      keyLabel: 'Légende',
+      probeLabel: 'Cherchez ce chiffre',
+      pairLabel: (digit: string, description: string) => `Le ${digit} est associé à ${description}`,
+    },
     missingCell: 'case manquante',
     missingFigure: 'figure manquante',
     patternMatrix: 'Matrice de motifs',
@@ -411,6 +416,13 @@ const fr: Dict = {
         'Deux symboles cibles, puis un groupe à parcourir. Indiquez si l’un des deux y figure. Chaque item est facile isolément — ce qui est mesuré, c’est la vitesse à laquelle vous en enchaînez beaucoup sans faute. La précision restant proche du plafond, ce type est évalué sur le temps de réponse médian plutôt que sur le pourcentage de réussite.',
       seenIn: 'Symboles de la WAIS et de la WISC, Code de la WAIS (même indice)',
     },
+    coding: {
+      name: 'Code chiffre–symbole',
+      blurb: 'Lisez la légende. Quel symbole va avec le chiffre ?',
+      description:
+        'Une légende associe à chaque chiffre un symbole abstrait. Un chiffre est désigné : trouvez son symbole dans la légende. Toutes les réponses proposées figurent dans la légende, si bien qu’on ne peut pas trouver la bonne par élimination — il faut vraiment lire l’association. Dans la batterie d’origine, il s’agit d’une épreuve écrite de deux minutes évaluée au nombre de substitutions accomplies ; ce qui est mesuré ici est donc la vitesse d’une substitution, et non l’endurance.',
+      seenIn: 'Code de la WAIS et de la WISC, Symboles-chiffres de Wechsler, Symbol Digit Modalities Test',
+    },
   },
 
   gen: {
@@ -571,6 +583,17 @@ const fr: Dict = {
       summaryAbsent: 'Non — aucune des cibles n’est dans le groupe.',
       ruleMatch:
         'Un symbole ne correspond que si sa forme, son remplissage et son orientation correspondent tous les trois.',
+      ruleSpeed:
+        'Ce type est évalué sur la vitesse : votre temps de réponse médian compte davantage que votre précision, qui devrait rester proche du plafond.',
+    },
+    coding: {
+      prompt: (digit: string) => `Quel symbole est associé au ${digit} ?`,
+      summary: (digit: string, column: number) =>
+        `Le ${digit} occupe la colonne ${column} de la légende, et le symbole de cette colonne est la réponse.`,
+      ruleLookup:
+        'La légende est tout l’item : chaque chiffre est associé à un seul symbole.',
+      ruleColumn:
+        'Chaque réponse proposée figure quelque part dans la légende : impossible de trouver la bonne par élimination — et l’erreur la plus fréquente consiste à lire la colonne voisine de la bonne.',
       ruleSpeed:
         'Ce type est évalué sur la vitesse : votre temps de réponse médian compte davantage que votre précision, qui devrait rester proche du plafond.',
     },

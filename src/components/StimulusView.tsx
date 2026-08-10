@@ -122,6 +122,46 @@ export default function StimulusView({
         </div>
       );
 
+    case 'coding':
+      return (
+        <div data-stimulus="coding" class="coding">
+          <div>
+            <p class="subtle symbol-row-title">{t.coding.keyLabel}</p>
+            <div class="coding-key" data-coding-key>
+              {stimulus.pairs.map((pair) => (
+                <div
+                  key={pair.digit}
+                  class="coding-pair"
+                  data-coding-digit={pair.digit}
+                  data-coding-probe={String(pair.digit === stimulus.probe)}
+                >
+                  <span class="coding-digit">{pair.digit}</span>
+                  <div class="coding-symbol">
+                    <FigureView
+                      figure={pair.figure}
+                      label={t.coding.pairLabel(pair.digit, describeFigure(pair.figure, locale))}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/*
+            * The probe is repeated below the key rather than only named in the prompt. The
+            * prompt is a heading the eye leaves as soon as it starts scanning, and having
+            * to look back up to remember which digit you are hunting adds a memory load
+            * this format is not trying to measure. Restating the digit is not a hint —
+            * *finding* it in the key is the task, so its column is never marked.
+            */}
+          <p class="coding-probe">
+            <span class="subtle coding-probe-label">{t.coding.probeLabel}</span>
+            <span class="coding-probe-digit" data-coding-probe-digit>
+              {stimulus.probe}
+            </span>
+          </p>
+        </div>
+      );
+
     case 'span':
       return (
         <SpanPlayer

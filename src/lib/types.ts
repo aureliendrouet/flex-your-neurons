@@ -22,7 +22,8 @@ export type ItemTypeId =
   | 'rotation'
   | 'paper-folding'
   | 'span'
-  | 'symbol-search';
+  | 'symbol-search'
+  | 'coding';
 
 /** CHC broad ability. See docs/IQ-TESTS.md §2. */
 export type ChcDomain = 'Gf' | 'Gv' | 'Gwm' | 'Gs';
@@ -107,7 +108,12 @@ export type Stimulus =
   /** A sequence presented one element at a time, then recalled. */
   | { kind: 'span'; sequence: string[]; direction: 'forward' | 'backward' }
   /** Timed target detection: is any target present in the search set? */
-  | { kind: 'symbol-search'; targets: Figure[]; search: Figure[] };
+  | { kind: 'symbol-search'; targets: Figure[]; search: Figure[] }
+  /**
+   * A digit↔symbol key, and the digit to look up in it. The key is shown in its own
+   * order, which is what makes "read one column off" a mistake the format can diagnose.
+   */
+  | { kind: 'coding'; pairs: { digit: string; figure: Figure }[]; probe: string };
 
 export type Fold = 'left' | 'right' | 'top' | 'bottom';
 

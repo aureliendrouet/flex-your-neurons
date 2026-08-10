@@ -43,6 +43,9 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   // Level 3 rather than 1: this format only draws its *two* targets from level 3 up, and
   // "is either of these two in the group" is the whole shape of the task.
   'symbol-search': { seed: 'PRVSYMBL', difficulty: 3 },
+  // Level 1: four pairs. A nine-pair key is the same task with more scanning, and at card
+  // size the extra columns are illegible rather than informative.
+  coding: { seed: 'PRVCODNG', difficulty: 1 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */
