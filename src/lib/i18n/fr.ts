@@ -84,6 +84,9 @@ const fr: Dict = {
     spanReady: (length: number) =>
       `${length} caractères, un à la fois. Chacun disparaît au passage — puis vous les saisissez.`,
     spanStart: 'Lancer la séquence',
+    nBackReady: (length: number, n: number) =>
+      `${length} lettres, une à la fois. Comptez celles qui reprennent la lettre ${n === 1 ? 'précédente' : `apparue ${n} rangs plus tôt`}.`,
+    nBackDone: 'Combien y en avait-il ?',
     coding: {
       keyLabel: 'Légende',
       probeLabel: 'Cherchez ce chiffre',
@@ -416,6 +419,13 @@ const fr: Dict = {
         'Deux symboles cibles, puis un groupe à parcourir. Indiquez si l’un des deux y figure. Chaque item est facile isolément — ce qui est mesuré, c’est la vitesse à laquelle vous en enchaînez beaucoup sans faute. La précision restant proche du plafond, ce type est évalué sur le temps de réponse médian plutôt que sur le pourcentage de réussite.',
       seenIn: 'Symboles de la WAIS et de la WISC, Code de la WAIS (même indice)',
     },
+    'n-back': {
+      name: 'Tâche N-back',
+      blurb: 'Comptez les lettres qui se répètent N rangs plus tôt.',
+      description:
+        'Un flux de lettres défile, une à la fois. Comptez celles qui reprennent la lettre apparue un nombre fixe de rangs plus tôt — un rang d’abord, jusqu’à trois. La mémoire des chiffres demande de retenir une liste immobile ; cette épreuve demande de tenir une fenêtre glissante des derniers éléments et de la réécrire à chaque pas, d’où une mesure de la mise à jour plutôt que du stockage. Le flux a disparu au moment de répondre, et il ne se rejoue pas.',
+      seenIn: 'Recherche sur l’entraînement cognitif et la mémoire de travail (Jaeggi et al.), Cogmed, littérature sur le double n-back',
+    },
     coding: {
       name: 'Code chiffre–symbole',
       blurb: 'Lisez la légende. Quel symbole va avec le chiffre ?',
@@ -585,6 +595,23 @@ const fr: Dict = {
         'Un symbole ne correspond que si sa forme, son remplissage et son orientation correspondent tous les trois.',
       ruleSpeed:
         'Ce type est évalué sur la vitesse : votre temps de réponse médian compte davantage que votre précision, qui devrait rester proche du plafond.',
+    },
+    nBack: {
+      prompt: (n: number) =>
+        n === 1
+          ? 'Combien de lettres étaient identiques à celle qui précédait immédiatement ?'
+          : `Combien de lettres étaient identiques à celle apparue ${n} rangs plus tôt ?`,
+      streamLabel: (n: number) =>
+        n === 1 ? 'Repérez les répétitions à 1 rang' : `Repérez les répétitions à ${n} rangs`,
+      summary: (count: number, n: number) =>
+        `${count} lettres reprenaient celle ${n === 1 ? 'qui précédait immédiatement' : `apparue ${n} rangs plus tôt`}.`,
+      ruleWindow: (n: number) =>
+        n === 1
+          ? 'Une répétition est une lettre identique à celle qui la précède immédiatement.'
+          : `Une répétition est une lettre identique à celle apparue ${n} rangs plus tôt — les ${n - 1} lettres intercalées n’entrent pas en compte.`,
+      rulePairs: (pairs: string) => `Les positions concernées étaient ${pairs}.`,
+      ruleUpdating:
+        'Les compter suppose de retenir les dernières lettres et de remplacer la plus ancienne à chaque pas. C’est cette mise à jour, et non la quantité stockée, que ce format mesure.',
     },
     coding: {
       prompt: (digit: string) => `Quel symbole est associé au ${digit} ?`,

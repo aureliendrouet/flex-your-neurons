@@ -110,7 +110,14 @@ export default function Quiz({
   const [phase, setPhase] = useState<Phase>('answering');
   const [chosen, setChosen] = useState<number | null>(null);
   const [typed, setTyped] = useState('');
-  const [spanReady, setSpanReady] = useState(false);
+  /**
+   * Whether the response controls are live yet.
+   *
+   * False only while a *transient* stimulus is still playing — a span sequence, an n-back
+   * stream. Every other format is answerable the moment it paints, so this starts true for
+   * them; gating on it unconditionally would lock the whole site.
+   */
+  const [stimulusReady, setStimulusReady] = useState(false);
   const [responses, setResponses] = useState<Response[]>([]);
   const [shortcuts, setShortcuts] = useState(false);
 
@@ -181,15 +188,21 @@ export default function Quiz({
   // Per-item setup that can only run once the new item exists.
   useEffect(() => {
     if (!item) return;
-    const isSpan = item.stimulus.kind === 'span';
-    setSpanReady(!isSpan);
+    /*
+     * Keyed on `presentation` rather than on the stimulus kind. Two formats now play
+     * themselves before they can be answered — span and n-back — and a third would have had
+     * to remember to add itself to a list of kinds here. Carrying a `presentation` *is* what
+     * "this plays before you answer" means in the item model.
+     */
+    const isTransient = item.presentation !== undefined;
+    setStimulusReady(!isTransient);
 
     /*
      * Start the clock once the item has actually been painted, not when the effect runs:
      * layout and paint of a fresh matrix are not thinking time. A span item does not start
      * its clock here at all — see `startResponseClock` and PLAN-2026-08 §2.2.
      */
-    const frame = isSpan ? null : requestAnimationFrame(() => startResponseClock());
+    const frame = isTransient ? null : requestAnimationFrame(() => startResponseClock());
     if (item.responseMode === 'text') {
       // Focus lands on the input only once the sequence has finished playing.
       setTimeout(() => textInput.current?.focus(), 50);
@@ -261,6 +274,7 @@ export default function Quiz({
   const liveRef = useRef({
     phase,
     item,
+    stimulusReady,
     submit,
     next,
     toggleShortcuts: () => {},
@@ -269,6 +283,7 @@ export default function Quiz({
   liveRef.current = {
     phase,
     item,
+    stimulusReady,
     submit,
     next,
     toggleShortcuts: () => setShortcuts((v) => !v),
@@ -306,6 +321,12 @@ export default function Quiz({
       }
       if (typing || current.phase !== 'answering' || !current.item) return;
       if (current.item.responseMode !== 'choice') return;
+      /*
+       * A number key must not answer an item that is still playing. Without this an n-back
+       * stream could be answered on its first element — and worse, the response clock has
+       * not started yet, so the latency written would be measured from the wrong moment.
+       */
+      if (!current.stimulusReady) return;
 
       const pos = OPTION_KEYS.indexOf(e.key);
       if (pos >= 0 && pos < current.item.options.length) {
@@ -469,7 +490,7 @@ export default function Quiz({
                  * becomes possible.
                  */
                 startResponseClock();
-                setSpanReady(true);
+                setStimulusReady(true);
                 setTimeout(() => textInput.current?.focus(), 30);
               }}
             />
@@ -482,7 +503,7 @@ export default function Quiz({
             data-testid="text-response"
             onSubmit={(e) => {
               e.preventDefault();
-              if (!spanReady || typed.trim() === '') return;
+              if (!stimulusReady || typed.trim() === '') return;
               submit(null, typed);
             }}
             class="cluster text-response"
@@ -495,17 +516,17 @@ export default function Quiz({
               ref={textInput}
               data-testid="span-input"
               value={typed}
-              disabled={!spanReady || revealed}
+              disabled={!stimulusReady || revealed}
               autocomplete="off"
               spellcheck={false}
-              placeholder={spanReady ? t.quiz.typeSequence : t.quiz.watching}
+              placeholder={stimulusReady ? t.quiz.typeSequence : t.quiz.watching}
               onInput={(e) => setTyped((e.currentTarget as HTMLInputElement).value)}
               class="text-input"
             />
             <button
               class="btn btn-primary"
               type="submit"
-              disabled={!spanReady || revealed || typed.trim() === ''}
+              disabled={!stimulusReady || revealed || typed.trim() === ''}
               data-testid="submit-text"
             >
               {t.quiz.submit}
@@ -518,6 +539,7 @@ export default function Quiz({
             answerIndex={item.answerIndex}
             errorTypes={item.errorTypes}
             revealed={revealed}
+            locked={!stimulusReady}
             locale={locale}
             onPick={(i) => submit(i)}
           />
@@ -606,6 +628,7 @@ function OptionGrid({
   answerIndex,
   errorTypes,
   revealed,
+  locked,
   locale,
   onPick,
 }: {
@@ -614,6 +637,8 @@ function OptionGrid({
   answerIndex: number;
   errorTypes: ErrorType[];
   revealed: boolean;
+  /** True while a transient stimulus is still playing: answering is not possible yet. */
+  locked: boolean;
   locale: Locale;
   onPick: (i: number) => void;
 }) {
@@ -667,7 +692,7 @@ function OptionGrid({
             data-state={state}
             data-correct={revealed ? String(i === answerIndex) : undefined}
             data-error-type={revealed ? errorType : undefined}
-            disabled={revealed}
+            disabled={revealed || locked}
             onClick={() => onPick(i)}
             aria-label={
               !tag

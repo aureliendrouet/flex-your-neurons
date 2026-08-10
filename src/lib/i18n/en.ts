@@ -77,6 +77,9 @@ const en = {
     spanReady: (length: number) =>
       `${length} characters, one at a time. Each disappears as it goes — then you type them back.`,
     spanStart: 'Start the sequence',
+    nBackReady: (length: number, n: number) =>
+      `${length} letters, one at a time. Count the ones that repeat the letter ${n === 1 ? 'immediately before' : `${n} places earlier`}.`,
+    nBackDone: 'How many were there?',
     /** Labels for the digit-symbol key. View strings, so they live here, not in `gen`. */
     coding: {
       keyLabel: 'Key',
@@ -448,6 +451,13 @@ const en = {
         'Two target symbols, then a group to scan. Say whether either target appears. Each item is easy on its own — the measure is how fast you can do many of them without slipping. Because accuracy stays near ceiling, this type is scored on median response time rather than on percentage correct.',
       seenIn: 'WAIS Symbol Search, WISC Symbol Search, WAIS Coding (same index)',
     },
+    'n-back': {
+      name: 'N-back',
+      blurb: 'Count the letters that repeat N places back.',
+      description:
+        'A stream of letters goes past one at a time. Count how many of them match the letter a fixed number of places earlier — one place back at first, up to three. Span asks you to hold a list still; this asks you to keep a moving window of the last few elements and rewrite it at every step, which is why it measures updating rather than storage. The stream is gone when you answer, and it does not replay.',
+      seenIn: 'Cognitive-training and working-memory research (Jaeggi et al.), Cogmed, the dual n-back literature',
+    },
     coding: {
       name: 'Digit–symbol coding',
       blurb: 'Read the key. Which symbol goes with the digit?',
@@ -615,6 +625,22 @@ const en = {
       ruleMatch: 'A symbol matches only if its shape, its shading and its orientation all match.',
       ruleSpeed:
         'This type is scored on speed: your median response time matters more than your accuracy, which should stay near ceiling.',
+    },
+    nBack: {
+      prompt: (n: number) =>
+        n === 1
+          ? 'How many letters were the same as the one immediately before?'
+          : `How many letters were the same as the one ${n} places earlier?`,
+      streamLabel: (n: number) => (n === 1 ? 'Watch for 1-back repeats' : `Watch for ${n}-back repeats`),
+      summary: (count: number, n: number) =>
+        `${count} letters matched the one ${n === 1 ? 'immediately before' : `${n} places earlier`}.`,
+      ruleWindow: (n: number) =>
+        n === 1
+          ? 'A match is a letter identical to the one just before it.'
+          : `A match is a letter identical to the one ${n} places earlier — the ${n - 1} letters in between do not matter.`,
+      rulePairs: (pairs: string) => `The matching positions were ${pairs}.`,
+      ruleUpdating:
+        'Counting these means holding the last few letters and replacing the oldest at every step. That updating, rather than how much you can store, is what this format measures.',
     },
     coding: {
       prompt: (digit: string) => `Which symbol is paired with ${digit}?`,

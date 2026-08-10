@@ -172,6 +172,38 @@ test.describe('format-specific rendering', () => {
   });
 
   /**
+   * N-back is the first choice-response format with a transient stimulus, so it is the first
+   * that could be answered before it has been seen. Both routes in are checked: clicking an
+   * option, and the number-key shortcut — the latter matters more, because it bypasses the
+   * button's own `disabled` and would also record a latency measured from the wrong moment.
+   */
+  test('n-back locks its options until the stream has played', async ({ page }) => {
+    await page.goto(practiceUrl('n-back', OPTS));
+    await waitForQuiz(page);
+
+    const stream = page.locator('[data-stimulus="n-back"]');
+    const firstOption = page.getByTestId('option-0');
+
+    await expect(stream).toHaveAttribute('data-span-started', 'false');
+    await expect(firstOption).toBeDisabled();
+
+    await page.getByTestId('span-start').click();
+    await expect(stream).toHaveAttribute('data-span-started', 'true');
+    await expect(firstOption).toBeDisabled();
+
+    // The keyboard route must be shut too, not just the button.
+    await page.keyboard.press('1');
+    await expect(page.getByTestId('feedback')).toHaveCount(0);
+
+    await expect(stream).toHaveAttribute('data-span-finished', 'true', { timeout: 30_000 });
+    await expect(firstOption).toBeEnabled();
+
+    // And now the same keypress does answer.
+    await page.keyboard.press('1');
+    await expect(page.getByTestId('feedback')).toBeVisible();
+  });
+
+  /**
    * Coding is only a speed task if the key has to be read. Two ways it could stop being
    * one, both checked here: the probed column being visually marked (then the answer is
    * "the highlighted one"), and the options containing symbols from outside the key (then

@@ -254,6 +254,37 @@ function stage(item: Item): string {
       return shown.map((e, i) => chip(e, startX + i * (w + gap), y, w, h)).join('');
     }
 
+    /*
+     * The stream as chips, like span — but with the matching pair marked, because that pair
+     * *is* what the format is about and a row of unrelated letters would advertise nothing.
+     * The first n-back match in the shown window is highlighted at both ends.
+     */
+    case 'n-back': {
+      const shown = s.sequence.slice(0, 6);
+      const w = 62;
+      const h = 74;
+      const gap = 12;
+      const total = shown.length * w + (shown.length - 1) * gap;
+      const startX = STAGE.x + (STAGE.w - total) / 2;
+      const y = STAGE.y + (STAGE.h - h) / 2;
+      let pair: [number, number] | null = null;
+      for (let i = s.n; i < shown.length && pair === null; i++) {
+        if (shown[i] === shown[i - s.n]) pair = [i - s.n, i];
+      }
+      return shown
+        .map((e, i) => {
+          const x = startX + i * (w + gap);
+          const marked = pair !== null && (i === pair[0] || i === pair[1]);
+          return (
+            chip(e, x, y, w, h) +
+            (marked
+              ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="12" fill="none" stroke="${ACCENT}" stroke-width="4"/>`
+              : '')
+          );
+        })
+        .join('');
+    }
+
     /* Odd-one-out: the options are the question, so they are also the picture. */
     case 'none': {
       const figures = item.options.flatMap((o) => (o.kind === 'figure' ? [o.figure] : [])).slice(0, 4);

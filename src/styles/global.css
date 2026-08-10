@@ -1839,6 +1839,15 @@ kbd {
   background: var(--border-strong);
 }
 
+/*
+ * The matching pair in an n-back miniature. Outlined rather than filled: the card's figures
+ * are ink-only everywhere else, and a filled chip would read as "this one is the answer".
+ */
+.thumb-term[data-thumb-match='true'] {
+  border-color: oklch(var(--type-l) var(--type-c) var(--type-hue));
+  color: oklch(var(--type-l) var(--type-c) var(--type-hue));
+}
+
 /* The coding key as a miniature: digit over symbol, wrapping if the key is long. */
 .thumb-coding {
   display: flex;

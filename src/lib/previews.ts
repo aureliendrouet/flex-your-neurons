@@ -45,6 +45,9 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   'symbol-search': { seed: 'PRVSYMBL', difficulty: 3 },
   // Level 1: four pairs. A nine-pair key is the same task with more scanning, and at card
   // size the extra columns are illegible rather than informative.
+  // Level 1: a 1-back over seven elements. The card shows the stream's shape; a 3-back over
+  // fourteen would be the same picture with more letters in it.
+  'n-back': { seed: 'PRVNBACK', difficulty: 1 },
   coding: { seed: 'PRVCODNG', difficulty: 1 },
 };
 

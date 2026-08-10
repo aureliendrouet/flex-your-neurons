@@ -23,7 +23,8 @@ export type ItemTypeId =
   | 'paper-folding'
   | 'span'
   | 'symbol-search'
-  | 'coding';
+  | 'coding'
+  | 'n-back';
 
 /** CHC broad ability. See docs/IQ-TESTS.md §2. */
 export type ChcDomain = 'Gf' | 'Gv' | 'Gwm' | 'Gs';
@@ -113,7 +114,13 @@ export type Stimulus =
    * A digit↔symbol key, and the digit to look up in it. The key is shown in its own
    * order, which is what makes "read one column off" a mistake the format can diagnose.
    */
-  | { kind: 'coding'; pairs: { digit: string; figure: Figure }[]; probe: string };
+  | { kind: 'coding'; pairs: { digit: string; figure: Figure }[]; probe: string }
+  /**
+   * A stream presented one element at a time, of which the reader counts the elements
+   * matching the one `n` places earlier. Transient, like `span`: it carries a
+   * `presentation`, and the response controls stay locked until it has played.
+   */
+  | { kind: 'n-back'; sequence: string[]; n: number };
 
 export type Fold = 'left' | 'right' | 'top' | 'bottom';
 

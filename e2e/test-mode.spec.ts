@@ -26,8 +26,9 @@ async function answerCurrent(page: import('@playwright/test').Page, index: numbe
   const type = typeAt(index);
   const item = generateItem(type, deriveSeed(SEED, type, index), DIFFICULTY);
 
+  // Outside the branch: n-back is gated and answered by choice. No-op where there is no gate.
+  await startSpanIfGated(page);
   if (item.responseMode === 'text') {
-    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 25_000 });
     await input.fill(correct ? item.answerText! : 'XXXXXX');

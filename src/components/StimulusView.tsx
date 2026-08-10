@@ -164,12 +164,29 @@ export default function StimulusView({
 
     case 'span':
       return (
-        <SpanPlayer
+        <StreamPlayer
+          kind="span"
           sequence={stimulus.sequence}
           presentation={presentation}
           reducedMotion={reducedMotion}
           onDone={onPresentationDone}
           locale={locale}
+          readyText={t.spanReady(stimulus.sequence.length)}
+          doneText={t.nowTypeItBack}
+        />
+      );
+
+    case 'n-back':
+      return (
+        <StreamPlayer
+          kind="n-back"
+          sequence={stimulus.sequence}
+          presentation={presentation}
+          reducedMotion={reducedMotion}
+          onDone={onPresentationDone}
+          locale={locale}
+          readyText={t.nBackReady(stimulus.sequence.length, stimulus.n)}
+          doneText={t.nBackDone}
         />
       );
   }
@@ -557,10 +574,15 @@ function PaperFolding({
 }
 
 /**
- * Plays a sequence one element at a time. The whole point of a span task is that the
- * sequence is *gone* when you answer, so the elements are unmounted as they pass.
+ * Plays a sequence one element at a time, for the two transient formats.
  *
- * Playback waits for an explicit start, because this is the only item that can be lost by
+ * The whole point of both is that the sequence is *gone* when you answer, so the elements
+ * are unmounted as they pass. Span then asks you to type it back; n-back asks how many
+ * repeats went by. Only the surrounding copy differs, so only the copy is a prop — a second
+ * player would be the same twenty lines of timers with a different word in the middle, and
+ * the two would drift.
+ *
+ * Playback waits for an explicit start, because these are the only items that can be lost by
  * not looking at the right moment. It used to begin 400ms after the page appeared: a reader
  * who was still orienting — or who had just landed from a link — watched the sequence go by
  * before realising it had begun, and there is deliberately no replay. The gate also makes
@@ -568,18 +590,27 @@ function PaperFolding({
  * the moment they chose. Latency is unaffected either way: the response clock is reset by
  * `onDone`, so neither the playback nor the wait before it counts towards the answer.
  */
-function SpanPlayer({
+function StreamPlayer({
   sequence,
   presentation,
   reducedMotion,
   onDone,
   locale,
+  kind,
+  readyText,
+  doneText,
 }: {
   sequence: string[];
   presentation?: Presentation;
   reducedMotion?: boolean;
   onDone?: () => void;
   locale: Locale;
+  /** Drives `data-stimulus`, so the e2e suite can tell the two formats apart. */
+  kind: 'span' | 'n-back';
+  /** Shown on the gate, above the start button: what is about to happen. */
+  readyText: string;
+  /** Shown once playback has finished: what to do now. */
+  doneText: string;
 }) {
   const t = dict(locale).quiz;
   const stepMs = reducedMotion ? 1400 : (presentation?.stepMs ?? 900);
@@ -645,7 +676,7 @@ function SpanPlayer({
 
   return (
     <div
-      data-stimulus="span"
+      data-stimulus={kind}
       class="span-stage"
       data-span-finished={String(finished)}
       data-span-started={String(started)}
@@ -653,7 +684,7 @@ function SpanPlayer({
       {!started ? (
         <div class="span-gate">
           <p class="subtle" data-span-ready>
-            {t.spanReady(sequence.length)}
+            {readyText}
           </p>
           {/*
             * The key cap goes inside the button, the way the Next button carries its own —
@@ -672,7 +703,7 @@ function SpanPlayer({
         </div>
       ) : finished ? (
         <span class="subtle" data-span-prompt>
-          {t.nowTypeItBack}
+          {doneText}
         </span>
       ) : (
         <span class="span-element" data-span-element={index >= 0 ? sequence[index] : ''}>

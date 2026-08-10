@@ -14,7 +14,7 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
 /** How many formats ship. See the registry test below before changing this. */
-const EXPECTED_TYPES = 11;
+const EXPECTED_TYPES = 12;
 
 function optionKey(o: Option): string {
   switch (o.kind) {
@@ -200,6 +200,41 @@ describe('cross-generator properties', () => {
       // syllogism and odd-one-out have a single uniform error mode; exempt them.
       if (id === 'syllogism' || id === 'symbol-search') continue;
       expect(named.length / wrong.length, `${id} distractor diagnosis rate`).toBeGreaterThan(0.2);
+    }
+  });
+
+  /**
+   * The *answer* has to vary, not just the stimulus.
+   *
+   * N-back shipped briefly with a fixed match count per difficulty. Every property above
+   * passed — the streams genuinely differed — but the answer at a given level was always the
+   * same integer, so drilling the format taught you "level 3 means three" and the stream
+   * became decoration. `varies its items` could not see it, because it hashes whole items and
+   * the streams made every item distinct.
+   *
+   * Only text-option formats are checked. A figural answer's "value" is a figure, and for
+   * odd-one-out the answer is a *position* among freshly generated figures, so there is no
+   * comparable value to count.
+   */
+  it('varies the answer itself, not only the stimulus around it', () => {
+    for (const id of ITEM_TYPE_IDS) {
+      for (const d of DIFFICULTIES) {
+        const answers = SEEDS.map((s) => {
+          const item = generateItem(id, s, d);
+          if (item.responseMode === 'text') return item.answerText!;
+          const chosen = item.options[item.answerIndex]!;
+          return chosen.kind === 'text' ? chosen.text : null;
+        });
+        if (answers.some((a) => a === null)) continue; // figural answer: not applicable
+
+        const distinct = new Set(answers).size;
+        /*
+         * Two is the floor rather than something higher because a genuinely binary format
+         * exists: symbol search answers yes or no, and balanced 50/50 is correct there.
+         */
+        expect(distinct, `${id} d${d}: only ${distinct} distinct answers over ${answers.length} seeds`)
+          .toBeGreaterThan(1);
+      }
     }
   });
 

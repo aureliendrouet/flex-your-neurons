@@ -199,6 +199,31 @@ function ThumbBody({ item }: { item: Item }) {
         </div>
       );
 
+    /*
+     * The stream, with the first matching pair marked. A row of letters alone would not say
+     * what the format asks; the mark is the difference between "letters" and "n-back".
+     */
+    case 'n-back': {
+      const shown = s.sequence.slice(0, SET_LIMIT);
+      let pair: [number, number] | null = null;
+      for (let i = s.n; i < shown.length && pair === null; i++) {
+        if (shown[i] === shown[i - s.n]) pair = [i - s.n, i];
+      }
+      return (
+        <div class="thumb-seq">
+          {shown.map((element, i) => (
+            <span
+              class="thumb-term"
+              key={i}
+              data-thumb-match={String(pair !== null && (i === pair[0] || i === pair[1]))}
+            >
+              {element}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
     case 'symbol-search':
       return (
         <div class="thumb-search">

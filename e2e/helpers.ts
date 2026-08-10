@@ -59,12 +59,12 @@ export async function waitForQuiz(page: Page): Promise<void> {
 }
 
 /**
- * Starts span playback if the current item is waiting on its gate.
+ * Starts playback if the current item is waiting on its gate.
  *
- * The span task no longer plays itself on mount — a reader who is still orienting would
- * lose the sequence, and there is no replay. Every test that waits for playback has to
- * press start first. It is a no-op for the nine item types that have no gate, so callers
- * that do not know the item type can call it unconditionally.
+ * Neither transient format — span nor n-back — plays itself on mount: a reader who is still
+ * orienting would lose the stream, and there is no replay. Every test that waits for playback
+ * has to press start first. It is a no-op for the formats with no gate, so callers that do
+ * not know the item type can call it unconditionally.
  */
 export async function startSpanIfGated(page: Page): Promise<void> {
   const start = page.getByTestId('span-start');
@@ -79,8 +79,12 @@ export async function answerCorrectly(
   index: number,
 ): Promise<void> {
   const item = expectedItem(type, opts.seed, index, opts.difficulty, localeOf(opts));
+  /*
+   * Before the branch, not inside it: n-back is gated *and* answered by choice, so gating is
+   * not a property of the response mode. A no-op for the formats with no gate.
+   */
+  await startSpanIfGated(page);
   if (item.responseMode === 'text') {
-    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 20_000 });
     await input.fill(item.answerText!);
@@ -98,8 +102,8 @@ export async function answerIncorrectly(
   index: number,
 ): Promise<void> {
   const item = expectedItem(type, opts.seed, index, opts.difficulty, localeOf(opts));
+  await startSpanIfGated(page);
   if (item.responseMode === 'text') {
-    await startSpanIfGated(page);
     const input = page.getByTestId('span-input');
     await expect(input).toBeEnabled({ timeout: 20_000 });
     await input.fill('ZZZZZZ');
