@@ -43,7 +43,7 @@ Node 22.12+ is required (Astro 7).
 | `tests/` | Property-style unit tests, swept over hundreds of seeds |
 | `e2e/` | Playwright tests against the built static site |
 
-## The fifteen formats
+## The sixteen formats
 
 | Format | CHC | Verification |
 |--------|-----|--------------|
@@ -61,6 +61,7 @@ Node 22.12+ is required (Astro 7).
 | Head count | Gwm | Total re-accumulated from the script; the room may never empty |
 | Symbol search | Gs | Membership re-checked after shuffling |
 | Digit–symbol coding | Gs | Every option is a key entry; the pairing is re-looked-up |
+| Count, don’t read (Stroop) | Gs | The keyed answer is the array length the renderer draws; both congruency conditions occur |
 | Mental arithmetic | Gq | The displayed expression is re-evaluated; two options share the answer's units digit |
 
 ## The three modes
@@ -78,6 +79,17 @@ explanation until the end. Only formats whose items are answerable in a couple o
 Sprint results are kept strictly apart from the practice and test statistics. A sprint's latencies
 measure how fast you *chose* to go and its accuracy is pushed down by the clock, so pooling the two
 would have moved every per-format median the first time anyone sprinted without saying so.
+
+### The one measurement that is a difference
+
+Every other figure this site reports is a tally — how many right, how fast, how often. The
+interference score is a contrast: incongruent trials minus congruent ones on the counting-Stroop
+format. Neither half means much alone, but everything about the two conditions is identical except
+the conflict, so the gap is a property of inhibition specifically.
+
+It also came for free. Congruency was never stored on a response; it is a property of the item, and
+every item regenerates exactly from its seed — so the partition is re-derived when the page is read,
+out of history written before the read-out existed.
 
 ## How an item is made safe
 

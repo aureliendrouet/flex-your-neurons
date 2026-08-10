@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateItem } from '@/lib/generators';
-import { DIFFICULTIES } from '@/lib/types';
+import { DIFFICULTIES, type Difficulty } from '@/lib/types';
 import { isUnambiguous, solveSeries } from '@/lib/solvers/series';
 import { predict, solveAttribute, type Rule } from '@/lib/rules';
 import { createRng, deriveSeed, hashSeed, normaliseSeed } from '@/lib/rng';
@@ -635,5 +635,90 @@ describe('arithmetic is decidable from the expression on screen', () => {
         ).toBe(true);
       }
     }
+  });
+});
+
+/**
+ * Interference, checked on the two things that make a Stroop task a Stroop task.
+ *
+ * Not novelty — the stimulus set is deliberately tiny, and `tests/generators.test.ts` exempts this
+ * format from the variety sweep for that reason. What has to hold is that both congruency conditions
+ * occur (with no contrast there is no measurement), and that the response set never changes shape
+ * between levels (or accuracy at level 1 and level 5 are not the same quantity).
+ */
+describe('interference presents a real congruency contrast', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `IF${i}`);
+
+  function glyphsOf(seed: string, difficulty: Difficulty): string[] {
+    const item = generateItem('interference', seed, difficulty);
+    if (item.stimulus.kind !== 'interference') throw new Error('unexpected stimulus');
+    return item.stimulus.glyphs;
+  }
+
+  it('keys the number of glyphs, never the digit they show', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('interference', seed, difficulty);
+        const where = `interference ${seed} d${difficulty}`;
+        const glyphs = glyphsOf(seed, difficulty);
+
+        // All one digit: a mixed row would be a different task with a different answer.
+        expect(new Set(glyphs).size, `${where}: mixed glyphs`).toBe(1);
+
+        const values = item.options.map((o) => Number((o as { text: string }).text));
+        expect(values[item.answerIndex], `${where}: keyed answer is not the count`).toBe(glyphs.length);
+        // The digit is offered as an option whenever it is not the answer — it is the lure.
+        const digit = Number(glyphs[0]);
+        if (digit !== glyphs.length) {
+          expect(values, `${where}: the digit is not offered as a distractor`).toContain(digit);
+          expect(
+            item.errorTypes[values.indexOf(digit)],
+            `${where}: the lure is not diagnosed`,
+          ).toBe('wrong-attribute');
+        }
+      }
+    }
+  });
+
+  it('produces both congruent and incongruent trials at every difficulty', () => {
+    for (const difficulty of DIFFICULTIES) {
+      const congruent = SEEDS.filter((seed) => {
+        const glyphs = glyphsOf(seed, difficulty);
+        return glyphs.length === Number(glyphs[0]);
+      }).length;
+      expect(congruent, `interference d${difficulty}: no congruent trials`).toBeGreaterThan(0);
+      expect(
+        SEEDS.length - congruent,
+        `interference d${difficulty}: no incongruent trials`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('demands inhibition more often as difficulty rises', () => {
+    const shares = DIFFICULTIES.map(
+      (difficulty) =>
+        SEEDS.filter((seed) => {
+          const glyphs = glyphsOf(seed, difficulty);
+          return glyphs.length !== Number(glyphs[0]);
+        }).length / SEEDS.length,
+    );
+    expect(shares[4]!, `d5 incongruent ${shares[4]} vs d1 ${shares[0]}`).toBeGreaterThan(shares[0]!);
+  });
+
+  /**
+   * The response set must be identical at every level.
+   *
+   * This shipped wrong: the count range widened with difficulty, so the guessing baseline moved from
+   * one third to one sixth between levels 1 and 5. Accuracy then means something different at each
+   * level, and a "harder" level can come out easier by chance — and the growing option list adds a
+   * visual search that scales with difficulty, in a task measured in a few hundred milliseconds.
+   */
+  it('keeps the same options at every difficulty', () => {
+    const shapes = DIFFICULTIES.map((difficulty) =>
+      generateItem('interference', 'SHAPE', difficulty)
+        .options.map((o) => (o as { text: string }).text)
+        .join(','),
+    );
+    expect(new Set(shapes).size, `option sets across levels: ${shapes.join(' | ')}`).toBe(1);
   });
 });

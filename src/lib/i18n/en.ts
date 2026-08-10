@@ -249,7 +249,7 @@ const en = {
         'Right rule, one step too far. The transformation is applied once more — or once less — than the pattern calls for. Count the steps rather than eyeballing the end point.',
       copy: 'That option simply repeats a figure already on screen. Something already visible can never be the missing part of the pattern.',
       'wrong-attribute':
-        'Right rule, wrong feature. The transformation you applied is a real one here, but it governs a different attribute from the one you moved.',
+        'Wrong feature. You answered about a real property of the stimulus — just not the one the question asked about, which is what makes it tempting rather than careless. In a pattern that means moving an attribute the rule does not govern; in a counting task it means reporting what the digits say instead of how many there are.',
       mirror:
         'That is a reflection, not a rotation. Pick one asymmetric feature and follow it: turning preserves its position relative to the rest, flipping reverses it.',
       carry:
@@ -300,6 +300,17 @@ const en = {
   },
 
   dashboard: {
+    interferenceHeading: 'Interference',
+    interferenceLede:
+      'From the counting task: how much slower you are when the digit disagrees with how many there are. This is the one figure here that is a difference rather than a total, and the difference is the point — everything else about the two kinds of trial is identical, so what is left is the cost of holding back the answer your eye offered first.',
+    interferenceGap: 'Cost of the conflict',
+    interferenceCongruent: (n: number) => `When they agree (${n} trials)`,
+    interferenceIncongruent: (n: number) => `When they disagree (${n} trials)`,
+    milliseconds: (n: number) => `${n > 0 ? '+' : ''}${n} ms`,
+    interferenceExpected:
+      'A positive gap is the ordinary result, and a large one is not a fault: the effect is robust in almost everyone, which is why it has been studied since 1935.',
+    interferenceUnexpected:
+      'A gap at or below zero usually means too few trials rather than an absence of interference. It should settle into the positive as more accumulate.',
     sprintHeading: 'Sprints',
     sprintLede:
       'Timed blocks are kept apart from everything above, because they measure a different thing: output inside a fixed window, at a level pinned for the whole block. None of the accuracy or speed figures on the rest of this page contain a timed response.',
@@ -365,7 +376,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than fifteen lines on one axis — fifteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than sixteen lines on one axis — sixteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -515,6 +526,13 @@ const en = {
       description:
         'A stream of letters goes past one at a time. Count how many of them match the letter a fixed number of places earlier — one place back at first, up to three. Span asks you to hold a list still; this asks you to keep a moving window of the last few elements and rewrite it at every step, which is why it measures updating rather than storage. The stream is gone when you answer, and it does not replay.',
       seenIn: 'Cognitive-training and working-memory research (Jaeggi et al.), Cogmed, the dual n-back literature',
+    },
+    interference: {
+      name: 'Count, don’t read',
+      blurb: 'How many digits? Not which digit.',
+      description:
+        'Several copies of one digit appear; report how many there are, not what they say. When three 4s are shown, "4" is the answer your eye offers and 3 is the answer to the question — and the cost of holding the first one back is what this measures. It is a Stroop task, on digits rather than on colour: hue is not an information channel anywhere on this site, and a colour version would make colour vision a prerequisite for the format rather than an accessibility detail. Digits also keep the item identical in every language, which a word-based version could not.',
+      seenIn: 'Stroop (1935) and the counting-Stroop variant, executive-function and inhibition batteries, the Delis–Kaplan colour-word interference test',
     },
     arithmetic: {
       name: 'Mental arithmetic',
@@ -729,6 +747,21 @@ const en = {
       ruleUpdating:
         'Counting these means holding the last few letters and replacing the oldest at every step. That updating, rather than how much you can store, is what this format measures.',
     },
+    interference: {
+      prompt: 'How many are there?',
+      summary: (count: number, digit: string) =>
+        count === Number(digit)
+          ? `${count} of them, and they happen to be ${digit}s — the two agree on this one.`
+          : `${count} of them, though they are ${digit}s.`,
+      ruleCongruent:
+        'On this one the digit and the count agree, so nothing had to be held back. Trials like these are the baseline the interference is measured against.',
+      ruleIncongruent: (digit: string, count: number) =>
+        `The digit says ${digit} and there are ${count}. Reading the digit is automatic; counting is not — so ${digit} is the answer that arrives first and has to be refused.`,
+      ruleInhibition:
+        'What this format measures is inhibition: holding back a fast automatic response while a slower deliberate one answers. It is not a test of counting.',
+      ruleScoring:
+        'The real measure is the gap between your times on the two kinds of trial, not your accuracy — which should stay high. See the interference figure on the progress page.',
+    },
     arithmetic: {
       prompt: 'What does this come to?',
       summary: (expression: string, value: number) => `${expression} comes to ${value}.`,
@@ -767,7 +800,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Fifteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Sixteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -838,7 +871,7 @@ const en = {
     test: {
       title: 'Full test',
       description:
-        'A mixed run across all fifteen reasoning-test formats, two items each, with no feedback until the end.',
+        'A mixed run across all sixteen reasoning-test formats, two items each, with no feedback until the end.',
       lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
       differsHeading: 'How this differs from a real battery',
       differs: [
@@ -999,7 +1032,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these fifteen formats is evidence about these fifteen formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these sixteen formats is evidence about these sixteen formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',

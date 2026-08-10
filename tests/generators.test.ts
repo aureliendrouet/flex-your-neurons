@@ -14,7 +14,7 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
 /** How many formats ship. See the registry test below before changing this. */
-const EXPECTED_TYPES = 15;
+const EXPECTED_TYPES = 16;
 
 function optionKey(o: Option): string {
   switch (o.kind) {
@@ -177,6 +177,17 @@ describe.each(ITEM_TYPE_IDS)('generator: %s', (id) => {
    * actually matters is that a user drilling a type does not meet the same *item* twice.
    */
   it('varies its items across seeds rather than repeating one template', () => {
+    /*
+     * Interference is exempt, and the exemption is the paradigm rather than a concession. A Stroop
+     * task is a *small* stimulus set shown many times: five counts against five digits is
+     * twenty-five possible trials in total, and the measurement is the latency difference between
+     * two kinds of them, accumulated over repetitions. Novelty would defeat it — an unfamiliar
+     * stimulus each time means the automatic response never becomes automatic, and there is then
+     * nothing to inhibit. What matters here is that both congruency conditions occur, which
+     * `tests/solvers.test.ts` checks directly.
+     */
+    if (id === 'interference') return;
+
     const items = DIFFICULTIES.flatMap((d) =>
       SEEDS.map((s) => {
         const { seed: _seed, ...rest } = generateItem(id, s, d);

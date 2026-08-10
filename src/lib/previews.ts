@@ -68,6 +68,9 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   // Level 3, where multiplication first appears: an addition of two small numbers advertises the
   // format as easier than it is, and the card is the only thing a reader sees before choosing.
   arithmetic: { seed: 'PRVMATHS', difficulty: 3 },
+  // Level 3, where most trials are incongruent: a congruent card (three 3s) advertises the format
+  // as "count these", which is the one reading the task is built to defeat.
+  interference: { seed: 'PRVSTROO', difficulty: 3 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */

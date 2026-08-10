@@ -20,6 +20,7 @@ import { nBackGenerator } from './n-back';
 import { headCountGenerator } from './head-count';
 import { figureWeightsGenerator } from './figure-weights';
 import { arithmeticGenerator } from './arithmetic';
+import { interferenceGenerator } from './interference';
 
 /**
  * Presentation order: reasoning first, then spatial, then memory, then speed, with the
@@ -41,6 +42,7 @@ export const GENERATORS: Generator[] = [
   nBackGenerator,
   headCountGenerator,
   codingGenerator,
+  interferenceGenerator,
   arithmeticGenerator,
 ];
 

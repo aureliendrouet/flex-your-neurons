@@ -286,6 +286,26 @@ function stage(item: Item): string {
     }
 
     /*
+     * The glyphs in a row, large. The card has to show both readings at once — several copies of a
+     * digit, and nothing telling you which of the two numbers is wanted — because the tension
+     * between them is the format.
+     */
+    case 'interference': {
+      const glyphs = s.glyphs.slice(0, 6);
+      const w = 74;
+      const gap = 14;
+      const total = glyphs.length * w + (glyphs.length - 1) * gap;
+      const startX = STAGE.x + (STAGE.w - total) / 2;
+      const y = STAGE.y + STAGE.h / 2;
+      return glyphs
+        .map(
+          (glyph, i) =>
+            `<text x="${startX + i * (w + gap) + w / 2}" y="${y}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="86" font-weight="700" fill="${INK}">${esc(glyph)}</text>`,
+        )
+        .join('');
+    }
+
+    /*
      * The expression, drawn large and centred with a trailing blank. Nothing to lay out and
      * nothing to abbreviate: the whole item is one short line, which is the point of the format.
      */

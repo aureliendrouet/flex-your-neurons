@@ -51,17 +51,18 @@ Legend: ✅ pass · ⚠️ passes with engineering · ❌ fails
 | 13 | **Figure weights** / balance algebra | Gf/Gq | ✅ | ✅ | ✅ | **SHIP** |
 | 14 | **Head count** / running-count updating | Gwm | ✅ | ✅ | ✅ | **SHIP** |
 | 15 | **Mental arithmetic** (latency-scored) | Gq | ✅ | ✅ | ✅ | **SHIP** |
-| 16 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
-| 17 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
-| 18 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
-| 19 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
-| 20 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
-| 21 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 22 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 23 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
-| 24 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
-| 25 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
-| 26 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
+| 16 | **Counting Stroop** / interference | Gs | ✅ | ✅ | ✅ | **SHIP** |
+| 17 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
+| 18 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
+| 19 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
+| 20 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
+| 21 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
+| 22 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 23 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 24 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
+| 25 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
+| 26 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
+| 27 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
 
 ### Why the Gc items are rejected
 
@@ -90,7 +91,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Fifteen generators across five CHC domains:
+Sixteen generators across five CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -109,6 +110,7 @@ Fifteen generators across five CHC domains:
 | `symbol-search` | target detection, latency-scored | set size; distractor similarity |
 | `coding` | digit→symbol lookup, latency-scored | key size; symbol confusability |
 | `arithmetic` | evaluate a short expression, 4 options | operators available; operand size; chaining |
+| `interference` | count the glyphs, ignore what they say | share of incongruent trials |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. In
@@ -149,8 +151,8 @@ Fifteen generators across five CHC domains:
 > of seconds. A format carrying a `presentation` can never qualify, since the block would be spent
 > watching — asserted in `tests/generators.test.ts` rather than left to reviewer discipline.
 >
-> The block was also the prerequisite named here for the speeded formats still unbuilt. The first
-> of them, `arithmetic`, has shipped on top of it; Stroop and Trail Making are the remaining work.
+> The block was also the prerequisite named here for the speeded formats still unbuilt. Two have now
+> shipped on top of it — `arithmetic` and `interference` — leaving Trail Making.
 >
 > `arithmetic` is the one format designed for the block from the start rather than adapted to it,
 > and one decision follows from that: the answer is **picked, not typed**. A typed answer would put
@@ -169,6 +171,26 @@ Fifteen generators across five CHC domains:
 > the load the format exists to measure — here, how many times the held value is rewritten and
 > how fast — and never drift into an adjacent construct because that happens to make items feel
 > harder.
+
+> **On the Stroop task, and why it counts digits rather than naming colours.** The famous version
+> prints the word "RED" in blue ink and asks for the ink. This site cannot do that, and the reason is
+> not squeamishness: hue carries no information anywhere here, because roughly one man in twelve would
+> otherwise be answering a different question (`DESIGN-PLAN.md` §3.1). A colour Stroop would make
+> colour vision a *prerequisite for the format* rather than an accessibility detail, and no palette
+> fixes it — achromatopsia leaves the task undoable.
+>
+> The counting Stroop (Bush et al.) measures the same construct on a different dimension: reading a
+> digit is automatic, counting how many there are is not, so `4 4 4` pulls towards "4" when the answer
+> is 3. It is also language-neutral, which a word-based version could not be — the interference would
+> otherwise depend on how fast the reader reads *that* language, and the English and French versions of
+> a seed would stop being the same item.
+>
+> This is the one format whose measurement is a **difference rather than a total**: the interference
+> score is incongruent median latency minus congruent, and neither half means much alone. It is also
+> the one that vindicated the seed architecture in a way nobody designed for. Congruency was never
+> stored on a response — it did not need to be, because every item regenerates exactly from
+> `(type, seed, difficulty)`, so the partition is re-derived at read time from history written before
+> the read-out existed.
 
 Every generator implements one interface:
 

@@ -221,6 +221,22 @@ export default function StimulusView({
       );
 
     /*
+     * The glyphs in a row, and deliberately nothing else — no label, no separator, no count. Every
+     * mark on this stage is something the reader has to look past, and the measurement is a few
+     * hundred milliseconds wide.
+     */
+    case 'interference':
+      return (
+        <div data-stimulus="interference" class="glyph-stage" data-glyph-count={stimulus.glyphs.length}>
+          {stimulus.glyphs.map((glyph, i) => (
+            <span class="glyph" key={i}>
+              {glyph}
+            </span>
+          ))}
+        </div>
+      );
+
+    /*
      * The expression, shown whole. It carries no `presentation` and no gate: this is the one format
      * meant to be answered in a couple of seconds, so anything between painting and answering is
      * pure overhead on a measurement about calculation.

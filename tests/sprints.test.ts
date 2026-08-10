@@ -9,7 +9,9 @@
  * screen to say the measurement underneath had changed. So it is asserted, not assumed.
  */
 import { describe, expect, it } from 'vitest';
-import { sprintSummary, summarise, untimedSessions } from '@/lib/scoring';
+import { interferenceScore, sprintSummary, summarise, untimedSessions } from '@/lib/scoring';
+import { generateItem } from '@/lib/generators';
+import { isCongruent } from '@/lib/generators/interference';
 import type { Difficulty, ItemTypeId, Response, Session, SessionMode } from '@/lib/types';
 
 function response(correct: boolean, latencyMs: number, difficulty: Difficulty = 2): Response {
@@ -144,5 +146,90 @@ describe('sprint scoring', () => {
     const [stats] = sprintSummary([first, second]);
     expect(stats!.best.sessionId).toBe(first.id);
     expect(stats!.latest.sessionId).toBe(second.id);
+  });
+});
+
+/**
+ * The interference score, and specifically that it is recoverable *without* having been stored.
+ *
+ * Congruency was never written into a response. It is a property of the item, and the item
+ * regenerates exactly from `(type, seed, difficulty)` — so the partition is re-derived at read time.
+ * These tests build history the way the app does (real seeds, real difficulties) and check the
+ * contrast comes back out.
+ */
+describe('the interference score', () => {
+  /**
+   * Finds seeds of each congruency by generating items, which is what a real session would have
+   * produced. Hand-writing "a congruent response" is not possible: congruency is not a field.
+   */
+  function seedsByCongruency(difficulty: Difficulty, wanted: boolean, count: number): string[] {
+    const found: string[] = [];
+    for (let i = 0; found.length < count && i < 4000; i++) {
+      const seed = `SC${i}`;
+      const item = generateItem('interference', seed, difficulty);
+      if (item.stimulus.kind !== 'interference') continue;
+      if (isCongruent(item.stimulus.glyphs) === wanted) found.push(seed);
+    }
+    expect(found.length, `only found ${found.length} ${wanted ? 'congruent' : 'incongruent'} seeds`).toBe(count);
+    return found;
+  }
+
+  function interferenceResponse(seed: string, latencyMs: number): Response {
+    const item = generateItem('interference', seed, 3);
+    return {
+      type: 'interference',
+      seed,
+      difficulty: 3,
+      chosenIndex: item.answerIndex,
+      answerIndex: item.answerIndex,
+      correct: true,
+      latencyMs,
+    };
+  }
+
+  it('re-derives congruency from the seed and reports the contrast', () => {
+    const congruent = seedsByCongruency(3, true, 10).map((s) => interferenceResponse(s, 600));
+    const incongruent = seedsByCongruency(3, false, 10).map((s) => interferenceResponse(s, 800));
+    const score = interferenceScore([session('practice', [...congruent, ...incongruent])]);
+
+    expect(score).not.toBeNull();
+    expect(score!.congruentMs).toBe(600);
+    expect(score!.incongruentMs).toBe(800);
+    expect(score!.interferenceMs).toBe(200);
+    expect(score!.congruentTrials).toBe(10);
+    expect(score!.incongruentTrials).toBe(10);
+  });
+
+  it('reports nothing until both conditions have enough trials', () => {
+    const congruent = seedsByCongruency(3, true, 10).map((s) => interferenceResponse(s, 600));
+    const incongruent = seedsByCongruency(3, false, 2).map((s) => interferenceResponse(s, 800));
+    // A median of two latencies is not a median; a contrast drawn from it is noise with a number on.
+    expect(interferenceScore([session('practice', [...congruent, ...incongruent])])).toBeNull();
+  });
+
+  it('times only the trials that were answered correctly', () => {
+    const congruent = seedsByCongruency(3, true, 10).map((s) => interferenceResponse(s, 600));
+    const incongruent = seedsByCongruency(3, false, 10).map((s) => interferenceResponse(s, 800));
+    /*
+     * A thirty-second wrong answer must not enter the median. The time taken to reach a wrong answer
+     * mostly measures how long someone was willing to stare at it, and one such trial would move a
+     * contrast that lives in tens of milliseconds.
+     */
+    const wrong = { ...incongruent[0]!, correct: false, latencyMs: 30_000 };
+    const score = interferenceScore([
+      session('practice', [...congruent, ...incongruent.slice(1), wrong]),
+    ]);
+    expect(score).not.toBeNull();
+    expect(score!.incongruentMs).toBe(800);
+    // Nine timed trials, not ten: the wrong one was excluded rather than merely down-weighted.
+    expect(score!.incongruentTrials).toBe(9);
+  });
+
+  it('ignores every other format', () => {
+    const congruent = seedsByCongruency(3, true, 10).map((s) => interferenceResponse(s, 600));
+    const incongruent = seedsByCongruency(3, false, 10).map((s) => interferenceResponse(s, 800));
+    const noise = Array.from({ length: 40 }, () => response(true, 5000));
+    const score = interferenceScore([session('practice', [...congruent, ...incongruent, ...noise])]);
+    expect(score!.interferenceMs).toBe(200);
   });
 });

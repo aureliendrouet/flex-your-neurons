@@ -264,6 +264,22 @@ function ThumbBody({ item }: { item: Item }) {
      * the total is the thing the format asks for, so the total is what the miniature shows.
      */
     /*
+     * The glyphs, and nothing else. No count and no label: a card that showed the answer would give
+     * away the one thing the format asks, and the tension between "which digit" and "how many" is
+     * legible from the row on its own.
+     */
+    case 'interference':
+      return (
+        <div class="thumb-glyphs">
+          {s.glyphs.map((glyph, i) => (
+            <span class="thumb-glyph" key={i}>
+              {glyph}
+            </span>
+          ))}
+        </div>
+      );
+
+    /*
      * The expression itself, at card size. The one format whose stimulus needs no reduction to fit
      * a miniature — it is already one short line, so the thumbnail is the item.
      */

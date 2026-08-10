@@ -27,7 +27,8 @@ export type ItemTypeId =
   | 'n-back'
   | 'head-count'
   | 'figure-weights'
-  | 'arithmetic';
+  | 'arithmetic'
+  | 'interference';
 
 /**
  * CHC broad ability. See docs/IQ-TESTS.md §2.
@@ -143,6 +144,12 @@ export type Stimulus =
    * would be a second place where the expression could differ from the one that was solved.
    */
   | { kind: 'expression'; expression: string }
+  /**
+   * A Stroop stimulus: several copies of one digit, where the task is to report *how many* rather
+   * than to read them. The count is the array length rather than a separate field, so the number
+   * drawn and the number keyed cannot come apart.
+   */
+  | { kind: 'interference'; glyphs: string[] }
   /**
    * Balance-scale algebra. Each premise is a pair of pans that balance, establishing the
    * shapes' relative weights; `target` is the pan the chosen option must balance.

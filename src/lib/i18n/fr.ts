@@ -220,7 +220,7 @@ const fr: Dict = {
         'La bonne règle, poussée d’un pas de trop — ou d’un pas de trop peu. Comptez les étapes au lieu d’estimer le point d’arrivée.',
       copy: 'Cette option ne fait que reprendre une figure déjà affichée. Ce qui est déjà visible ne peut pas être la pièce manquante.',
       'wrong-attribute':
-        'La bonne règle, mais sur le mauvais attribut. La transformation que vous avez appliquée existe bien ici, mais elle gouverne autre chose que ce que vous avez fait varier.',
+        'Le mauvais attribut. Vous avez répondu sur une propriété réelle du stimulus — mais pas celle sur laquelle portait la question, et c’est ce qui rend l’erreur tentante plutôt que distraite. Dans un motif, cela revient à faire varier un attribut que la règle ne gouverne pas ; dans une tâche de comptage, à rapporter ce que disent les chiffres au lieu de leur nombre.',
       mirror:
         'C’est un reflet, pas une rotation. Choisissez un détail asymétrique et suivez-le : tourner conserve sa position relative, retourner l’inverse.',
       carry:
@@ -267,6 +267,17 @@ const fr: Dict = {
   },
 
   dashboard: {
+    interferenceHeading: 'Interférence',
+    interferenceLede:
+      'Issu de l’épreuve de comptage : de combien vous ralentissez quand le chiffre contredit leur nombre. C’est le seul chiffre de cette page qui soit un écart et non un total, et l’écart est justement l’essentiel — tout le reste est identique entre les deux types d’essais, si bien qu’il ne subsiste que le coût de retenir la réponse offerte d’emblée par l’œil.',
+    interferenceGap: 'Coût du conflit',
+    interferenceCongruent: (n: number) => `Quand ils concordent (${n} essais)`,
+    interferenceIncongruent: (n: number) => `Quand ils divergent (${n} essais)`,
+    milliseconds: (n: number) => `${n > 0 ? '+' : ''}${n} ms`,
+    interferenceExpected:
+      'Un écart positif est le résultat ordinaire, et un écart important n’est pas un défaut : l’effet est robuste chez presque tout le monde, ce qui explique qu’on l’étudie depuis 1935.',
+    interferenceUnexpected:
+      'Un écart nul ou négatif signale le plus souvent un nombre d’essais insuffisant plutôt qu’une absence d’interférence. Il devrait redevenir positif à mesure qu’ils s’accumulent.',
     sprintHeading: 'Contre-la-montre',
     sprintLede:
       'Les blocs chronométrés restent à l’écart de tout ce qui précède, car ils mesurent autre chose : le débit dans une fenêtre fixe, à un niveau figé pour tout le bloc. Aucun des chiffres de précision ou de vitesse du reste de cette page ne contient de réponse chronométrée.',
@@ -325,7 +336,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que quinze courbes sur un même axe : quinze couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que seize courbes sur un même axe : seize couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -476,6 +487,13 @@ const fr: Dict = {
       description:
         'Un flux de lettres défile, une à la fois. Comptez celles qui reprennent la lettre apparue un nombre fixe de rangs plus tôt — un rang d’abord, jusqu’à trois. La mémoire des chiffres demande de retenir une liste immobile ; cette épreuve demande de tenir une fenêtre glissante des derniers éléments et de la réécrire à chaque pas, d’où une mesure de la mise à jour plutôt que du stockage. Le flux a disparu au moment de répondre, et il ne se rejoue pas.',
       seenIn: 'Recherche sur l’entraînement cognitif et la mémoire de travail (Jaeggi et al.), Cogmed, littérature sur le double n-back',
+    },
+    interference: {
+      name: 'Comptez, ne lisez pas',
+      blurb: 'Combien de chiffres ? Et non lequel.',
+      description:
+        'Plusieurs exemplaires d’un même chiffre s’affichent : annoncez combien il y en a, et non ce qu’ils disent. Devant trois 4, « 4 » est la réponse que l’œil propose et 3 celle qu’on vous demande — et c’est le coût de retenir la première qui est mesuré ici. C’est une tâche de Stroop portant sur des chiffres plutôt que sur des couleurs : la teinte ne véhicule aucune information sur ce site, et une version colorée ferait de la vision des couleurs une condition d’accès au format plutôt qu’un détail d’accessibilité. Les chiffres gardent en outre l’item identique dans toutes les langues, ce qu’une version verbale ne pourrait pas.',
+      seenIn: 'Stroop (1935) et sa variante de comptage, batteries de fonctions exécutives et d’inhibition, test d’interférence couleur-mot de Delis–Kaplan',
     },
     arithmetic: {
       name: 'Calcul mental',
@@ -693,6 +711,21 @@ const fr: Dict = {
       ruleUpdating:
         'Les compter suppose de retenir les dernières lettres et de remplacer la plus ancienne à chaque pas. C’est cette mise à jour, et non la quantité stockée, que ce format mesure.',
     },
+    interference: {
+      prompt: 'Combien y en a-t-il ?',
+      summary: (count: number, digit: string) =>
+        count === Number(digit)
+          ? `Il y en a ${count}, et ce sont justement des ${digit} — les deux concordent ici.`
+          : `Il y en a ${count}, bien que ce soient des ${digit}.`,
+      ruleCongruent:
+        'Ici le chiffre et le compte concordent : rien n’était à retenir. Ces essais servent de référence pour mesurer l’interférence.',
+      ruleIncongruent: (digit: string, count: number) =>
+        `Le chiffre dit ${digit} et il y en a ${count}. Lire le chiffre est automatique, compter ne l’est pas : ${digit} est donc la réponse qui se présente d’abord, et qu’il faut refuser.`,
+      ruleInhibition:
+        'Ce que ce format mesure, c’est l’inhibition : retenir une réponse automatique et rapide le temps qu’une réponse réfléchie, plus lente, arrive. Ce n’est pas une épreuve de comptage.',
+      ruleScoring:
+        'La véritable mesure est l’écart entre vos temps sur les deux types d’essais, non votre précision — qui devrait rester élevée. Voyez l’indice d’interférence sur la page de progression.',
+    },
     arithmetic: {
       prompt: 'Combien cela fait-il ?',
       summary: (expression: string, value: number) => `${expression} fait ${value}.`,
@@ -731,7 +764,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Quinze formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Seize formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -804,7 +837,7 @@ const fr: Dict = {
     test: {
       title: 'Test complet',
       description:
-        'Une série mixte sur les quinze formats, deux items chacun, sans retour avant la fin.',
+        'Une série mixte sur les seize formats, deux items chacun, sans retour avant la fin.',
       lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
       differs: [
@@ -959,7 +992,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces quinze formats est une information sur ces quinze formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces seize formats est une information sur ces seize formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

@@ -11,7 +11,14 @@ import {
 import type { Difficulty, ItemTypeId } from '../src/lib/types';
 
 const SEED = 'FULLTEST';
-const DIFFICULTY: Difficulty = 2;
+/*
+ * Level 1, chosen for wall-clock cost rather than coverage. Three formats play themselves before
+ * they can be answered, and their playback is real time no test can compress: at level 2 the n-back
+ * stream alone runs about eleven seconds. Nothing in this file depends on the level — these tests are
+ * about rotation order, withheld feedback and scoring — so the cheapest one that still exercises
+ * every format is the right choice. Format-specific behaviour is covered in `item-types.spec.ts`.
+ */
+const DIFFICULTY: Difficulty = 1;
 const LENGTH = ITEM_TYPE_IDS.length;
 
 function testUrl(n = LENGTH): string {
@@ -52,13 +59,17 @@ test.describe('full test mode', () => {
    *
    * The cost is not the item count. Three formats play themselves before they can be answered
    * (span, n-back, head count), and their playback is real wall-clock time that no amount of
-   * waiting-smarter can remove: at level 2 those three alone account for roughly twenty seconds.
-   * Wall time therefore scales with how many *transient* formats exist, not with how many formats
-   * exist, and it grew past the default when head count shipped. Raise this again when the next
-   * transient format lands.
+   * waiting-smarter can remove. Wall time therefore scales with how many *transient* formats exist,
+   * not with how many formats exist.
+   *
+   * It has been raised twice. It first went past the 45-second default when head count shipped, and
+   * then past 120 seconds under full-suite load — solo it runs in under thirty, so eight workers
+   * competing for the machine cost it roughly a factor of four. The pinned difficulty was dropped to
+   * level 1 at the same time, which is where most of the saving came from. Expect to revisit this
+   * when the next transient format lands.
    */
   test('rotates through every item type', async ({ page }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     await page.goto(testUrl());
     await waitForQuiz(page);
 

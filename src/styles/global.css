@@ -3307,3 +3307,39 @@ table.data th.num {
   font: 600 0.8rem/1 var(--font-code);
   color: var(--text-subtle);
 }
+
+/*
+ * The interference stage. Monospace, heavy, evenly spaced — the glyphs have to read as a *row of
+ * countable things* rather than as a multi-digit number, which is why the gap is wide and fixed.
+ * Nothing else is on the stage: every additional mark is something to look past in a task measured
+ * in a few hundred milliseconds.
+ */
+.glyph-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  min-height: 8rem;
+  min-width: min(100%, 26rem);
+  padding: 1.25rem 2rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+
+.glyph {
+  font: 700 clamp(2.5rem, 9vw, 4rem) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.thumb-glyphs {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: center;
+}
+
+.thumb-glyph {
+  font: 700 1.35rem/1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+}

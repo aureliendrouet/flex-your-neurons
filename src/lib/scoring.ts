@@ -7,7 +7,8 @@
  * change over time — quantities this app can actually measure.
  */
 import type { ChcDomain, Difficulty, ErrorType, ItemTypeId, Response, Session } from './types';
-import { getMeta } from './generators';
+import { generateItem, getMeta } from './generators';
+import { isCongruent } from './generators/interference';
 import { dict, DEFAULT_LOCALE, type Locale } from './i18n';
 
 export function isCorrect(
@@ -188,6 +189,77 @@ export function summarise(allSessions: Session[], now = Date.now()): Summary {
     },
     byType: byType.sort((a, b) => b.attempts - a.attempts),
     byDomain: byDomain.sort((a, b) => b.attempts - a.attempts),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// The Stroop effect — the one measurement here that is a difference, not a total
+// ---------------------------------------------------------------------------
+
+/**
+ * The interference score: how much slower incongruent trials are than congruent ones.
+ *
+ * This is the only figure on the site that is a *contrast* rather than a tally, and it is the whole
+ * reason the interference format exists. Neither half means much alone — a fast reader and a slow one
+ * differ on both — but the gap between them is a property of inhibition specifically, because
+ * everything else about the two conditions is identical: same glyphs, same options, same positions,
+ * same motor response. Only the conflict differs.
+ *
+ * It is recoverable from history *without* having stored anything extra. Congruency is a property of
+ * the item, and every item regenerates exactly from `(type, seed, difficulty)` — so the partition is
+ * re-derived at read time rather than written into every response. That is the seed architecture
+ * paying for itself: a measurement nobody planned for when the response shape was designed.
+ *
+ * Only correct responses are timed, for the same reason the per-type medians are: the time taken to
+ * reach a wrong answer mostly measures how long someone was willing to stare at it.
+ */
+export interface InterferenceScore {
+  congruentMs: number;
+  incongruentMs: number;
+  /** Incongruent minus congruent. Positive is the expected direction. */
+  interferenceMs: number;
+  congruentTrials: number;
+  incongruentTrials: number;
+}
+
+/**
+ * Fewest correct trials needed in *each* condition before a difference is worth showing.
+ *
+ * A median of two latencies is not a median, and a Stroop effect is tens of milliseconds against
+ * within-person variance of hundreds — so a contrast drawn from a handful of trials is mostly noise
+ * wearing a number's clothes. Better to say nothing yet than to show a figure that will swing wildly
+ * on the next attempt.
+ */
+export const MIN_INTERFERENCE_TRIALS = 8;
+
+export function interferenceScore(sessions: Session[]): InterferenceScore | null {
+  const congruent: number[] = [];
+  const incongruent: number[] = [];
+
+  for (const session of sessions) {
+    for (const response of session.responses) {
+      if (response.type !== 'interference' || !response.correct) continue;
+      const item = generateItem('interference', response.seed, response.difficulty);
+      if (item.stimulus.kind !== 'interference') continue;
+      (isCongruent(item.stimulus.glyphs) ? congruent : incongruent).push(response.latencyMs);
+    }
+  }
+
+  if (
+    congruent.length < MIN_INTERFERENCE_TRIALS ||
+    incongruent.length < MIN_INTERFERENCE_TRIALS
+  ) {
+    return null;
+  }
+
+  const congruentMs = median(congruent)!;
+  const incongruentMs = median(incongruent)!;
+  return {
+    congruentMs,
+    incongruentMs,
+    interferenceMs: incongruentMs - congruentMs,
+    congruentTrials: congruent.length,
+    incongruentTrials: incongruent.length,
   };
 }
 

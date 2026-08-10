@@ -22,7 +22,13 @@ import {
   sessionTrend,
   typeTrend,
 } from '../lib/charts';
-import { allResponses, formatDuration, formatPercent, tallyErrorTypes } from '../lib/scoring';
+import {
+  allResponses,
+  formatDuration,
+  formatPercent,
+  interferenceScore,
+  tallyErrorTypes,
+} from '../lib/scoring';
 import {
   $sessions,
   $settings,
@@ -218,6 +224,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
       )}
 
       {sprints.length > 0 && <SprintBoard locale={locale} sprints={sprints} />}
+      <InterferenceCard locale={locale} sessions={sessions} />
       {hasData && <MistakeProfile locale={locale} sessions={sessions} />}
 
       {hasData && (
@@ -455,6 +462,54 @@ function SprintBoard({ locale, sprints }: { locale: Locale; sprints: SprintStats
           </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+/**
+ * The Stroop effect, when there is enough of it to report.
+ *
+ * The only figure on this page that is a difference rather than a total, and the only one whose
+ * *sign* is the finding: a positive gap means the automatic reading cost something to hold back,
+ * which is the effect. Absolute times are shown beside it because the gap alone is uninterpretable —
+ * twenty milliseconds on a base of three hundred is not the same claim as twenty on a base of nine
+ * hundred.
+ *
+ * Renders nothing at all below the trial threshold rather than showing a provisional number. A
+ * Stroop effect is tens of milliseconds against within-person variance of hundreds, so a contrast
+ * from four trials would swing wildly between visits and read as measurement rather than noise.
+ */
+function InterferenceCard({ locale, sessions }: { locale: Locale; sessions: Session[] }) {
+  const t = dict(locale);
+  const score = interferenceScore(sessions);
+  if (!score) return null;
+
+  return (
+    <section data-testid="interference-section">
+      <h3 class="section-heading section-heading--sm">{t.dashboard.interferenceHeading}</h3>
+      <p class="muted dashboard-lede">{t.dashboard.interferenceLede}</p>
+      <div class="card-grid card-grid--fit stat-grid">
+        <Stat
+          label={t.dashboard.interferenceGap}
+          value={t.dashboard.milliseconds(Math.round(score.interferenceMs))}
+          testid="stat-interference"
+        />
+        <Stat
+          label={t.dashboard.interferenceCongruent(score.congruentTrials)}
+          value={formatDuration(score.congruentMs, locale)}
+          testid="stat-congruent"
+        />
+        <Stat
+          label={t.dashboard.interferenceIncongruent(score.incongruentTrials)}
+          value={formatDuration(score.incongruentMs, locale)}
+          testid="stat-incongruent"
+        />
+      </div>
+      <p class="subtle dashboard-note">
+        {score.interferenceMs > 0
+          ? t.dashboard.interferenceExpected
+          : t.dashboard.interferenceUnexpected}
+      </p>
     </section>
   );
 }
