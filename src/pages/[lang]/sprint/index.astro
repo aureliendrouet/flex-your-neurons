@@ -1,0 +1,54 @@
+---
+import Base from '../../../layouts/Base.astro';
+import ItemThumb from '../../../components/ItemThumb';
+import { allItemTypes } from '../../../lib/generators';
+import { typeHue } from '../../../lib/identity';
+import { previewItem } from '../../../lib/previews';
+import { dict, LOCALES, type Locale } from '../../../lib/i18n';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const t = dict(locale);
+const p = t.pages.sprintIndex;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const href = (path: string) => `${base}/${locale}/${path}`;
+
+/*
+ * Only the sprintable formats are listed, and the list is derived from `meta.sprintable` rather
+ * than hand-maintained here — a page that named its own set would drift from the flag the runner
+ * enforces, and the two disagreeing is how a twenty-second item ends up in a sixty-second block.
+ */
+const types = allItemTypes(locale).filter((meta) => meta.sprintable);
+---
+
+<Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
+  <section class="card prose-card">
+    <h2 class="section-heading section-heading--xs">{p.whatHeading}</h2>
+    <p class="muted prose-card-body">{p.whatBody}</p>
+    <p class="muted prose-card-body">{p.whyFew}</p>
+  </section>
+
+  <div class="card-grid" style="--card-min: 20rem">
+    {
+      types.map((meta) => (
+        <a
+          class="card card--interactive type-card practice-card"
+          href={href(`sprint/${meta.id}/`)}
+          data-testid={`sprint-card-${meta.id}`}
+          style={`--type-hue: ${typeHue(meta.id)}`}
+        >
+          <ItemThumb item={previewItem(meta.id, locale)} />
+          <div class="cluster practice-card-head" style="--cluster-gap: 0.6rem">
+            <strong class="practice-card-name">{meta.name}</strong>
+            <span class="pill practice-card-domain">{t.domains[meta.domain]}</span>
+          </div>
+          <p class="muted practice-card-blurb">{meta.blurb}</p>
+        </a>
+      ))
+    }
+  </div>
+</Base>

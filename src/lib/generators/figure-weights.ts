@@ -177,7 +177,12 @@ function toFigure(group: Group, shapes: ShapeType[]): Figure {
   };
 }
 
-const meta: ItemTypeMeta = { id: 'figure-weights', domain: 'Gf', icon: '⚖' };
+const meta: ItemTypeMeta = {
+  id: 'figure-weights',
+  domain: 'Gf',
+  icon: '⚖',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 200;
 

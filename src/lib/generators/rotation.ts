@@ -112,7 +112,12 @@ function nudge(g: CellGrid, rng: Rng): CellGrid | null {
   return out;
 }
 
-const meta: ItemTypeMeta = { id: 'rotation', domain: 'Gv', icon: '↻' };
+const meta: ItemTypeMeta = {
+  id: 'rotation',
+  domain: 'Gv',
+  icon: '↻',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 400;
 

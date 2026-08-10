@@ -114,7 +114,26 @@ export function computeDayStreak(sessions: Session[], now = Date.now()): number 
   return streak;
 }
 
-export function summarise(sessions: Session[], now = Date.now()): Summary {
+/**
+ * The untimed sessions: practice and full tests.
+ *
+ * Sprint responses are collected under a running clock, at a difficulty pinned for the whole
+ * block, with no reveal between items. Their latencies are therefore not the same quantity as a
+ * practice latency — they measure how fast someone *chose to go*, not how long they needed —
+ * and their accuracy is depressed by the speed–accuracy trade-off the clock imposes. Pooling
+ * them would make every per-type median jump the first time a reader sprinted, with no
+ * indication that the measurement underneath had changed.
+ *
+ * So the two regimes are summarised separately: `summarise` over these, `sprintSummary` over
+ * the rest. This is also why the adaptive ladder reads from `summarise` — a sprint's pinned
+ * difficulty carries no evidence about where the ladder should start.
+ */
+export function untimedSessions(sessions: Session[]): Session[] {
+  return sessions.filter((s) => s.mode !== 'sprint');
+}
+
+export function summarise(allSessions: Session[], now = Date.now()): Summary {
+  const sessions = untimedSessions(allSessions);
   const responses = allResponses(sessions);
 
   const byTypeMap = new Map<ItemTypeId, Response[]>();
@@ -170,6 +189,95 @@ export function summarise(sessions: Session[], now = Date.now()): Summary {
     byType: byType.sort((a, b) => b.attempts - a.attempts),
     byDomain: byDomain.sort((a, b) => b.attempts - a.attempts),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Sprints — the continuous timed block, scored in its own units
+// ---------------------------------------------------------------------------
+
+/**
+ * One finished sprint, reduced to the numbers that describe it.
+ *
+ * The headline is `correct`, not accuracy. A sprint's question is "how much did you get through
+ * in the window", and accuracy alone cannot answer it: someone who attempts six items and gets
+ * all six right scores 100% and has done a third of the work of someone who attempts twenty and
+ * gets sixteen. Accuracy is still carried, because output bought entirely by guessing is not
+ * output — but it is a check on the score rather than the score.
+ */
+export interface SprintRun {
+  sessionId: string;
+  type: ItemTypeId;
+  difficulty: Difficulty;
+  finishedAt: number;
+  /** The window the block was scored in. */
+  plannedMs: number;
+  attempted: number;
+  correct: number;
+  /** 0-1, or null when nothing was attempted. */
+  accuracy: number | null;
+  /** Correct answers per minute, normalised so different window lengths can be compared. */
+  perMinute: number;
+}
+
+export interface SprintStats {
+  type: ItemTypeId;
+  runs: number;
+  /** Most recent run first. */
+  history: SprintRun[];
+  /** The best run by `perMinute`. */
+  best: SprintRun;
+  latest: SprintRun;
+}
+
+/**
+ * A sprint is only scorable if it recorded the window it was scored in.
+ *
+ * Sessions written before sprints existed have no `plannedMs`, and neither do sprints abandoned
+ * before the clock started. Rather than inventing a window from the elapsed time — which would
+ * silently rank an abandoned ten-second run against a full minute — those are skipped.
+ */
+function toSprintRun(session: Session): SprintRun | null {
+  const type = session.types[0];
+  if (session.mode !== 'sprint' || !type || !session.plannedMs || session.finishedAt === null) {
+    return null;
+  }
+  if (session.responses.length === 0) return null;
+
+  const correct = session.responses.filter((r) => r.correct).length;
+  return {
+    sessionId: session.id,
+    type,
+    // A sprint pins one level for the whole block, so the first response carries it.
+    difficulty: session.responses[0]!.difficulty,
+    finishedAt: session.finishedAt,
+    plannedMs: session.plannedMs,
+    attempted: session.responses.length,
+    correct,
+    accuracy: correct / session.responses.length,
+    perMinute: (correct / session.plannedMs) * 60_000,
+  };
+}
+
+/** Every sprint that can be scored, newest first, grouped by format. */
+export function sprintSummary(sessions: Session[]): SprintStats[] {
+  const byType = new Map<ItemTypeId, SprintRun[]>();
+  for (const session of sessions) {
+    const run = toSprintRun(session);
+    if (!run) continue;
+    byType.set(run.type, [...(byType.get(run.type) ?? []), run]);
+  }
+
+  return [...byType.entries()]
+    .map(([type, runs]) => {
+      const history = [...runs].sort((a, b) => b.finishedAt - a.finishedAt);
+      /*
+       * Ties on rate break towards the *earlier* run, so a later run that merely matches a
+       * personal best does not claim to have beaten it.
+       */
+      const best = [...runs].sort((a, b) => b.perMinute - a.perMinute || a.finishedAt - b.finishedAt)[0]!;
+      return { type, runs: runs.length, history, best, latest: history[0]! };
+    })
+    .sort((a, b) => b.latest.finishedAt - a.latest.finishedAt);
 }
 
 function lastPlayed(sessions: Session[], type: ItemTypeId): number | null {

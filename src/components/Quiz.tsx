@@ -38,10 +38,29 @@ import {
   newSession,
   saveSession,
 } from '../lib/store';
-import type { Difficulty, ErrorType, ItemTypeId, Option, Response, Session } from '../lib/types';
+import type {
+  Difficulty,
+  ErrorType,
+  ItemTypeId,
+  Option,
+  Response,
+  Session,
+  SessionMode,
+} from '../lib/types';
+
+/**
+ * `m:ss` for the sprint countdown, always two digits of seconds so the text never changes width.
+ * Rounds *up*, so a clock showing 1 has not yet expired — a display that read 0 for the last
+ * second would look stuck, and worse, look like it had stopped early.
+ */
+function formatClock(ms: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  return `${minutes}:${`${totalSeconds % 60}`.padStart(2, '0')}`;
+}
 
 interface Props {
-  mode: 'practice' | 'test';
+  mode: SessionMode;
   types: ItemTypeId[];
   locale: Locale;
   /** Item count. Practice defaults to the user's setting; tests use a fixed length. */
@@ -50,19 +69,39 @@ interface Props {
   seed?: string;
   /** Fixed difficulty; when absent the adaptive ladder is used. */
   difficulty?: Difficulty;
+  /** The scoring window for a sprint, in seconds. Ignored in the other modes. */
+  seconds?: number;
 }
 
-type Phase = 'answering' | 'revealed' | 'finished';
+/**
+ * `ready` exists only for sprints, and it is not a nicety.
+ *
+ * Every other mode can start the moment the page paints, because nothing is being timed across
+ * items. A sprint is scored on output inside a fixed window, so a reader who is still orienting
+ * when the clock starts is simply given a shorter window than one who was ready — the same
+ * unfairness the span gate was built to remove, but applied to the whole block instead of one
+ * item. So the clock waits to be started.
+ */
+type Phase = 'ready' | 'answering' | 'revealed' | 'finished';
+
+/** Default sprint window. Long enough to measure sustained output, short enough to repeat. */
+const DEFAULT_SPRINT_SECONDS = 60;
 
 const OPTION_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8'];
 
 /**
  * URL overrides: `?seed=ABC12345` replays an exact run, `?d=1..5` pins the difficulty,
- * `?n=10` sets the length. This is what makes a seed shareable — two people opening the
+ * `?n=10` sets the length, `?t=30` sets a sprint's window in seconds. This is what makes a seed
+ * shareable — two people opening the
  * same link get byte-identical items, in whichever language each of them reads — and it
  * is also how the end-to-end tests pin down an item whose answer they compute themselves.
  */
-function readUrlOverrides(): { seed?: string; difficulty?: Difficulty; length?: number } {
+function readUrlOverrides(): {
+  seed?: string;
+  difficulty?: Difficulty;
+  length?: number;
+  seconds?: number;
+} {
   if (typeof location === 'undefined') return {};
   const params = new URLSearchParams(location.search);
 
@@ -75,7 +114,15 @@ function readUrlOverrides(): { seed?: string; difficulty?: Difficulty; length?: 
   const n = Number(params.get('n'));
   const length = Number.isInteger(n) && n >= 1 && n <= 100 ? n : undefined;
 
-  return { seed, difficulty, length };
+  /*
+   * `?t=` sets the sprint window in seconds. Safe to expose because the score is normalised to a
+   * rate per minute, so a shorter window is not a way to look better — and the window is recorded
+   * on the session, so a run is never compared against one of a different length by accident.
+   */
+  const t = Number(params.get('t'));
+  const seconds = Number.isInteger(t) && t >= 5 && t <= 600 ? t : undefined;
+
+  return { seed, difficulty, length, seconds };
 }
 
 export default function Quiz({
@@ -85,11 +132,14 @@ export default function Quiz({
   length,
   seed: fixedSeed,
   difficulty: fixedDifficulty,
+  seconds,
 }: Props) {
   const t = dict(locale);
+  const isSprint = mode === 'sprint';
+  const [overrides] = useState(readUrlOverrides);
+  const windowMs = (overrides.seconds ?? seconds ?? DEFAULT_SPRINT_SECONDS) * 1000;
   const settings = useStore($settings) ?? DEFAULT_SETTINGS;
   const summary = useStore($summary);
-  const [overrides] = useState(readUrlOverrides);
 
   const pinnedSeed = overrides.seed ?? fixedSeed;
   const pinnedDifficulty = overrides.difficulty ?? fixedDifficulty;
@@ -107,7 +157,17 @@ export default function Quiz({
     index: 0,
     difficulty: pinnedDifficulty ?? 2,
   });
-  const [phase, setPhase] = useState<Phase>('answering');
+  const [phase, setPhase] = useState<Phase>(isSprint ? 'ready' : 'answering');
+  /** Milliseconds left on the sprint clock; `null` outside a sprint or before it starts. */
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  /**
+   * The last verdict in a sprint, shown briefly on the item and never blocking.
+   *
+   * Carries `at` so that two consecutive answers of the same verdict are still distinguishable:
+   * without it, keying the animation on the boolean alone would mean a second "correct" in a row
+   * re-rendered identical markup and the mark never replayed.
+   */
+  const [flash, setFlash] = useState<{ correct: boolean; at: number } | null>(null);
   const [chosen, setChosen] = useState<number | null>(null);
   const [typed, setTyped] = useState('');
   /**
@@ -144,23 +204,52 @@ export default function Quiz({
   }, []);
 
   const index = cursor.index;
-  const total =
-    overrides.length ?? length ?? (mode === 'test' ? types.length * 2 : (settings.practiceLength ?? 10));
+  /**
+   * How many items the run contains — and for a sprint, deliberately unbounded.
+   *
+   * A sprint ends when its clock does, so a target count would be a second, competing stop
+   * condition: whichever came first would end the block, and a fast reader would be cut short at
+   * the cap while a slow one ran the full window. That is exactly the comparison a sprint exists
+   * to make, so the count must not participate in it.
+   */
+  const total = isSprint
+    ? Number.POSITIVE_INFINITY
+    : (overrides.length ?? length ?? (mode === 'test' ? types.length * 2 : (settings.practiceLength ?? 10)));
+
+  /**
+   * The level a sprint runs at, chosen once and held.
+   *
+   * The adaptive ladder is switched off for the whole block. If difficulty moved with performance
+   * inside the window, "22 correct" would describe a different mixture of levels every run, and
+   * two of a reader's own sprints could not be compared — which is the one thing a score in
+   * items-per-minute is for.
+   */
+  const [blockDifficulty, setBlockDifficulty] = useState<Difficulty | null>(null);
+  const heldDifficulty = pinnedDifficulty ?? (isSprint ? (blockDifficulty ?? 2) : undefined);
 
   // Start the session on the client, where a random seed and localStorage are available.
   useEffect(() => {
-    setSession(newSession(mode, types, pinnedSeed || randomSeed()));
-    if (!pinnedDifficulty) {
-      const stats = summary?.byType.find((x) => x.type === types[0]);
-      const start = newLadder(types.length === 1 ? suggestedStart(stats) : 2);
-      ladderRef.current = start;
-      setCursor({ index: 0, difficulty: start.difficulty });
+    setSession(
+      newSession(mode, types, pinnedSeed || randomSeed(), isSprint ? windowMs : undefined),
+    );
+    const stats = summary?.byType.find((x) => x.type === types[0]);
+    const start = types.length === 1 ? suggestedStart(stats) : 2;
+    if (isSprint) {
+      /*
+       * Seeded from the untimed history, which is the only evidence available — `summarise`
+       * excludes sprints precisely because a pinned level says nothing about ability.
+       */
+      setBlockDifficulty(pinnedDifficulty ?? start);
+    } else if (!pinnedDifficulty) {
+      const ladder = newLadder(start);
+      ladderRef.current = ladder;
+      setCursor({ index: 0, difficulty: ladder.difficulty });
     }
     // Intentionally mount-only: restarting mid-session would discard answers.
   }, []);
 
   const itemType: ItemTypeId = types[index % types.length]!;
-  const difficulty: Difficulty = pinnedDifficulty ?? (settings.adaptive ? cursor.difficulty : 2);
+  const difficulty: Difficulty = heldDifficulty ?? (settings.adaptive ? cursor.difficulty : 2);
 
   const item = useMemo(() => {
     if (!session) return null;
@@ -181,9 +270,9 @@ export default function Quiz({
     setTyped('');
     setCursor((c) => ({
       index: c.index + 1,
-      difficulty: pinnedDifficulty ?? (settings.adaptive ? ladderRef.current.difficulty : 2),
+      difficulty: heldDifficulty ?? (settings.adaptive ? ladderRef.current.difficulty : 2),
     }));
-  }, [pinnedDifficulty, settings.adaptive]);
+  }, [heldDifficulty, settings.adaptive]);
 
   // Per-item setup that can only run once the new item exists.
   useEffect(() => {
@@ -220,6 +309,52 @@ export default function Quiz({
     [session],
   );
 
+  /**
+   * The sprint clock.
+   *
+   * The deadline lives in a ref on the monotonic clock, and the interval only *reads* it. The
+   * obvious alternative — decrementing a counter every tick — accumulates the error of every
+   * missed or late frame, and a background tab throttles intervals to once a second or worse, so
+   * a reader who switched away would come back to a clock that had barely moved and a window
+   * that had silently grown. Deriving the remainder from a fixed deadline makes the window the
+   * same length regardless of how often it is sampled.
+   *
+   * Responses are read through a ref rather than closed over, so the interval does not have to be
+   * torn down and rebuilt on every answer — during a sprint that is several times a second.
+   */
+  const deadlineRef = useRef<number | null>(null);
+  const responsesRef = useRef<Response[]>(responses);
+  responsesRef.current = responses;
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
+
+  useEffect(() => {
+    if (phase !== 'answering' || !isSprint || deadlineRef.current === null) return;
+    const tick = () => {
+      const left = deadlineRef.current! - performance.now();
+      if (left <= 0) {
+        setRemainingMs(0);
+        // The clock is the only stop condition, and it stops the block mid-item by design:
+        // the item on screen when time runs out was never answered, so it is not recorded.
+        finishRef.current(responsesRef.current);
+        return;
+      }
+      setRemainingMs(left);
+    };
+    tick();
+    // ~10Hz: fast enough that the last second visibly counts down, cheap enough to ignore.
+    const id = setInterval(tick, 100);
+    return () => clearInterval(id);
+  }, [phase, isSprint]);
+
+  /** Starts the block: the clock begins here, not when the page painted. */
+  const beginSprint = useCallback(() => {
+    deadlineRef.current = performance.now() + windowMs;
+    setRemainingMs(windowMs);
+    setPhase('answering');
+    startResponseClock();
+  }, [windowMs, startResponseClock]);
+
   const submit = useCallback(
     (choiceIndex: number | null, text?: string) => {
       if (!item || !session || phase !== 'answering') return;
@@ -239,21 +374,39 @@ export default function Quiz({
       const all = [...responses, response];
       setResponses(all);
       setChosen(choiceIndex);
-      if (settings.adaptive && !pinnedDifficulty) {
+      // The ladder is frozen for a sprint, and a pinned difficulty was never on it.
+      if (settings.adaptive && !heldDifficulty) {
         ladderRef.current = advanceLadder(ladderRef.current, correct);
       }
 
-      const isLast = all.length >= total;
-      const showFeedback = settings.instantFeedback && mode === 'practice';
+      /*
+       * A sprint never reveals, whatever the reader's feedback setting says. A panel that has to
+       * be dismissed would stop the block while the clock kept running, which turns the score
+       * into a measure of how fast someone clicks Next. The verdict still arrives — as a brief
+       * flash on the item that does not wait for anyone — and the whole run is reviewable
+       * afterwards.
+       */
+      if (isSprint) {
+        /*
+         * The verdict still arrives, as a mark on the item that fades on its own. It is set here
+         * rather than derived from `chosen`, because the next item replaces `chosen` immediately —
+         * there is no revealed phase to hold it.
+         */
+        setFlash({ correct, at: performance.now() });
+        if (deadlineRef.current !== null && performance.now() >= deadlineRef.current) finish(all);
+        else advance();
+        return;
+      }
 
-      if (showFeedback) {
+      const isLast = all.length >= total;
+      if (settings.instantFeedback && mode === 'practice') {
         setPhase('revealed');
         return;
       }
       if (isLast) finish(all);
       else advance();
     },
-    [item, session, phase, responses, settings, total, mode, pinnedDifficulty, finish, advance],
+    [item, session, phase, responses, settings, total, mode, heldDifficulty, isSprint, finish, advance],
   );
 
   const next = useCallback(() => {
@@ -277,6 +430,7 @@ export default function Quiz({
     stimulusReady,
     submit,
     next,
+    begin: beginSprint,
     toggleShortcuts: () => {},
     closeShortcuts: () => {},
   });
@@ -286,6 +440,7 @@ export default function Quiz({
     stimulusReady,
     submit,
     next,
+    begin: beginSprint,
     toggleShortcuts: () => setShortcuts((v) => !v),
     closeShortcuts: () => setShortcuts(false),
   };
@@ -317,6 +472,16 @@ export default function Quiz({
       if (current.phase === 'revealed' && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault();
         current.next();
+        return;
+      }
+      /*
+       * Enter starts the clock, so a sprint can be begun the same way a span sequence is and a
+       * whole run stays on the keyboard. `e.repeat` is filtered because a held key would
+       * otherwise fire this and then immediately start answering with whatever came next.
+       */
+      if (current.phase === 'ready' && (e.key === 'Enter' || e.key === ' ') && !e.repeat) {
+        e.preventDefault();
+        current.begin();
         return;
       }
       if (typing || current.phase !== 'answering' || !current.item) return;
@@ -351,7 +516,10 @@ export default function Quiz({
    * competes for attention during the exact interval being measured. It covers the
    * processing-speed formats and anything with a transient presentation.
    */
-  const speeded = item !== null && (item.presentation !== undefined || getMeta(item.type).domain === 'Gs');
+  const speeded =
+    item !== null &&
+    // A sprint is a speeded task by definition, whatever the format's own domain says.
+    (isSprint || item.presentation !== undefined || getMeta(item.type).domain === 'Gs');
 
   /*
    * `data-drill` marks "an item is on screen right now", which is a different claim from
@@ -390,6 +558,23 @@ export default function Quiz({
     return (
       <div class="card quiz-loading" data-testid="quiz-loading">
         <span class="muted">{t.quiz.preparing}</span>
+      </div>
+    );
+  }
+
+  /*
+   * Nothing was answered before the clock ran out. Checked *before* the finished branch, not
+   * after: `finish` sets the phase to `finished`, so a check below that return can never run —
+   * which is how this first shipped, and the empty run rendered a results table of zeroes with
+   * an undefined accuracy instead.
+   */
+  if (isSprint && phase === 'finished' && responses.length === 0) {
+    return (
+      <div class="card sprint-empty" data-testid="sprint-empty">
+        <p>{t.quiz.sprint.nothing}</p>
+        <button class="btn btn-primary" onClick={() => location.reload()} data-testid="restart">
+          {t.quiz.sprint.again}
+        </button>
       </div>
     );
   }
@@ -444,18 +629,73 @@ export default function Quiz({
           </span>
         </div>
         <div class="quiz-header-right">
-          <span class="muted num-tabular" data-testid="progress-label">
-            {t.quiz.progress(Math.min(answered + (revealed ? 0 : 1), total), total)}
-          </span>
+          {isSprint ? (
+            /*
+             * Two numbers, because a sprint has two: what is left of the window, and what has
+             * been done in it. `aria-live="off"` on the clock is deliberate — a countdown
+             * announced ten times a second would make the page unusable with a screen reader,
+             * and the remaining time is not information you can act on mid-item anyway.
+             */
+            <>
+              <span
+                class="sprint-clock num-tabular"
+                data-testid="sprint-clock"
+                data-sprint-low={String(remainingMs !== null && remainingMs <= 10_000)}
+                aria-live="off"
+              >
+                {formatClock(remainingMs ?? windowMs)}
+              </span>
+              <span class="muted num-tabular" data-testid="sprint-count">
+                {t.quiz.sprint.done(answered)}
+              </span>
+            </>
+          ) : (
+            <span class="muted num-tabular" data-testid="progress-label">
+              {t.quiz.progress(Math.min(answered + (revealed ? 0 : 1), total), total)}
+            </span>
+          )}
           <SeedChip seed={session.seed} locale={locale} />
         </div>
       </header>
 
-      <div class="meter" aria-hidden="true">
+      {/*
+        * The meter tracks whatever the run is actually spending. In a sprint that is time, so it
+        * *drains* rather than fills — the same bar reading in the opposite direction, because
+        * "how much is left" and "how far along am I" are different questions and a sprint only
+        * asks the first.
+        */}
+      <div class="meter" data-meter={isSprint ? 'draining' : 'filling'} aria-hidden="true">
         {/* The only genuinely dynamic value in the component, so it stays inline — but as
             a custom property, which keeps the *styling* in the stylesheet. */}
-        <span style={{ '--fill': `${(answered / total) * 100}%` } as never} />
+        <span
+          style={
+            {
+              '--fill': isSprint
+                ? `${((remainingMs ?? windowMs) / windowMs) * 100}%`
+                : `${(answered / total) * 100}%`,
+            } as never
+          }
+        />
       </div>
+
+      {phase === 'ready' && (
+        /*
+         * The pre-flight gate. The clock does not start until this is dismissed, so the window is
+         * the same length for a reader who was ready and one who had just arrived from a link.
+         */
+        <div class="card sprint-gate" data-testid="sprint-gate">
+          <p class="sprint-gate-lede">{t.quiz.sprint.ready(Math.round(windowMs / 1000))}</p>
+          <p class="subtle sprint-gate-note">{t.quiz.sprint.readyNote}</p>
+          <button
+            class="btn btn-primary btn-lg"
+            type="button"
+            data-testid="sprint-start"
+            onClick={beginSprint}
+          >
+            {t.quiz.sprint.start} <span aria-hidden="true">↵</span>
+          </button>
+        </div>
+      )}
 
       {/*
         * Two regions, because they have different jobs under a height constraint. The item
@@ -463,11 +703,35 @@ export default function Quiz({
         * figural options and an explanation cannot all fit a phone. Splitting them is what
         * lets the stimulus stay pinned while the tray moves under it.
         */}
+      {/*
+        * Hidden entirely while the gate is up, not merely dimmed. A visible first item would let
+        * a reader study it for as long as they liked and then start a clock they were already a
+        * step ahead of — which is the fairness problem the gate exists to remove, reintroduced.
+        */}
+      {phase !== 'ready' && (
       <div class="quiz-view">
         <div class="quiz-item" data-testid="quiz-item">
           <h2 class="quiz-prompt" data-testid="prompt">
             {item.prompt}
           </h2>
+
+          {isSprint && flash && (
+            /*
+             * Keyed on the timestamp so the CSS animation restarts for every answer, including
+             * two of the same verdict in a row. A word as well as a glyph, and both carry the
+             * verdict in text — the mark is not a colour that has to be interpreted.
+             */
+            <p
+              class="sprint-flash"
+              key={flash.at}
+              data-testid="sprint-flash"
+              data-correct={String(flash.correct)}
+              role="status"
+            >
+              <span aria-hidden="true">{flash.correct ? '✓' : '✗'}</span>{' '}
+              {flash.correct ? t.quiz.correct : t.quiz.notQuite}
+            </p>
+          )}
 
           {/*
            * A sized container, so the figure can be told to fit the height it has been
@@ -611,6 +875,7 @@ export default function Quiz({
         )}
         </div>
       </div>
+      )}
 
       <ShortcutSheet
         locale={locale}
@@ -778,14 +1043,53 @@ function Results({
     byType.set(r.type, acc);
   }
 
+  const isSprint = session.mode === 'sprint' && session.plannedMs !== undefined;
+  /*
+   * Rate rather than raw count, so two windows of different lengths can be compared — and so a
+   * reader who changes the window is not silently rewarded for choosing the longer one.
+   */
+  const perMinute = isSprint ? (correct / session.plannedMs!) * 60_000 : null;
+
   return (
-    <div class="stack" data-testid="results" style={{ '--stack-gap': '1.25rem' } as never}>
-      <h2 class="results-heading">{t.results.heading}</h2>
+    <div
+      class="stack"
+      data-testid="results"
+      data-mode={session.mode}
+      style={{ '--stack-gap': '1.25rem' } as never}
+    >
+      <h2 class="results-heading">{isSprint ? t.results.sprintHeading : t.results.heading}</h2>
 
       <div class="card-grid card-grid--fit stat-grid">
-        <Stat label={t.results.correct} value={`${correct} / ${total}`} testid="stat-correct" />
-        <Stat label={t.results.accuracy} value={formatPercent(accuracy, locale)} testid="stat-accuracy" />
-        <Stat label={t.results.medianTime} value={formatDuration(speed, locale)} testid="stat-speed" />
+        {/*
+         * In a sprint the headline is the count, and the label names the window it was scored in —
+         * "18 correct" means nothing without "in 60 seconds" beside it. Accuracy stays on the
+         * board as a check: output bought entirely by guessing is not output.
+         */}
+        {isSprint ? (
+          <>
+            <Stat
+              label={t.results.sprintCorrectIn(Math.round(session.plannedMs! / 1000))}
+              value={String(correct)}
+              testid="stat-correct"
+            />
+            <Stat
+              label={t.results.sprintRate}
+              value={t.results.perMinute(Math.round(perMinute! * 10) / 10)}
+              testid="stat-rate"
+            />
+            <Stat
+              label={t.results.sprintAttempted}
+              value={`${correct} / ${total}`}
+              testid="stat-attempted"
+            />
+          </>
+        ) : (
+          <>
+            <Stat label={t.results.correct} value={`${correct} / ${total}`} testid="stat-correct" />
+            <Stat label={t.results.accuracy} value={formatPercent(accuracy, locale)} testid="stat-accuracy" />
+            <Stat label={t.results.medianTime} value={formatDuration(speed, locale)} testid="stat-speed" />
+          </>
+        )}
         {/*
          * The seed gets a card of its own rather than a row of digits in a table: it is the
          * only figure here that is an *action* — the thing you send to someone else.

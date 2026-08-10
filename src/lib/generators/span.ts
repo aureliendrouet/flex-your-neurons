@@ -36,7 +36,12 @@ function planFor(difficulty: Difficulty): Plan {
   }
 }
 
-const meta: ItemTypeMeta = { id: 'span', domain: 'Gwm', icon: '⋯' };
+const meta: ItemTypeMeta = {
+  id: 'span',
+  domain: 'Gwm',
+  icon: '⋯',
+  sprintable: false,
+};
 
 function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
   const t = dict(locale).gen.span;

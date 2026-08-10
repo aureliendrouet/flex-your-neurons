@@ -118,7 +118,12 @@ function buildStream(plan: Plan, rng: Rng, wanted: number): string[] | null {
   return sequence;
 }
 
-const meta: ItemTypeMeta = { id: 'n-back', domain: 'Gwm', icon: '↩' };
+const meta: ItemTypeMeta = {
+  id: 'n-back',
+  domain: 'Gwm',
+  icon: '↩',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 100;
 

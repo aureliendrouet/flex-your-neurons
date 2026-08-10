@@ -109,12 +109,17 @@ Fourteen generators across four CHC domains:
 | `coding` | digit→symbol lookup, latency-scored | key size; symbol confusability |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
-> real subtest is how many items you complete per unit time, under an enforced limit. This
-> site enforces no limit on any item, and records response latency instead. That is a
-> defensible proxy — and it is what the app actually does — but it is not the same
-> measurement, and the wording here and in the UI is kept literal for that reason. Adding a
-> genuine per-item deadline (visible countdown, auto-submit on expiry, deadline stored on
-> the response) is a *feature*, deliberately not folded into a wording fix.
+> real subtest is how many items you complete per unit time, under an enforced limit. In
+> practice and test mode this site enforces no limit on any item and records response latency
+> instead. That is a defensible proxy — and it is what those modes actually do — but it is not
+> the same measurement, and the wording here and in the UI is kept literal for that reason.
+>
+> `sprint` mode is where the limit is real. It puts a whole block under one clock and scores
+> output per minute, which is the actual subtest measurement rather than a proxy for it. Note
+> what it still does not add: a per-*item* deadline with auto-submit on expiry. A sprint bounds
+> the block, not the item, so a reader may still spend as long as they like on any single item —
+> at the cost of the ones they then do not reach, which is exactly the trade-off the real subtest
+> imposes.
 
 > **On the two formats adapted to a one-response loop.** Both were shipped as the decision
 > matrix above allows, but neither is the lab task unchanged, and the difference is a property
@@ -130,14 +135,25 @@ Fourteen generators across four CHC domains:
 >   substitution, scored on latency, so it measures substitution speed and not the sustained
 >   output a timed page adds.
 >
-> Both would become the real thing given a **continuous timed block** — a mode this site does
-> not have, for the same reason there is no per-item deadline (see the note above). That mode
-> is the prerequisite for the speeded formats still unbuilt: mental arithmetic sprints, Stroop,
-> Trail Making.
+> Both now have that option: the **continuous timed block** ships as `sprint` mode — one format,
+> a fixed window, items back to back under a single running clock, scored on output per minute. It
+> does not replace the untimed drill, and the two are deliberately never pooled: a sprint's
+> latencies measure how fast a reader *chose* to go and its accuracy is pushed down by the
+> speed–accuracy trade-off, so `summarise` excludes sprints entirely and `sprintSummary` reports
+> them in their own units. Pooling them would have moved every per-type median the first time
+> anyone sprinted, with nothing on screen to say the measurement had changed.
 >
-> `head-count` is deliberately *not* in this list. Its source task is already one short episode
-> answered once, so nothing about it is a compression of a longer block — which is why it could
-> ship ahead of the block mode rather than waiting on it.
+> A format opts in with `meta.sprintable`, and the bar is narrow: one item answerable in a couple
+> of seconds. A format carrying a `presentation` can never qualify, since the block would be spent
+> watching — asserted in `tests/generators.test.ts` rather than left to reviewer discipline.
+>
+> The block was also the prerequisite named here for the speeded formats still unbuilt: mental
+> arithmetic sprints, Stroop, Trail Making. That prerequisite is now met; the formats themselves
+> are the remaining work.
+>
+> `head-count` was never in that list. Its source task is already one short episode answered once,
+> so nothing about it is a compression of a longer block — which is why it could ship ahead of the
+> block mode rather than waiting on it.
 
 > **On what difficulty is allowed to scale.** Worth stating once, because getting it wrong is
 > easy and the result still passes every test. `head-count` first scaled by letting the room

@@ -26,6 +26,7 @@ const en = {
     brand: 'Flex Your Neurons',
     home: 'Home',
     practice: 'Practice',
+    sprint: 'Sprint',
     test: 'Full test',
     progress: 'Progress',
     about: 'About',
@@ -83,6 +84,20 @@ const en = {
     headCountReady: (events: number) =>
       `${events} moves, one at a time. Some figures arrive, some leave — keep count of how many are in the room.`,
     headCountDone: 'How many were left?',
+    /**
+     * The continuous timed block. Copy is kept literal about what a sprint measures: sustained
+     * output inside a window, which is a different claim from "how good are you at this".
+     */
+    sprint: {
+      ready: (seconds: number) =>
+        `${seconds} seconds, as many items as you can. The clock starts when you do.`,
+      readyNote:
+        'No explanations until the end — answering moves straight to the next item. The level is fixed for the whole block, so two runs can be compared.',
+      start: 'Start the clock',
+      done: (n: number) => `${n} answered`,
+      nothing: 'The clock ran out before anything was answered.',
+      again: 'Try again',
+    },
     /** Labels for one step of the arrivals-and-departures stream. */
     headCount: {
       arriving: (n: number) => `${n} arriving`,
@@ -249,6 +264,12 @@ const en = {
 
   results: {
     heading: 'Session complete',
+    sprintHeading: 'Time',
+    /** The window is named in the label, because a bare count means nothing without it. */
+    sprintCorrectIn: (seconds: number) => `Correct in ${seconds}s`,
+    sprintRate: 'Rate',
+    sprintAttempted: 'Of those attempted',
+    perMinute: (n: number) => `${n}/min`,
     /** The error-type breakdown for the session just finished. */
     mistakesHeading: 'How you went wrong',
     mistakesLede:
@@ -275,6 +296,14 @@ const en = {
   },
 
   dashboard: {
+    sprintHeading: 'Sprints',
+    sprintLede:
+      'Timed blocks are kept apart from everything above, because they measure a different thing: output inside a fixed window, at a level pinned for the whole block. None of the accuracy or speed figures on the rest of this page contain a timed response.',
+    sprintRuns: (n: number) => `${n} run${n === 1 ? '' : 's'}`,
+    sprintBest: 'Best',
+    sprintLatest: 'Latest',
+    sprintScore: (correct: number, seconds: number) => `${correct} in ${seconds}s`,
+    sprintAccuracy: (percent: string) => `${percent} of those attempted`,
     loading: 'Loading…',
     overall: 'Overall',
     itemsAnswered: 'Items answered',
@@ -761,6 +790,29 @@ const en = {
     practiceType: {
       aboutHeading: 'About this format',
       seenIn: (tests: string) => `Seen in: ${tests}`,
+    },
+
+    sprintIndex: {
+      title: 'Sprint',
+      description:
+        'A timed block: one format, sixty seconds, as many items as you can get through. Scored on how much you finish rather than on a percentage.',
+      lede: 'Sixty seconds, one format, no explanations until the end. This is the one place on the site where the clock is part of the measurement rather than something recorded beside it.',
+      whatHeading: 'What a sprint measures',
+      whatBody:
+        'Processing speed is a speeded construct: on a real battery the score is how many items you complete inside an enforced limit, not how many you get right given as long as you like. Everywhere else this site records your response time and leaves you to take it; here the limit is real, the level is fixed for the whole block, and the score is output per minute. That makes two of your own sprints comparable — and it is still a measure of you on this format on this day, not of anything more general.',
+      whyFew:
+        'Only a few formats appear here, and that is deliberate. A sprint needs items answerable in a couple of seconds; a format whose items take twenty turns a minute into three items, which measures nothing the untimed drill does not measure better. Formats that play a sequence before you can answer are excluded outright, since most of the block would be spent watching.',
+    },
+
+    sprintType: {
+      title: (name: string) => `${name} sprint`,
+      description: (name: string) =>
+        `Sixty seconds of ${name.toLowerCase()} items under a running clock, scored on how many you finish.`,
+      lede: 'The clock starts when you do. Answering moves straight on — no explanation until the end.',
+      window: '60 seconds',
+      aboutHeading: 'How this is scored',
+      aboutBody:
+        'The headline is how many you got right inside the window, with the rate per minute beside it so that runs stay comparable. Accuracy is shown too, as a check rather than as the score: output bought entirely by guessing is not output. The difficulty is pinned for the whole block, and sprint results are kept apart from your practice statistics — the two are different measurements and pooling them would move your practice medians without saying so.',
     },
 
     test: {

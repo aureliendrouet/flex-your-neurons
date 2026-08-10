@@ -148,7 +148,12 @@ function buildScript(plan: Plan, rng: Rng): number[] | null {
   return events;
 }
 
-const meta: ItemTypeMeta = { id: 'head-count', domain: 'Gwm', icon: '⇄' };
+const meta: ItemTypeMeta = {
+  id: 'head-count',
+  domain: 'Gwm',
+  icon: '⇄',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 100;
 

@@ -118,7 +118,12 @@ const FIGURES: { major: [number, number]; minor: [number, number] }[] = [
   { major: [2, 1], minor: [1, 0] }, // P-M, M-S
 ];
 
-const meta: ItemTypeMeta = { id: 'syllogism', domain: 'Gf', icon: '∴' };
+const meta: ItemTypeMeta = {
+  id: 'syllogism',
+  domain: 'Gf',
+  icon: '∴',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 400;
 

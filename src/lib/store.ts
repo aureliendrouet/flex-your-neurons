@@ -12,7 +12,7 @@
 import { persistentAtom } from '@nanostores/persistent';
 import { computed } from 'nanostores';
 import type { Difficulty, ErrorType, ItemTypeId, Response, Session, SessionMode } from './types';
-import { summarise, type Summary } from './scoring';
+import { sprintSummary, summarise, type SprintStats, type Summary } from './scoring';
 import { randomSeed } from './rng';
 import { dict, DEFAULT_LOCALE, type Locale } from './i18n';
 
@@ -73,6 +73,17 @@ export const $summary = computed($sessions, (sessions): Summary =>
   summarise(safeSessions(sessions)),
 );
 
+/**
+ * Sprint results, kept apart from `$summary` rather than folded into it.
+ *
+ * `summarise` deliberately excludes sprints, because a timed block measures a different thing
+ * from an untimed drill and pooling the two would move every per-type median without saying so.
+ * See the note on `untimedSessions`.
+ */
+export const $sprints = computed($sessions, (sessions): SprintStats[] =>
+  sprintSummary(safeSessions(sessions)),
+);
+
 export function readSettings(): Settings {
   const value = $settings.get();
   return { ...DEFAULT_SETTINGS, ...(value ?? {}) };
@@ -82,7 +93,13 @@ export function updateSettings(patch: Partial<Settings>): void {
   $settings.set({ ...readSettings(), ...patch });
 }
 
-export function newSession(mode: SessionMode, types: ItemTypeId[], seed = randomSeed()): Session {
+export function newSession(
+  mode: SessionMode,
+  types: ItemTypeId[],
+  seed = randomSeed(),
+  /** The scoring window, for sprints. Omitted for practice and tests, which have no clock. */
+  plannedMs?: number,
+): Session {
   return {
     id: `${Date.now().toString(36)}-${seed}`,
     mode,
@@ -91,6 +108,7 @@ export function newSession(mode: SessionMode, types: ItemTypeId[], seed = random
     startedAt: Date.now(),
     finishedAt: null,
     responses: [],
+    ...(plannedMs === undefined ? {} : { plannedMs }),
   };
 }
 

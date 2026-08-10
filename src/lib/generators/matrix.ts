@@ -378,7 +378,12 @@ function errorTypeOf(c: Candidate): ErrorType {
 // Generator
 // ---------------------------------------------------------------------------
 
-const meta: ItemTypeMeta = { id: 'matrix', domain: 'Gf', icon: '▦' };
+const meta: ItemTypeMeta = {
+  id: 'matrix',
+  domain: 'Gf',
+  icon: '▦',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 60;
 

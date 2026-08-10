@@ -235,6 +235,21 @@ export interface ItemTypeMeta {
   domain: ChcDomain;
   /** Glyph used as a lightweight visual key. Language-neutral. */
   icon: string;
+  /**
+   * Whether this format may appear in a sprint — the continuous timed block, where items come
+   * one after another under a single running clock.
+   *
+   * Required rather than optional, so that adding a format forces an answer instead of
+   * inheriting a default. The test is narrow: **is one item of this format answerable in a
+   * couple of seconds?** A sprint is a measure of sustained output, and a format whose items
+   * take twenty seconds turns a sixty-second block into three items — which measures nothing
+   * that the untimed loop does not measure better.
+   *
+   * A format carrying a `presentation` can never be sprintable: it has to play itself before it
+   * can be answered, so most of the block would be spent watching. `tests/generators.test.ts`
+   * asserts that.
+   */
+  sprintable: boolean;
 }
 
 export interface Generator {
@@ -276,7 +291,13 @@ export interface Response {
   errorType?: ErrorType;
 }
 
-export type SessionMode = 'practice' | 'test';
+/**
+ * `sprint` is the continuous timed block: many fast items under one running clock, ending when
+ * the clock does rather than after a fixed count. It is a genuinely different measurement
+ * regime from the other two, not a setting on them — see `summarise` in `scoring.ts` for why
+ * that distinction has to be enforced rather than merely noted.
+ */
+export type SessionMode = 'practice' | 'test' | 'sprint';
 
 export interface Session {
   id: string;
@@ -288,5 +309,14 @@ export interface Session {
   startedAt: number;
   finishedAt: number | null;
   responses: Response[];
+  /**
+   * How long the block was *meant* to last, for sprints only.
+   *
+   * Recorded rather than derived from `finishedAt - startedAt`, because a score of "18 correct"
+   * is meaningless without the window it was scored in, and the elapsed time is not that
+   * window: it includes the moment before the first item painted and stops wherever the last
+   * response landed. Two sprints are only comparable if their planned windows match.
+   */
+  plannedMs?: number;
 }
 

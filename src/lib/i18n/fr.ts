@@ -32,6 +32,7 @@ const fr: Dict = {
     brand: 'Muscle Tes Neurones',
     home: 'Accueil',
     practice: 'Entraînement',
+    sprint: 'Contre-la-montre',
     test: 'Test complet',
     progress: 'Progression',
     about: 'À propos',
@@ -90,6 +91,16 @@ const fr: Dict = {
     headCountReady: (events: number) =>
       `${events} mouvements, un à la fois. Des personnages entrent, d’autres sortent — gardez le compte de ceux qui sont dans la salle.`,
     headCountDone: 'Combien en restait-il ?',
+    sprint: {
+      ready: (seconds: number) =>
+        `${seconds} secondes, autant d’items que possible. Le chronomètre part quand vous partez.`,
+      readyNote:
+        'Aucune explication avant la fin : répondre enchaîne directement sur l’item suivant. Le niveau reste fixe pour tout le bloc, ce qui rend deux séries comparables.',
+      start: 'Lancer le chronomètre',
+      done: (n: number) => `${n} traité${n === 1 ? '' : 's'}`,
+      nothing: 'Le temps s’est écoulé avant la moindre réponse.',
+      again: 'Réessayer',
+    },
     headCount: {
       arriving: (n: number) => `${n} qui ${n === 1 ? 'entre' : 'entrent'}`,
       leaving: (n: number) => `${n} qui ${n === 1 ? 'sort' : 'sortent'}`,
@@ -222,6 +233,11 @@ const fr: Dict = {
 
   results: {
     heading: 'Session terminée',
+    sprintHeading: 'Terminé',
+    sprintCorrectIn: (seconds: number) => `Justes en ${seconds} s`,
+    sprintRate: 'Cadence',
+    sprintAttempted: 'Sur les items tentés',
+    perMinute: (n: number) => `${n}/min`,
     mistakesHeading: 'Comment vous vous êtes trompé',
     mistakesLede:
       'Chaque mauvaise réponse correspond à une lecture erronée précise, et la même revient souvent. C’est la seule chose vraiment utile à retenir d’une session.',
@@ -247,6 +263,14 @@ const fr: Dict = {
   },
 
   dashboard: {
+    sprintHeading: 'Contre-la-montre',
+    sprintLede:
+      'Les blocs chronométrés restent à l’écart de tout ce qui précède, car ils mesurent autre chose : le débit dans une fenêtre fixe, à un niveau figé pour tout le bloc. Aucun des chiffres de précision ou de vitesse du reste de cette page ne contient de réponse chronométrée.',
+    sprintRuns: (n: number) => `${n} série${n === 1 ? '' : 's'}`,
+    sprintBest: 'Meilleure',
+    sprintLatest: 'Dernière',
+    sprintScore: (correct: number, seconds: number) => `${correct} en ${seconds} s`,
+    sprintAccuracy: (percent: string) => `${percent} des items tentés`,
     loading: 'Chargement…',
     overall: 'Vue d’ensemble',
     itemsAnswered: 'Items répondus',
@@ -727,6 +751,29 @@ const fr: Dict = {
       description:
         'Choisissez un seul format d’item et travaillez-le, avec une difficulté qui s’adapte à vos résultats et une explication après chaque réponse.',
       lede: 'Travaillez un format à la fois. La difficulté s’adapte au fil de la série — trois bonnes réponses d’affilée vous font monter, deux erreurs vous font redescendre — pour vous maintenir au niveau où l’entraînement sert vraiment à quelque chose.',
+    },
+
+    sprintIndex: {
+      title: 'Contre-la-montre',
+      description:
+        'Un bloc chronométré : un format, soixante secondes, autant d’items que vous pouvez traiter. Évalué sur ce que vous terminez plutôt que sur un pourcentage.',
+      lede: 'Soixante secondes, un seul format, aucune explication avant la fin. C’est le seul endroit du site où le chronomètre fait partie de la mesure au lieu d’être simplement noté à côté.',
+      whatHeading: 'Ce que mesure un sprint',
+      whatBody:
+        'La vitesse de traitement est un construit de vitesse : dans une batterie réelle, le score est le nombre d’items terminés dans une limite imposée, et non le nombre de réponses justes avec tout le temps voulu. Partout ailleurs, ce site enregistre votre temps de réponse et vous laisse le prendre ; ici la limite est réelle, le niveau reste fixe pour tout le bloc, et le score est un débit par minute. Deux de vos propres sprints deviennent ainsi comparables — et cela reste une mesure de vous, sur ce format, ce jour-là, et de rien de plus général.',
+      whyFew:
+        'Peu de formats figurent ici, et c’est délibéré. Un sprint exige des items traitables en deux ou trois secondes ; un format dont les items en prennent vingt réduit une minute à trois items, ce qui ne mesure rien que l’entraînement libre ne mesure mieux. Les formats qui déroulent une séquence avant qu’on puisse répondre sont exclus d’office : l’essentiel du bloc se passerait à regarder.',
+    },
+
+    sprintType: {
+      title: (name: string) => `Contre-la-montre — ${name}`,
+      description: (name: string) =>
+        `Soixante secondes d’items « ${name} » sous chronomètre, évaluées au nombre d’items terminés.`,
+      lede: 'Le chronomètre part quand vous partez. Répondre enchaîne aussitôt — aucune explication avant la fin.',
+      window: '60 secondes',
+      aboutHeading: 'Comment c’est évalué',
+      aboutBody:
+        'Le chiffre principal est le nombre de réponses justes dans la fenêtre, avec la cadence par minute à côté pour que les séries restent comparables. La précision est affichée aussi, comme garde-fou et non comme score : un débit obtenu au hasard n’est pas un débit. Le niveau est fixé pour tout le bloc, et les résultats de sprint restent séparés de vos statistiques d’entraînement — ce sont deux mesures différentes, et les mélanger déplacerait vos médianes d’entraînement sans le dire.',
     },
 
     practiceType: {

@@ -62,6 +62,22 @@ Node 22.12+ is required (Astro 7).
 | Symbol search | Gs | Membership re-checked after shuffling |
 | Digit–symbol coding | Gs | Every option is a key entry; the pairing is re-looked-up |
 
+## The three modes
+
+| Mode | Ends when | Scored on | Difficulty |
+|------|-----------|-----------|------------|
+| Practice | a set number of items | accuracy, with an explanation after each answer | adapts as you go |
+| Full test | every format has been seen twice | accuracy by format, no feedback until the end | adapts as you go |
+| Sprint | the clock runs out | correct answers per minute | pinned for the whole block |
+
+A sprint is the continuous timed block: one format, a fixed window, items back to back with no
+explanation until the end. Only formats whose items are answerable in a couple of seconds opt in
+(`meta.sprintable`), and a format that plays a sequence before it can be answered can never opt in.
+
+Sprint results are kept strictly apart from the practice and test statistics. A sprint's latencies
+measure how fast you *chose* to go and its accuracy is pushed down by the clock, so pooling the two
+would have moved every per-format median the first time anyone sprinted without saying so.
+
 ## How an item is made safe
 
 Three guards, described in full in [`docs/GENERATABILITY.md`](docs/GENERATABILITY.md) §4:

@@ -85,7 +85,12 @@ function buildKey(plan: Plan, rng: Rng): Symbol[] | null {
   return symbols;
 }
 
-const meta: ItemTypeMeta = { id: 'coding', domain: 'Gs', icon: '🔑' };
+const meta: ItemTypeMeta = {
+  id: 'coding',
+  domain: 'Gs',
+  icon: '🔑',
+  sprintable: true,
+};
 
 const MAX_ATTEMPTS = 100;
 

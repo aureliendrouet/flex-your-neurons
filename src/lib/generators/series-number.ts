@@ -201,7 +201,12 @@ function buildOptions(
   };
 }
 
-const meta: ItemTypeMeta = { id: 'series-number', domain: 'Gf', icon: '∑' };
+const meta: ItemTypeMeta = {
+  id: 'series-number',
+  domain: 'Gf',
+  icon: '∑',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 200;
 

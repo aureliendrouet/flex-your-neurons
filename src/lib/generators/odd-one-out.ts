@@ -108,7 +108,12 @@ function planFor(difficulty: Difficulty): Plan {
   }
 }
 
-const meta: ItemTypeMeta = { id: 'odd-one-out', domain: 'Gf', icon: '◈' };
+const meta: ItemTypeMeta = {
+  id: 'odd-one-out',
+  domain: 'Gf',
+  icon: '◈',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 300;
 

@@ -38,7 +38,12 @@ function planFor(difficulty: Difficulty): Plan {
   }
 }
 
-const meta: ItemTypeMeta = { id: 'symbol-search', domain: 'Gs', icon: '⚡' };
+const meta: ItemTypeMeta = {
+  id: 'symbol-search',
+  domain: 'Gs',
+  icon: '⚡',
+  sprintable: true,
+};
 
 const MAX_ATTEMPTS = 100;
 

@@ -147,7 +147,12 @@ function randomTransform(rng: Rng, exclude: Set<TransformKind>, t: T): Transform
   }
 }
 
-const meta: ItemTypeMeta = { id: 'analogy-figural', domain: 'Gf', icon: '⇉' };
+const meta: ItemTypeMeta = {
+  id: 'analogy-figural',
+  domain: 'Gf',
+  icon: '⇉',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 300;
 

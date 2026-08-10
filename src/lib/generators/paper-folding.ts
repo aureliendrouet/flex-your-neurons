@@ -195,7 +195,12 @@ function distractorsFor(
   return out;
 }
 
-const meta: ItemTypeMeta = { id: 'paper-folding', domain: 'Gv', icon: '⧉' };
+const meta: ItemTypeMeta = {
+  id: 'paper-folding',
+  domain: 'Gv',
+  icon: '⧉',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 300;
 

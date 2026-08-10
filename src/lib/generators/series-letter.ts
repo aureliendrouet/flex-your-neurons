@@ -151,7 +151,12 @@ function buildOptions(
   };
 }
 
-const meta: ItemTypeMeta = { id: 'series-letter', domain: 'Gf', icon: 'A→' };
+const meta: ItemTypeMeta = {
+  id: 'series-letter',
+  domain: 'Gf',
+  icon: 'A→',
+  sprintable: false,
+};
 
 const MAX_ATTEMPTS = 200;
 

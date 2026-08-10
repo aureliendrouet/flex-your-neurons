@@ -26,6 +26,7 @@ import { allResponses, formatDuration, formatPercent, tallyErrorTypes } from '..
 import {
   $sessions,
   $settings,
+  $sprints,
   $summary,
   DEFAULT_SETTINGS,
   clearHistory,
@@ -36,10 +37,12 @@ import {
 import { dict, type Locale } from '../lib/i18n';
 import { localeHref, practiceHref } from '../lib/links';
 import type { Session } from '../lib/types';
+import type { SprintStats } from '../lib/scoring';
 
 export default function ProgressDashboard({ locale }: { locale: Locale }) {
   const t = dict(locale);
   const summary = useStore($summary);
+  const sprints = useStore($sprints) ?? [];
   const sessions = useStore($sessions) ?? [];
   const settings = useStore($settings) ?? DEFAULT_SETTINGS;
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -214,6 +217,7 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
         </section>
       )}
 
+      {sprints.length > 0 && <SprintBoard locale={locale} sprints={sprints} />}
       {hasData && <MistakeProfile locale={locale} sessions={sessions} />}
 
       {hasData && (
@@ -391,6 +395,67 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
         </div>
       </section>
     </div>
+  );
+}
+
+/**
+ * Sprint results, on their own board.
+ *
+ * Separate from everything above it, and that separation is the point rather than a layout
+ * choice. `summarise` excludes sprints, so none of the accuracy, latency or trend figures on this
+ * page contain a single timed response — pooling the two regimes would have moved every per-type
+ * median the first time someone sprinted, with nothing on screen to say the measurement underneath
+ * had changed. The cost of keeping them apart is that sprint work would otherwise be invisible
+ * here, which is what this section repays.
+ *
+ * Best and latest, per format, and no ranking against anybody else. A rate is shown beside the
+ * count because the window is a setting: without it, a run of a different length would look like
+ * an improvement.
+ */
+function SprintBoard({ locale, sprints }: { locale: Locale; sprints: SprintStats[] }) {
+  const t = dict(locale);
+  return (
+    <section data-testid="sprint-section">
+      <h3 class="section-heading section-heading--sm">{t.dashboard.sprintHeading}</h3>
+      <p class="muted dashboard-lede">{t.dashboard.sprintLede}</p>
+      <div class="card-grid card-grid--fit">
+        {sprints.map((s) => (
+          <div
+            class="card sprint-stat"
+            key={s.type}
+            data-testid={`sprint-row-${s.type}`}
+            style={{ '--type-hue': typeHue(s.type) } as never}
+          >
+            <div class="cluster" style={{ '--cluster-gap': '0.5rem' } as never}>
+              <strong>{getItemText(s.type, locale).name}</strong>
+              <span class="pill">{t.dashboard.sprintRuns(s.runs)}</span>
+            </div>
+            <dl class="sprint-stat-figures">
+              <div>
+                <dt class="subtle">{t.dashboard.sprintBest}</dt>
+                <dd class="num-tabular" data-testid={`sprint-best-${s.type}`}>
+                  {t.dashboard.sprintScore(s.best.correct, Math.round(s.best.plannedMs / 1000))}
+                  {' '}
+                  <span class="subtle">
+                    {t.results.perMinute(Math.round(s.best.perMinute * 10) / 10)}
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt class="subtle">{t.dashboard.sprintLatest}</dt>
+                <dd class="num-tabular" data-testid={`sprint-latest-${s.type}`}>
+                  {t.dashboard.sprintScore(s.latest.correct, Math.round(s.latest.plannedMs / 1000))}
+                  {' '}
+                  <span class="subtle">
+                    {t.dashboard.sprintAccuracy(formatPercent(s.latest.accuracy, locale))}
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -65,6 +65,37 @@ describe('generator registry', () => {
     }
   });
 
+  /**
+   * A sprintable format must be answerable in a couple of seconds, and a format that plays a
+   * sequence before it can be answered never is: the block would be spent watching. Asserted
+   * rather than trusted, because `sprintable` is a hand-set boolean and the failure it guards
+   * against is silent — a gated format in a sixty-second block simply produces a very low score
+   * that looks like the reader's, not the harness's.
+   */
+  it('never marks a format with a transient stimulus as sprintable', () => {
+    for (const g of GENERATORS) {
+      if (!g.meta.sprintable) continue;
+      for (const d of DIFFICULTIES) {
+        for (const seed of SEEDS.slice(0, 20)) {
+          const item = generateItem(g.meta.id, seed, d);
+          expect(
+            item.presentation,
+            `${g.meta.id} ${seed} d${d} is sprintable but plays a presentation first`,
+          ).toBeUndefined();
+        }
+      }
+    }
+  });
+
+  /**
+   * A sprint has to have something in it. If the flag were false everywhere the mode would still
+   * build, still route, and simply list nothing — a working feature with no content, which is
+   * the kind of regression a green suite hides.
+   */
+  it('leaves at least one format sprintable', () => {
+    expect(GENERATORS.filter((g) => g.meta.sprintable).length).toBeGreaterThan(0);
+  });
+
   it('covers all four CHC domains the site claims to train', () => {
     const domains = new Set(GENERATORS.map((g) => g.meta.domain));
     expect([...domains].sort()).toEqual(['Gf', 'Gs', 'Gv', 'Gwm']);

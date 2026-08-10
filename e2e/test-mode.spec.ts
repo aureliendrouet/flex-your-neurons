@@ -46,7 +46,19 @@ test.describe('full test mode', () => {
     await clearAppStorage(page);
   });
 
+  /**
+   * The only test that walks all fourteen formats, and the slowest thing in the suite by a wide
+   * margin — so it gets its own budget rather than the default 45 seconds.
+   *
+   * The cost is not the item count. Three formats play themselves before they can be answered
+   * (span, n-back, head count), and their playback is real wall-clock time that no amount of
+   * waiting-smarter can remove: at level 2 those three alone account for roughly twenty seconds.
+   * Wall time therefore scales with how many *transient* formats exist, not with how many formats
+   * exist, and it grew past the default when head count shipped. Raise this again when the next
+   * transient format lands.
+   */
   test('rotates through every item type', async ({ page }) => {
+    test.setTimeout(120_000);
     await page.goto(testUrl());
     await waitForQuiz(page);
 
