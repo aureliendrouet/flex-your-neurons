@@ -43,7 +43,7 @@ Node 22.12+ is required (Astro 7).
 | `tests/` | Property-style unit tests, swept over hundreds of seeds |
 | `e2e/` | Playwright tests against the built static site |
 
-## The thirteen formats
+## The fourteen formats
 
 | Format | CHC | Verification |
 |--------|-----|--------------|
@@ -58,6 +58,7 @@ Node 22.12+ is required (Astro 7).
 | Figure weights | Gf | Every candidate group weighed; exactly one may balance — decidable |
 | Digit span | Gwm | Exact string match, whitespace-insensitive |
 | N-back | Gwm | Match count re-derived from the finished stream |
+| Head count | Gwm | Total re-accumulated from the script; the room may never empty |
 | Symbol search | Gs | Membership re-checked after shuffling |
 | Digit–symbol coding | Gs | Every option is a key entry; the pairing is re-looked-up |
 

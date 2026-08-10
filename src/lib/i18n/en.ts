@@ -80,6 +80,15 @@ const en = {
     nBackReady: (length: number, n: number) =>
       `${length} letters, one at a time. Count the ones that repeat the letter ${n === 1 ? 'immediately before' : `${n} places earlier`}.`,
     nBackDone: 'How many were there?',
+    headCountReady: (events: number) =>
+      `${events} moves, one at a time. Some figures arrive, some leave — keep count of how many are in the room.`,
+    headCountDone: 'How many were left?',
+    /** Labels for one step of the arrivals-and-departures stream. */
+    headCount: {
+      arriving: (n: number) => `${n} arriving`,
+      leaving: (n: number) => `${n} leaving`,
+      roomLabel: 'The room',
+    },
     /** Labels for the balance scales. View strings, so they live here, not in `gen`. */
     weights: {
       premisesLabel: 'These scales balance',
@@ -210,6 +219,7 @@ const en = {
       copy: 'copied cell',
       'wrong-attribute': 'wrong attribute',
       mirror: 'mirrored',
+      'wrong-direction': 'wrong direction',
       plausible: 'near miss',
     } as Record<ErrorType, string>,
     bodies: {
@@ -225,6 +235,8 @@ const en = {
         'Right rule, wrong feature. The transformation you applied is a real one here, but it governs a different attribute from the one you moved.',
       mirror:
         'That is a reflection, not a rotation. Pick one asymmetric feature and follow it: turning preserves its position relative to the rest, flipping reverses it.',
+      'wrong-direction':
+        'Right amount, opposite direction. You had the size of the step but applied it the wrong way — adding what should have come off, or the reverse. On a stream that does not repeat, a reversed step costs twice what a missed one does.',
       plausible:
         'A near miss with no single diagnosis — it breaks the pattern in more than one way at once, so there is no one rule to correct.',
     } as Record<ErrorType, string>,
@@ -320,7 +332,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than thirteen lines on one axis — thirteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than fourteen lines on one axis — fourteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -470,6 +482,13 @@ const en = {
       description:
         'A stream of letters goes past one at a time. Count how many of them match the letter a fixed number of places earlier — one place back at first, up to three. Span asks you to hold a list still; this asks you to keep a moving window of the last few elements and rewrite it at every step, which is why it measures updating rather than storage. The stream is gone when you answer, and it does not replay.',
       seenIn: 'Cognitive-training and working-memory research (Jaeggi et al.), Cogmed, the dual n-back literature',
+    },
+    'head-count': {
+      name: 'Head count',
+      blurb: 'Figures arrive and leave. How many are left?',
+      description:
+        'Groups of figures move into and out of a room, one step at a time. Keep the running total and report what is left at the end. Span holds a list still and n-back keeps a moving window; this holds a single number and rewrites it at every step, discarding the old one — which is why the departures are the point. Counting only the arrivals gives a total that is always available and always wrong. The steps are gone when you answer, and there is no replay.',
+      seenIn: 'Working-memory updating tasks (keep-track, running-count paradigms), commercial brain-training suites',
     },
     coding: {
       name: 'Digit–symbol coding',
@@ -670,6 +689,18 @@ const en = {
       ruleUpdating:
         'Counting these means holding the last few letters and replacing the oldest at every step. That updating, rather than how much you can store, is what this format measures.',
     },
+    headCount: {
+      prompt: 'How many figures were left in the room?',
+      summary: (count: number) => `${count} were left in the room.`,
+      /** One step of the replayed script: "3 in → 5". */
+      step: (n: number, arriving: boolean, total: number) =>
+        `${n} ${arriving ? 'in' : 'out'} → ${total}`,
+      ruleTrack:
+        'Each step moves figures in or out. What has to be held is the running total, not the steps: add or subtract, then forget the number you were holding.',
+      ruleSteps: (steps: string) => `Step by step: ${steps}.`,
+      ruleMissedStep: (n: number) =>
+        `Two of the options are what you get by mishandling a single step: missing the ${n === 1 ? 'one who left' : `${n} who left`}, or adding them instead of subtracting. Both sit close to the answer on purpose — an option you could dismiss for being far out would let you answer without watching.`,
+    },
     coding: {
       prompt: (digit: string) => `Which symbol is paired with ${digit}?`,
       summary: (digit: string, column: number) =>
@@ -687,7 +718,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Thirteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Fourteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -735,7 +766,7 @@ const en = {
     test: {
       title: 'Full test',
       description:
-        'A mixed run across all thirteen reasoning-test formats, two items each, with no feedback until the end.',
+        'A mixed run across all fourteen reasoning-test formats, two items each, with no feedback until the end.',
       lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
       differsHeading: 'How this differs from a real battery',
       differs: [
@@ -896,7 +927,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these thirteen formats is evidence about these thirteen formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these fourteen formats is evidence about these fourteen formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',

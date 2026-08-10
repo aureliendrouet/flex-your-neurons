@@ -49,17 +49,18 @@ Legend: ✅ pass · ⚠️ passes with engineering · ❌ fails
 | 11 | **Symbol search** (latency-scored) | Gs | ✅ | ✅ | ✅ | **SHIP** |
 | 12 | **Digit–symbol coding** (latency-scored) | Gs | ✅ | ✅ | ✅ | **SHIP** |
 | 13 | **Figure weights** / balance algebra | Gf/Gq | ✅ | ✅ | ✅ | **SHIP** |
-| 14 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
-| 15 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
-| 16 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
-| 17 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
-| 18 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
-| 19 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 20 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 21 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
-| 22 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
-| 23 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
-| 24 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
+| 14 | **Head count** / running-count updating | Gwm | ✅ | ✅ | ✅ | **SHIP** |
+| 15 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
+| 16 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
+| 17 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
+| 18 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
+| 19 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
+| 20 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 21 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 22 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
+| 23 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
+| 24 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
+| 25 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
 
 ### Why the Gc items are rejected
 
@@ -88,7 +89,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Thirteen generators across four CHC domains:
+Fourteen generators across four CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -103,6 +104,7 @@ Thirteen generators across four CHC domains:
 | `figure-weights` | balance-scale algebra, 4 options | # shapes in the chain; objects in the target pan |
 | `span` | digit/letter span, fwd & backward | span length (adaptive) |
 | `n-back` | count the N-back repeats in a stream | N; stream length; step rate |
+| `head-count` | track arrivals and departures, report the total | # steps; step rate; group size |
 | `symbol-search` | target detection, latency-scored | set size; distractor similarity |
 | `coding` | digit→symbol lookup, latency-scored | key size; symbol confusability |
 
@@ -132,6 +134,19 @@ Thirteen generators across four CHC domains:
 > not have, for the same reason there is no per-item deadline (see the note above). That mode
 > is the prerequisite for the speeded formats still unbuilt: mental arithmetic sprints, Stroop,
 > Trail Making.
+>
+> `head-count` is deliberately *not* in this list. Its source task is already one short episode
+> answered once, so nothing about it is a compression of a longer block — which is why it could
+> ship ahead of the block mode rather than waiting on it.
+
+> **On what difficulty is allowed to scale.** Worth stating once, because getting it wrong is
+> easy and the result still passes every test. `head-count` first scaled by letting the room
+> fill up, so by level 5 the running total reached the twenties — and holding "23, now 26" is
+> two-digit mental addition, which is a *different construct* with its own planned format. The
+> level had gone up while the ability being measured had quietly changed. Difficulty must scale
+> the load the format exists to measure — here, how many times the held value is rewritten and
+> how fast — and never drift into an adjacent construct because that happens to make items feel
+> harder.
 
 Every generator implements one interface:
 

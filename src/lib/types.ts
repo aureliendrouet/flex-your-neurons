@@ -25,6 +25,7 @@ export type ItemTypeId =
   | 'symbol-search'
   | 'coding'
   | 'n-back'
+  | 'head-count'
   | 'figure-weights';
 
 /** CHC broad ability. See docs/IQ-TESTS.md §2. */
@@ -123,6 +124,12 @@ export type Stimulus =
    */
   | { kind: 'n-back'; sequence: string[]; n: number }
   /**
+   * Figures arriving and leaving, one step at a time; the reader tracks the running total.
+   * Each event is a signed count — positive arrives, negative leaves — and the partial sums
+   * are never negative, because a room cannot hold fewer than nobody.
+   */
+  | { kind: 'head-count'; events: number[] }
+  /**
    * Balance-scale algebra. Each premise is a pair of pans that balance, establishing the
    * shapes' relative weights; `target` is the pan the chosen option must balance.
    */
@@ -157,6 +164,13 @@ export type ErrorType =
   | 'copy' // simply repeats a visible cell
   | 'wrong-attribute' // the rule applied to the wrong attribute
   | 'mirror' // a reflection where a rotation was required
+  /*
+   * The right quantity applied the opposite way: a subtraction added, a departure counted as
+   * an arrival. Distinct from `wrong-axis`, which is a confusion about *where* to read, and
+   * from `off-by-one`, which is the right direction miscounted. Added for the running-count
+   * formats, where reversing one step is the commonest single mistake.
+   */
+  | 'wrong-direction'
   | 'plausible'; // a generic near-miss with no single diagnosis
 
 export interface Explanation {

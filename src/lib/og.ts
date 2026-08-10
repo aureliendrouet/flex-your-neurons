@@ -285,6 +285,34 @@ function stage(item: Item): string {
         .join('');
     }
 
+    /*
+     * The script as signed chips, with the running total beneath each one. The totals are the
+     * whole point: a row of "+3 −2 +4" is arithmetic, and it is only the line of totals under
+     * it that says the quantity being held is rewritten at every step.
+     */
+    case 'head-count': {
+      const shown = s.events.slice(0, 6);
+      const w = 62;
+      const h = 66;
+      const gap = 12;
+      const total = shown.length * w + (shown.length - 1) * gap;
+      const startX = STAGE.x + (STAGE.w - total) / 2;
+      // Both rows are centred as a block, so the pair sits on the stage's midline.
+      const y = STAGE.y + (STAGE.h - (h + 44)) / 2;
+      let running = 0;
+      return shown
+        .map((delta, i) => {
+          running += delta;
+          const x = startX + i * (w + gap);
+          const label = delta > 0 ? `+${delta}` : String(delta);
+          return (
+            chip(label, x, y, w, h) +
+            `<text x="${x + w / 2}" y="${y + h + 26}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="27" font-weight="650" fill="${ACCENT}">${running}</text>`
+          );
+        })
+        .join('');
+    }
+
     /* Odd-one-out: the options are the question, so they are also the picture. */
     case 'none': {
       const figures = item.options.flatMap((o) => (o.kind === 'figure' ? [o.figure] : [])).slice(0, 4);

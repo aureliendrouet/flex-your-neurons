@@ -87,6 +87,14 @@ const fr: Dict = {
     nBackReady: (length: number, n: number) =>
       `${length} lettres, une à la fois. Comptez celles qui reprennent la lettre ${n === 1 ? 'précédente' : `apparue ${n} rangs plus tôt`}.`,
     nBackDone: 'Combien y en avait-il ?',
+    headCountReady: (events: number) =>
+      `${events} mouvements, un à la fois. Des personnages entrent, d’autres sortent — gardez le compte de ceux qui sont dans la salle.`,
+    headCountDone: 'Combien en restait-il ?',
+    headCount: {
+      arriving: (n: number) => `${n} qui ${n === 1 ? 'entre' : 'entrent'}`,
+      leaving: (n: number) => `${n} qui ${n === 1 ? 'sort' : 'sortent'}`,
+      roomLabel: 'La salle',
+    },
     weights: {
       premisesLabel: 'Ces balances s’équilibrent',
       targetLabel: 'Équilibrez celle-ci',
@@ -186,6 +194,7 @@ const fr: Dict = {
       copy: 'case recopiée',
       'wrong-attribute': 'mauvais attribut',
       mirror: 'image miroir',
+      'wrong-direction': 'sens inversé',
       plausible: 'presque juste',
     },
     bodies: {
@@ -201,6 +210,8 @@ const fr: Dict = {
         'La bonne règle, mais sur le mauvais attribut. La transformation que vous avez appliquée existe bien ici, mais elle gouverne autre chose que ce que vous avez fait varier.',
       mirror:
         'C’est un reflet, pas une rotation. Choisissez un détail asymétrique et suivez-le : tourner conserve sa position relative, retourner l’inverse.',
+      'wrong-direction':
+        'La bonne quantité, mais dans le sens inverse. Vous teniez la taille du pas, mais vous l’avez appliqué à l’envers : ajouté ce qu’il fallait retrancher, ou l’inverse. Sur un flux qui ne se rejoue pas, un pas inversé coûte deux fois plus qu’un pas manqué.',
       plausible:
         'Presque juste, sans diagnostic unique : cette option casse le motif de plusieurs façons à la fois, il n’y a donc pas une seule règle à corriger.',
     },
@@ -286,7 +297,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que treize courbes sur un même axe : treize couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que quatorze courbes sur un même axe : quatorze couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -437,6 +448,13 @@ const fr: Dict = {
       description:
         'Un flux de lettres défile, une à la fois. Comptez celles qui reprennent la lettre apparue un nombre fixe de rangs plus tôt — un rang d’abord, jusqu’à trois. La mémoire des chiffres demande de retenir une liste immobile ; cette épreuve demande de tenir une fenêtre glissante des derniers éléments et de la réécrire à chaque pas, d’où une mesure de la mise à jour plutôt que du stockage. Le flux a disparu au moment de répondre, et il ne se rejoue pas.',
       seenIn: 'Recherche sur l’entraînement cognitif et la mémoire de travail (Jaeggi et al.), Cogmed, littérature sur le double n-back',
+    },
+    'head-count': {
+      name: 'Compte des présents',
+      blurb: 'Des personnages entrent et sortent. Combien en reste-t-il ?',
+      description:
+        'Des groupes de personnages entrent et sortent d’une salle, un mouvement à la fois. Tenez le compte courant et annoncez ce qu’il en reste à la fin. La mémoire des chiffres retient une liste immobile, la tâche N-back tient une fenêtre glissante ; ici il faut tenir un seul nombre et le réécrire à chaque pas en oubliant le précédent — voilà pourquoi les sorties font tout l’intérêt. Ne compter que les entrées donne un total toujours disponible et toujours faux. Les mouvements ont disparu au moment de répondre, et rien ne se rejoue.',
+      seenIn: 'Tâches de mise à jour en mémoire de travail (keep-track, comptage courant), logiciels commerciaux d’entraînement cérébral',
     },
     coding: {
       name: 'Code chiffre–symbole',
@@ -640,6 +658,17 @@ const fr: Dict = {
       ruleUpdating:
         'Les compter suppose de retenir les dernières lettres et de remplacer la plus ancienne à chaque pas. C’est cette mise à jour, et non la quantité stockée, que ce format mesure.',
     },
+    headCount: {
+      prompt: 'Combien de personnages restaient-ils dans la salle ?',
+      summary: (count: number) => `Il en restait ${count} dans la salle.`,
+      step: (n: number, arriving: boolean, total: number) =>
+        `${n} ${arriving ? 'entrent' : 'sortent'} → ${total}`,
+      ruleTrack:
+        'Chaque mouvement fait entrer ou sortir des personnages. Ce qu’il faut tenir, c’est le total courant et non les mouvements : additionnez ou soustrayez, puis oubliez le nombre que vous teniez.',
+      ruleSteps: (steps: string) => `Pas à pas : ${steps}.`,
+      ruleMissedStep: (n: number) =>
+        `Deux des réponses proposées correspondent à une seule étape mal traitée : avoir manqué ${n === 1 ? 'celui qui sortait' : `les ${n} qui sortaient`}, ou l’avoir ajouté${n === 1 ? '' : 's'} au lieu de le${n === 1 ? '' : 's'} retrancher. Toutes deux sont volontairement proches de la bonne — une réponse écartable parce qu’elle est trop éloignée permettrait de répondre sans avoir regardé.`,
+    },
     coding: {
       prompt: (digit: string) => `Quel symbole est associé au ${digit} ?`,
       summary: (digit: string, column: number) =>
@@ -658,7 +687,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Treize formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Quatorze formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -708,7 +737,7 @@ const fr: Dict = {
     test: {
       title: 'Test complet',
       description:
-        'Une série mixte sur les treize formats, deux items chacun, sans retour avant la fin.',
+        'Une série mixte sur les quatorze formats, deux items chacun, sans retour avant la fin.',
       lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
       differs: [
@@ -863,7 +892,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces treize formats est une information sur ces treize formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces quatorze formats est une information sur ces quatorze formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

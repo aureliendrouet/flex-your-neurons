@@ -258,6 +258,35 @@ function ThumbBody({ item }: { item: Item }) {
       );
     }
 
+    /*
+     * The script as signed steps with its running total under them. Drawing the figures at card
+     * size would be a row of specks, and the arrows alone would not say what is being tracked —
+     * the total is the thing the format asks for, so the total is what the miniature shows.
+     */
+    case 'head-count': {
+      let running = 0;
+      /*
+       * Each step and its resulting total share one column, rather than sitting in two
+       * independent rows. Two rows was the first attempt and it did not line up: the chips and
+       * the bare numbers have different widths, so the totals drifted out of correspondence
+       * with the steps they belong to — which is the one relationship the miniature exists to
+       * show. Pairing them in a column makes the alignment structural.
+       */
+      const steps = s.events.slice(0, SET_LIMIT).map((delta) => ({ delta, total: (running += delta) }));
+      return (
+        <div class="thumb-heads">
+          {steps.map(({ delta, total }, i) => (
+            <div class="thumb-heads-step" key={i}>
+              <span class="thumb-term" data-thumb-sign={delta > 0 ? 'in' : 'out'}>
+                {delta > 0 ? `+${delta}` : `−${Math.abs(delta)}`}
+              </span>
+              <span class="thumb-heads-total">{total}</span>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     case 'symbol-search':
       return (
         <div class="thumb-search">

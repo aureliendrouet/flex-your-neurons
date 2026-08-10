@@ -56,6 +56,14 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
    */
   'figure-weights': { seed: 'PRVWGHT1', difficulty: 2 },
   'n-back': { seed: 'PRVNBACK', difficulty: 1 },
+  /*
+   * Level 1, and chosen by looking at candidates rather than by taking the first that worked.
+   * This one runs +3 −1 +2 −1, so its totals go 3, 2, 4, 3 — the directions alternate and the
+   * held value visibly rises *and* falls. Most seeds open with a run of arrivals, which draws a
+   * card that reads as counting; the whole claim of the format is that the total is rewritten in
+   * both directions, so the card has to show that.
+   */
+  'head-count': { seed: 'PRVROOM2', difficulty: 1 },
   coding: { seed: 'PRVCODNG', difficulty: 1 },
 };
 

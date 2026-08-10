@@ -388,3 +388,133 @@ describe('figure weights are solvable from the premises alone', () => {
     }
   });
 });
+
+/**
+ * Head count, re-derived from the stream the reader is shown.
+ *
+ * Deliberately does not import `finalCount` from the generator. A test that reused the
+ * generator's own walk would only prove the generator agrees with itself; this recomputes the
+ * total from the stimulus with a second, independent accumulator and then checks the three
+ * properties that make the item answerable at all.
+ */
+describe('head count is decidable from the stream alone', () => {
+  const SEEDS = Array.from({ length: 40 }, (_, i) => `HC${i}`);
+
+  it('tracks to exactly one keyed total, never going negative', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('head-count', seed, difficulty);
+        const where = `head-count ${seed} d${difficulty}`;
+        if (item.stimulus.kind !== 'head-count') throw new Error('unexpected stimulus');
+        const { events } = item.stimulus;
+
+        /*
+         * Independent accumulation, asserting coherence at every step rather than at the end.
+         *
+         * The floor is one, not zero. A room that empties mid-stream resets the task — from
+         * that point everything before is irrelevant and a reader can stop tracking and add up
+         * the rest — and the first pinned preview drew exactly that, with totals running
+         * 1, 0, 3, 6. Zero at the end is separately unusable: it is the total you land on by
+         * never watching, indistinguishable from not having engaged.
+         */
+        let total = 0;
+        for (const [i, delta] of events.entries()) {
+          expect(delta, `${where}: step ${i + 1} moves nobody`).not.toBe(0);
+          total += delta;
+          expect(total, `${where}: the room held ${total} after step ${i + 1}`).toBeGreaterThanOrEqual(1);
+        }
+
+        // At least one departure, or the item is an accumulation rather than an update.
+        expect(
+          events.filter((d) => d < 0).length,
+          `${where}: no departures, so nothing has to be discarded`,
+        ).toBeGreaterThan(0);
+
+        const values = item.options.map((o) => {
+          if (o.kind !== 'text') throw new Error('expected text options');
+          return Number(o.text);
+        });
+        expect(values.filter((v) => v === total), `${where}: totals matching the answer`).toHaveLength(1);
+        expect(values[item.answerIndex], `${where}: keyed answer is not the total`).toBe(total);
+      }
+    }
+  });
+
+  /**
+   * The option set must not answer the item on its own.
+   *
+   * The first version of this format offered the arrivals-only total as a distractor, which on
+   * a longer stream is the sum of every departure away from the answer — 20 sitting beside 4,
+   * dismissible without having watched anything. That is the I-RAVEN leak in miniature. The
+   * bound is a step's worth of slack either side of the plausible range, not a tight fit,
+   * because the point is to catch an option an order of magnitude out.
+   */
+  it('offers no option that can be ruled out for being implausible', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('head-count', seed, difficulty);
+        const where = `head-count ${seed} d${difficulty}`;
+        const values = item.options.map((o) => Number((o as { text: string }).text));
+        const answer = values[item.answerIndex]!;
+        for (const v of values) {
+          expect(
+            Math.abs(v - answer),
+            `${where}: option ${v} is ${Math.abs(v - answer)} away from the answer ${answer}`,
+          ).toBeLessThanOrEqual(10);
+        }
+      }
+    }
+  });
+
+  /**
+   * Difficulty must scale the number of updates, not the size of the numbers.
+   *
+   * This is the property the first plan got wrong: with no ceiling on the room the total drifted
+   * into the twenties by level 5, and holding "23, now 26" is two-digit mental arithmetic — a
+   * different construct, with its own format. The cap keeps the held value small so that what
+   * grows with difficulty is how many times it is rewritten.
+   */
+  it('keeps the running total small at every difficulty', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('head-count', seed, difficulty);
+        if (item.stimulus.kind !== 'head-count') throw new Error('unexpected stimulus');
+        let total = 0;
+        let peak = 0;
+        for (const delta of item.stimulus.events) {
+          total += delta;
+          peak = Math.max(peak, total);
+        }
+        expect(peak, `head-count ${seed} d${difficulty}: the room peaked at ${peak}`).toBeLessThanOrEqual(12);
+      }
+    }
+  });
+
+  /**
+   * The updating has to be continuous, item by item.
+   *
+   * "At least one departure" was the original guard and it let a nine-step stream through with
+   * a single subtraction — an accumulation with one interruption, which never forces the held
+   * value to be discarded. The first version of this test measured the departure *share across
+   * all seeds*, and that version did not bite: the aggregate stayed healthy while individual
+   * items could still be degenerate. The property is per-item, so the assertion is per-item.
+   *
+   * The floor is restated here rather than imported from the generator. Importing its own
+   * `minDepartures` would prove only that the generator agrees with itself.
+   */
+  it('makes the updating continuous rather than one interrupted accumulation', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('head-count', seed, difficulty);
+        if (item.stimulus.kind !== 'head-count') throw new Error('unexpected stimulus');
+        const { events } = item.stimulus;
+        const departures = events.filter((d) => d < 0).length;
+        const floor = Math.max(1, Math.floor(events.length / 3));
+        expect(
+          departures,
+          `head-count ${seed} d${difficulty}: ${departures} departures in ${events.length} steps`,
+        ).toBeGreaterThanOrEqual(floor);
+      }
+    }
+  });
+});

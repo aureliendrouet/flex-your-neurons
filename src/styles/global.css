@@ -1858,6 +1858,30 @@ kbd {
   block-size: 100%;
 }
 
+/*
+ * Head count: one column per step, the delta above the total it produces. The accent on the
+ * totals row is what says "this is the number being rewritten", which is the whole claim the
+ * miniature makes about the format.
+ */
+.thumb-heads {
+  display: flex;
+  gap: 0.3rem;
+  align-items: start;
+  justify-content: center;
+}
+
+.thumb-heads-step {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+}
+
+.thumb-heads-total {
+  font: 600 0.72rem/1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
 .thumb-coding-pair {
   display: grid;
   justify-items: center;
@@ -2349,6 +2373,57 @@ kbd {
   font-weight: 600;
   line-height: 1;
   color: var(--accent);
+}
+
+/*
+ * The drawn variant of a stream element: a group of figures rather than a character. Drops
+ * the type ramp, which does nothing for an SVG, but keeps the stage box so the layout does
+ * not shift between the gate, the elements, and the closing prompt.
+ */
+.span-element--drawn {
+  font-size: inherit;
+}
+
+.movement {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/*
+ * The sign is the primary channel and is sized like one: as large as the figures, in the
+ * monospace face so + and − share a width and the group does not shift sideways between an
+ * arrival and a departure. A jump at that size would be read as motion, which is a second
+ * meaning nobody asked for.
+ */
+.movement-sign {
+  font-family: var(--font-code);
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.movement-figures {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/*
+ * Solid to arrive, hollow to leave. A redundant, non-positional second channel behind the
+ * sign — and deliberately not a hue, so it survives any colour vision. See the note on
+ * `Movement` for the mirrored-arrow version this replaced.
+ */
+.movement-figure {
+  height: 3.25rem;
+  width: auto;
+  fill: var(--accent);
+}
+
+.movement[data-movement='out'] .movement-figure {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
 }
 
 /* --- Progress dashboard --------------------------------------------------- */

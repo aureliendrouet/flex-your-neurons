@@ -2,6 +2,7 @@
  * Renders any Stimulus variant. One component per item family keeps the quiz runner free
  * of format-specific logic.
  */
+import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import FigureView, { describeFigure } from './FigureView';
 import GridView from './GridView';
@@ -218,7 +219,65 @@ export default function StimulusView({
           doneText={t.nBackDone}
         />
       );
+
+    case 'head-count':
+      return (
+        <StreamPlayer<number>
+          kind="head-count"
+          sequence={stimulus.events}
+          presentation={presentation}
+          reducedMotion={reducedMotion}
+          onDone={onPresentationDone}
+          locale={locale}
+          readyText={t.headCountReady(stimulus.events.length)}
+          doneText={t.headCountDone}
+          renderElement={(delta) => <Movement delta={delta} locale={locale} />}
+        />
+      );
   }
+}
+
+/**
+ * One step of the head-count stream: a group of figures, and which way they are going.
+ *
+ * ## Why a sign rather than an arrow
+ *
+ * The first version drew an arrow beside the group, pointing right to arrive and left to
+ * leave, with the row reversed so the arrow trailed a departing group. Rendered, both
+ * directions came out as an arrow pointing *at* the figures — the only difference was which
+ * side of them it sat on. For a frame that is on screen for under a second and never repeats,
+ * that is not a distinction anyone can be asked to make, and getting it wrong is a perception
+ * failure rather than the memory failure this format exists to measure.
+ *
+ * A sign cannot be misread the way a mirrored arrow can, and it is reinforced by a second,
+ * non-positional channel: arriving figures are solid, leaving figures are hollow. Neither
+ * channel is colour, so neither depends on the reader's colour vision.
+ */
+function Movement({ delta, locale }: { delta: number; locale: Locale }) {
+  const t = dict(locale).quiz.headCount;
+  const arriving = delta > 0;
+  const n = Math.abs(delta);
+  return (
+    <span class="movement" data-movement={arriving ? 'in' : 'out'} data-movement-count={String(n)}>
+      {/* A true minus sign, not a hyphen: at this size a hyphen reads as a dash between
+          things rather than as an operator. */}
+      <span class="movement-sign" aria-hidden="true">
+        {arriving ? '+' : '−'}
+      </span>
+      <span class="movement-figures" aria-hidden="true">
+        {Array.from({ length: n }, (_, i) => (
+          <svg key={i} class="movement-figure" viewBox="0 0 14 22" role="presentation">
+            {/* A head and a body: legible at 20px, and unmistakably a person rather than a
+                dot, which matters because the count is read at a glance. The viewBox carries
+                a unit of padding so the stroked (leaving) variant is not clipped. */}
+            <circle cx="7" cy="5" r="3.2" />
+            <path d="M7 9 C3.4 9 2.2 12 2.2 20 L11.8 20 C11.8 12 10.6 9 7 9 Z" />
+          </svg>
+        ))}
+      </span>
+      <span class="sr-only">{arriving ? t.arriving(n) : t.leaving(n)}</span>
+    </span>
+  );
 }
 
 function Arrow() {
@@ -669,7 +728,7 @@ function PaperFolding({
  * the moment they chose. Latency is unaffected either way: the response clock is reset by
  * `onDone`, so neither the playback nor the wait before it counts towards the answer.
  */
-function StreamPlayer({
+function StreamPlayer<T>({
   sequence,
   presentation,
   reducedMotion,
@@ -678,18 +737,25 @@ function StreamPlayer({
   kind,
   readyText,
   doneText,
+  renderElement,
 }: {
-  sequence: string[];
+  sequence: T[];
   presentation?: Presentation;
   reducedMotion?: boolean;
   onDone?: () => void;
   locale: Locale;
-  /** Drives `data-stimulus`, so the e2e suite can tell the two formats apart. */
-  kind: 'span' | 'n-back';
+  /** Drives `data-stimulus`, so the e2e suite can tell the formats apart. */
+  kind: 'span' | 'n-back' | 'head-count';
   /** Shown on the gate, above the start button: what is about to happen. */
   readyText: string;
   /** Shown once playback has finished: what to do now. */
   doneText: string;
+  /**
+   * Draws one element. Omitted by the two formats whose elements *are* characters, which get
+   * the default single-glyph rendering; supplied by head-count, whose elements are signed
+   * counts that have to be drawn rather than printed.
+   */
+  renderElement?: (element: T) => ComponentChildren;
 }) {
   const t = dict(locale).quiz;
   const stepMs = reducedMotion ? 1400 : (presentation?.stepMs ?? 900);
@@ -698,7 +764,13 @@ function StreamPlayer({
   const [finished, setFinished] = useState(false);
   const [started, setStarted] = useState(false);
 
-  const key = sequence.join('');
+  /*
+   * Identity of "which stream is this", used to re-arm the gate on a new item. `String` per
+   * element rather than `join` on the array, because a signed-number stream joined on the
+   * empty string would collapse `[1, -2]` and `[1, -2]` correctly but `[1, 2]` and `[12]`
+   * into the same key.
+   */
+  const key = sequence.map(String).join('|');
 
   /*
    * A new item must re-arm the gate. This is keyed on the sequence rather than done in the
@@ -784,9 +856,15 @@ function StreamPlayer({
         <span class="subtle" data-span-prompt>
           {doneText}
         </span>
+      ) : renderElement ? (
+        /* The drawn variant keeps the same stage box, so the layout does not shift between
+           the gate, the elements, and the closing prompt. */
+        <span class="span-element span-element--drawn">
+          {index >= 0 ? renderElement(sequence[index]!) : null}
+        </span>
       ) : (
-        <span class="span-element" data-span-element={index >= 0 ? sequence[index] : ''}>
-          {index >= 0 ? sequence[index] : ' '}
+        <span class="span-element" data-span-element={index >= 0 ? String(sequence[index]) : ''}>
+          {index >= 0 ? String(sequence[index]) : ' '}
         </span>
       )}
     </div>

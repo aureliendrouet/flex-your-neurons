@@ -401,6 +401,95 @@ test.describe('difficulty', () => {
   });
 });
 
+test.describe('head count', () => {
+  const HC: DrillOptions = { seed: 'HCE2E001', difficulty: 3, length: 1 };
+
+  test('locks its options until the stream has played', async ({ page }) => {
+    await page.goto(practiceUrl('head-count', HC));
+    await waitForQuiz(page);
+
+    const stream = page.locator('[data-stimulus="head-count"]');
+    const firstOption = page.getByTestId('option-0');
+
+    await expect(stream).toHaveAttribute('data-span-started', 'false');
+    await expect(firstOption).toBeDisabled();
+
+    await page.getByTestId('span-start').click();
+    await expect(firstOption).toBeDisabled();
+
+    // The keyboard route bypasses `disabled`, so it is checked separately.
+    await page.keyboard.press('1');
+    await expect(page.getByTestId('feedback')).toHaveCount(0);
+
+    await expect(stream).toHaveAttribute('data-span-finished', 'true', { timeout: 30_000 });
+    await expect(firstOption).toBeEnabled();
+  });
+
+  /**
+   * Arrivals and departures must differ on a channel that is not position.
+   *
+   * This is a regression test for a real defect. The first version drew an arrow beside the
+   * group — pointing right to arrive, left to leave — with the row reversed for departures. On
+   * screen both came out as an arrow pointing *at* the figures, differing only in which side of
+   * them it sat on. For a frame shown for under a second that is no distinction at all, and
+   * mistaking one for the other is a perception failure rather than the memory failure this
+   * format is for. What the test pins is the property, not the glyph: the two directions must
+   * differ in their sign *and* in how the figures are painted.
+   */
+  test('distinguishes arrivals from departures without relying on position', async ({ page }) => {
+    await page.goto(practiceUrl('head-count', HC));
+    await waitForQuiz(page);
+
+    const item = expectedItem('head-count', HC.seed, 0, HC.difficulty);
+    if (item.stimulus.kind !== 'head-count') throw new Error('expected a head-count stimulus');
+    // The chosen seed has to exercise both directions or the test proves nothing.
+    expect(item.stimulus.events.some((d) => d > 0), 'seed has no arrivals').toBe(true);
+    expect(item.stimulus.events.some((d) => d < 0), 'seed has no departures').toBe(true);
+
+    await page.getByTestId('span-start').click();
+
+    const seen = new Map<string, { sign: string; fill: string; figures: number; count: string }>();
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline && seen.size < 2) {
+      const movement = page.locator('.movement');
+      if ((await movement.count()) > 0) {
+        const observed = await movement.first().evaluate((el) => {
+          const figure = el.querySelector('.movement-figure');
+          return {
+            direction: el.getAttribute('data-movement') ?? '',
+            count: el.getAttribute('data-movement-count') ?? '',
+            sign: el.querySelector('.movement-sign')?.textContent?.trim() ?? '',
+            fill: figure ? getComputedStyle(figure).fill : '',
+            figures: el.querySelectorAll('.movement-figure').length,
+          };
+        });
+        if (observed.direction && !seen.has(observed.direction)) {
+          seen.set(observed.direction, observed);
+        }
+      }
+      await page.waitForTimeout(40);
+    }
+
+    expect([...seen.keys()].sort(), 'both directions were drawn').toEqual(['in', 'out']);
+    const arriving = seen.get('in')!;
+    const leaving = seen.get('out')!;
+
+    // The sign is the primary channel.
+    expect(arriving.sign).toBe('+');
+    expect(leaving.sign).toBe('\u2212');
+    // And the fill is the redundant one, so a reader who misses the sign still has a cue.
+    expect(leaving.fill, 'departing figures are painted the same as arriving ones').not.toBe(
+      arriving.fill,
+    );
+    expect(arriving.fill).not.toBe('none');
+    expect(leaving.fill).toBe('none');
+
+    // The magnitude has to be readable from the drawing, not only from the sign.
+    expect(arriving.figures).toBe(Number(arriving.count));
+    expect(leaving.figures).toBe(Number(leaving.count));
+  });
+});
+
 test.describe('all types in one place', () => {
   test('every type is listed on the practice index', async ({ page }) => {
     await page.goto('en/practice/');

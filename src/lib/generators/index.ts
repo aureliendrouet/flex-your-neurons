@@ -17,6 +17,7 @@ import { spanGenerator } from './span';
 import { symbolSearchGenerator } from './symbol-search';
 import { codingGenerator } from './coding';
 import { nBackGenerator } from './n-back';
+import { headCountGenerator } from './head-count';
 import { figureWeightsGenerator } from './figure-weights';
 
 /** Presentation order: reasoning first, then spatial, then memory and speed. */
@@ -33,6 +34,7 @@ export const GENERATORS: Generator[] = [
   symbolSearchGenerator,
   figureWeightsGenerator,
   nBackGenerator,
+  headCountGenerator,
   codingGenerator,
 ];
 
