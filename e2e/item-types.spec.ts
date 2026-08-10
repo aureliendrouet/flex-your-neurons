@@ -171,6 +171,28 @@ test.describe('format-specific rendering', () => {
     await expect(page.getByTestId('options').locator('button')).toHaveCount(2);
   });
 
+  test('figure weights draws its premises and one pan to fill', async ({ page }) => {
+    await page.goto(practiceUrl('figure-weights', { ...OPTS, difficulty: 5 }));
+    await waitForQuiz(page);
+
+    const item = expectedItem('figure-weights', OPTS.seed, 0, 5);
+    if (item.stimulus.kind !== 'figure-weights') throw new Error('unexpected stimulus');
+
+    // One scale per premise, plus the target scale.
+    await expect(page.locator('[data-weights-scale]')).toHaveCount(
+      item.stimulus.premises.length + 1,
+    );
+    // Exactly one pan is blank, and it is a right-hand pan.
+    await expect(page.locator('[data-weights-pan][data-blank="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-weights-pan="right"][data-blank="true"]')).toHaveCount(1);
+    // Every premise scale is complete: a blank there would make the item unsolvable.
+    await expect(page.locator('[data-weights-pan="left"][data-blank="true"]')).toHaveCount(0);
+
+    await expect(page.getByTestId('options').locator('svg[data-figure]')).toHaveCount(
+      item.options.length,
+    );
+  });
+
   /**
    * N-back is the first choice-response format with a transient stimulus, so it is the first
    * that could be answered before it has been seen. Both routes in are checked: clicking an

@@ -80,6 +80,12 @@ const en = {
     nBackReady: (length: number, n: number) =>
       `${length} letters, one at a time. Count the ones that repeat the letter ${n === 1 ? 'immediately before' : `${n} places earlier`}.`,
     nBackDone: 'How many were there?',
+    /** Labels for the balance scales. View strings, so they live here, not in `gen`. */
+    weights: {
+      premisesLabel: 'These scales balance',
+      targetLabel: 'Balance this one',
+      premiseLabel: (n: number) => `Balanced scale ${n}`,
+    },
     /** Labels for the digit-symbol key. View strings, so they live here, not in `gen`. */
     coding: {
       keyLabel: 'Key',
@@ -314,7 +320,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than ten lines on one axis — ten colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than thirteen lines on one axis — thirteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -450,6 +456,13 @@ const en = {
       description:
         'Two target symbols, then a group to scan. Say whether either target appears. Each item is easy on its own — the measure is how fast you can do many of them without slipping. Because accuracy stays near ceiling, this type is scored on median response time rather than on percentage correct.',
       seenIn: 'WAIS Symbol Search, WISC Symbol Search, WAIS Coding (same index)',
+    },
+    'figure-weights': {
+      name: 'Figure weights',
+      blurb: 'The scales balance. Which group balances the last one?',
+      description:
+        'A set of balance scales, each showing what balances what. Those premises give every shape a weight relative to the others; the last scale is missing one pan, and you pick the group that balances it. Because the shapes are values and the scales are equations, this is quantitative reasoning without any arithmetic notation — and it is decidable, so exactly one option can balance. The commonest mistake is matching the number of objects instead of their weight.',
+      seenIn: 'WAIS-IV and WISC-V Figure Weights, Cattell CFIT (Conditions), quantitative-reasoning subtests generally',
     },
     'n-back': {
       name: 'N-back',
@@ -626,6 +639,21 @@ const en = {
       ruleSpeed:
         'This type is scored on speed: your median response time matters more than your accuracy, which should stay near ceiling.',
     },
+    figureWeights: {
+      prompt: 'Which group balances the last scale?',
+      premisesLabel: 'These scales balance',
+      targetLabel: 'Balance this one',
+      summary: (group: string) => `${group} balances it.`,
+      rulePremise: (heavier: string, ratio: number, lighter: string) =>
+        `One ${heavier} weighs the same as ${ratio} ${lighter}s.`,
+      ruleTarget: (group: string, weight: number) =>
+        `The pan to match holds ${group}, which comes to ${weight} units of the lightest shape.`,
+      ruleCount:
+        'Weight is what balances, not the number of objects: a group with the right number of pieces and the wrong total will not balance.',
+      quantity: (n: number, shape: string) => `${n} ${shape}${n === 1 ? '' : 's'}`,
+      join: (parts: string[]) =>
+        parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`,
+    },
     nBack: {
       prompt: (n: number) =>
         n === 1
@@ -659,7 +687,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Ten item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Thirteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -707,14 +735,14 @@ const en = {
     test: {
       title: 'Full test',
       description:
-        'A mixed run across all ten reasoning-test formats, two items each, with no feedback until the end.',
-      lede: 'Twenty items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
+        'A mixed run across all thirteen reasoning-test formats, two items each, with no feedback until the end.',
+      lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
       differsHeading: 'How this differs from a real battery',
       differs: [
         'A real battery is administered one-to-one by a trained examiner with fixed instructions, timing and stop rules. This is you, alone, in a browser tab.',
         'A real battery converts your raw score against an age-matched standardisation sample. There is no sample here, so there is no percentile and no IQ — only your own numbers.',
         'A real battery includes verbal comprehension, which cannot be procedurally generated with verifiable answers. Nothing here measures it.',
-        'Twenty items is far too few for a stable estimate of anything. Published batteries use ten to fifteen subtests for a reason.',
+        'Twenty-six items is far too few for a stable estimate of anything. Published batteries use ten to fifteen subtests for a reason.',
       ],
     },
 
@@ -868,7 +896,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these ten formats is evidence about these ten formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these thirteen formats is evidence about these thirteen formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',

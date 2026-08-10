@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { generateItem } from '@/lib/generators';
+import { DIFFICULTIES } from '@/lib/types';
 import { isUnambiguous, solveSeries } from '@/lib/solvers/series';
 import { predict, solveAttribute, type Rule } from '@/lib/rules';
 import { createRng, deriveSeed, hashSeed, normaliseSeed } from '@/lib/rng';
@@ -287,5 +289,102 @@ describe('figure legibility', () => {
 
     expect(fillStyleFor(0).kind).toBe('none');
     expect(fillStyleFor(5).kind).toBe('solid');
+  });
+});
+
+/**
+ * Figure weights, verified from the item as the *reader* sees it.
+ *
+ * The generator enforces uniqueness with its own weight table, so a test that reused that
+ * table would only prove the generator agrees with itself. This one throws the table away: it
+ * reads the premise figures, solves the weight system from them by propagation, and then
+ * weighs the options. If the premises did not in fact determine every weight, or if two
+ * options balanced, this fails where the generator's internal check could not.
+ */
+describe('figure weights are solvable from the premises alone', () => {
+  /** Counts each shape type in a figure, keyed by type. */
+  function census(figure: { shapes: { type: string }[] }): Map<string, number> {
+    const out = new Map<string, number>();
+    for (const shape of figure.shapes) out.set(shape.type, (out.get(shape.type) ?? 0) + 1);
+    return out;
+  }
+
+  /**
+   * Solves the weight of every shape from the premise pans, up to overall scale.
+   *
+   * Propagation rather than linear algebra: anchor one shape at 1, then repeatedly use any
+   * premise with exactly one unknown left. Returns null if the premises leave a shape used by
+   * the item undetermined — which is the failure this test exists to catch.
+   */
+  function solveWeights(
+    premises: { left: Map<string, number>; right: Map<string, number> }[],
+    shapes: string[],
+  ): Map<string, number> | null {
+    const weights = new Map<string, number>();
+    weights.set(shapes[0]!, 1);
+
+    for (let pass = 0; pass < shapes.length + 1; pass++) {
+      for (const { left, right } of premises) {
+        const sides = [left, right] as const;
+        const unknown: string[] = [];
+        for (const side of sides) {
+          for (const type of side.keys()) if (!weights.has(type)) unknown.push(type);
+        }
+        if (unknown.length !== 1) continue;
+
+        const target = unknown[0]!;
+        const known = (side: Map<string, number>) =>
+          [...side].reduce((sum, [type, n]) => sum + (weights.get(type) ?? 0) * n, 0);
+        const coefficient = (left.get(target) ?? 0) - (right.get(target) ?? 0);
+        if (coefficient === 0) continue;
+        // known(right) - known(left) = coefficient * weight(target)
+        const value = (known(right) - known(left)) / coefficient;
+        if (value <= 0) return null;
+        weights.set(target, value);
+      }
+    }
+    return shapes.every((s) => weights.has(s)) ? weights : null;
+  }
+
+  it('determines every weight and leaves exactly one option balancing', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'A10']) {
+        const item = generateItem('figure-weights', seed, difficulty);
+        const where = `figure-weights ${seed} d${difficulty}`;
+        if (item.stimulus.kind !== 'figure-weights') throw new Error('unexpected stimulus');
+
+        const premises = item.stimulus.premises.map((p) => ({
+          left: census(p.left),
+          right: census(p.right),
+        }));
+        const target = census(item.stimulus.target);
+        const options = item.options.map((o) => {
+          if (o.kind !== 'figure') throw new Error('expected figural options');
+          return census(o.figure);
+        });
+
+        // Every shape the reader has to weigh, anywhere in the item.
+        const used = new Set<string>();
+        for (const group of [target, ...options, ...premises.flatMap((p) => [p.left, p.right])]) {
+          for (const type of group.keys()) used.add(type);
+        }
+
+        const weights = solveWeights(premises, [...used]);
+        expect(weights, `${where}: premises do not determine every weight`).not.toBeNull();
+
+        const weigh = (group: Map<string, number>) =>
+          [...group].reduce((sum, [type, n]) => sum + weights!.get(type)! * n, 0);
+
+        // The premises must actually balance, or they are not premises.
+        for (const [i, p] of premises.entries()) {
+          expect(weigh(p.left), `${where}: premise ${i + 1} does not balance`).toBe(weigh(p.right));
+        }
+
+        const goal = weigh(target);
+        const balancing = options.filter((o) => weigh(o) === goal);
+        expect(balancing, `${where}: ${balancing.length} options balance, expected 1`).toHaveLength(1);
+        expect(weigh(options[item.answerIndex]!), `${where}: keyed answer does not balance`).toBe(goal);
+      }
+    }
   });
 });

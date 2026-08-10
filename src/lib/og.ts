@@ -391,6 +391,43 @@ function stage(item: Item): string {
     }
 
     /*
+     * One premise scale over the target scale. Two rows is enough to say "these are
+     * equations about weight"; the full premise set would shrink every pan past reading.
+     */
+    case 'figure-weights': {
+      const box = 84;
+      const gapX = 96; // room for the beam between the pans
+      const rowGap = 34;
+      const rows: { left: Figure; right: Figure | null }[] = [
+        ...(s.premises[0] ? [s.premises[0]] : []),
+        { left: s.target, right: null },
+      ];
+      const totalH = rows.length * box + (rows.length - 1) * rowGap;
+      const startY = STAGE.y + (STAGE.h - totalH) / 2;
+      const leftX = STAGE.x + (STAGE.w - (box * 2 + gapX)) / 2;
+      const rightX = leftX + box + gapX;
+
+      return rows
+        .map((row, i) => {
+          const y = startY + i * (box + rowGap);
+          const midY = y + box / 2;
+          const beamX = leftX + box + 16;
+          const beamW = gapX - 32;
+          return [
+            figureTile(row.left, leftX, y, box),
+            `<line x1="${beamX}" y1="${midY - 8}" x2="${beamX + beamW}" y2="${midY - 8}" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>`,
+            `<line x1="${beamX + beamW / 2}" y1="${midY - 8}" x2="${beamX + beamW / 2}" y2="${midY + 6}" stroke="${INK}" stroke-width="3"/>`,
+            `<polygon points="${beamX + beamW / 2},${midY + 2} ${beamX + beamW / 2 + 9},${midY + 14} ${beamX + beamW / 2 - 9},${midY + 14}" fill="${INK}"/>`,
+            row.right === null
+              ? `<rect x="${rightX}" y="${y}" width="${box}" height="${box}" rx="14" fill="none" stroke="${LINE}" stroke-width="3" stroke-dasharray="8 7"/>` +
+                `<text x="${rightX + box / 2}" y="${midY}" text-anchor="middle" dominant-baseline="central" font-size="40" fill="${SUBTLE}">?</text>`
+              : figureTile(row.right, rightX, y, box),
+          ].join('');
+        })
+        .join('');
+    }
+
+    /*
      * Digit over symbol, four columns at most. The card advertises the format rather than
      * posing the item, so it shows what a key *is* and drops the probe entirely — a lone
      * highlighted column would read as an answer already given.

@@ -43,7 +43,7 @@ Node 22.12+ is required (Astro 7).
 | `tests/` | Property-style unit tests, swept over hundreds of seeds |
 | `e2e/` | Playwright tests against the built static site |
 
-## The ten formats
+## The thirteen formats
 
 | Format | CHC | Verification |
 |--------|-----|--------------|
@@ -55,8 +55,11 @@ Node 22.12+ is required (Astro 7).
 | Syllogisms | Gf | Exhaustive model checking over all 256 models — provable |
 | Mental rotation | Gv | Chirality proved; exactly one option is a rotation |
 | Paper folding | Gv | The unfolding is simulated, not asserted |
+| Figure weights | Gf | Every candidate group weighed; exactly one may balance — decidable |
 | Digit span | Gwm | Exact string match, whitespace-insensitive |
+| N-back | Gwm | Match count re-derived from the finished stream |
 | Symbol search | Gs | Membership re-checked after shuffling |
+| Digit–symbol coding | Gs | Every option is a key entry; the pairing is re-looked-up |
 
 ## How an item is made safe
 

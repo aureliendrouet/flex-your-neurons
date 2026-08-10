@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { ITEM_TYPE_IDS, generateItem } from '../src/lib/generators';
 import { deriveSeed } from '../src/lib/rng';
+import { dict } from '../src/lib/i18n';
 import {
   clearAppStorage,
   readLocalStorageSessions,
@@ -120,10 +121,19 @@ test.describe('full test mode', () => {
     await expect(page.getByTestId('total-attempts')).toContainText('1');
   });
 
+  /*
+   * Asserted against the dictionary rather than against copy pasted in here. The literal used
+   * to be "Twenty items is far too few", which broke the moment three formats shipped and the
+   * full test grew from twenty items to twenty-six — a copy edit failing a behaviour test tells
+   * you nothing. Reading the strings back also checks every caveat is rendered, not just one.
+   */
   test('the page is honest about how it differs from a real battery', async ({ page }) => {
     await page.goto('en/test/');
-    await expect(page.getByText('no percentile and no IQ', { exact: false })).toBeVisible();
-    await expect(page.getByText('Twenty items is far too few', { exact: false })).toBeVisible();
+    const { differsHeading, differs } = dict('en').pages.test;
+    await expect(page.getByText(differsHeading, { exact: false })).toBeVisible();
+    for (const caveat of differs) {
+      await expect(page.getByText(caveat, { exact: false })).toBeVisible();
+    }
   });
 });
 

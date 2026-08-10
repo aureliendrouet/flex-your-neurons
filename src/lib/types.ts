@@ -24,7 +24,8 @@ export type ItemTypeId =
   | 'span'
   | 'symbol-search'
   | 'coding'
-  | 'n-back';
+  | 'n-back'
+  | 'figure-weights';
 
 /** CHC broad ability. See docs/IQ-TESTS.md §2. */
 export type ChcDomain = 'Gf' | 'Gv' | 'Gwm' | 'Gs';
@@ -120,7 +121,16 @@ export type Stimulus =
    * matching the one `n` places earlier. Transient, like `span`: it carries a
    * `presentation`, and the response controls stay locked until it has played.
    */
-  | { kind: 'n-back'; sequence: string[]; n: number };
+  | { kind: 'n-back'; sequence: string[]; n: number }
+  /**
+   * Balance-scale algebra. Each premise is a pair of pans that balance, establishing the
+   * shapes' relative weights; `target` is the pan the chosen option must balance.
+   */
+  | {
+      kind: 'figure-weights';
+      premises: { left: Figure; right: Figure }[];
+      target: Figure;
+    };
 
 export type Fold = 'left' | 'right' | 'top' | 'bottom';
 

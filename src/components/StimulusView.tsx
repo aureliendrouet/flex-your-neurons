@@ -6,7 +6,7 @@ import { useEffect, useState } from 'preact/hooks';
 import FigureView, { describeFigure } from './FigureView';
 import GridView from './GridView';
 import { dict, type Locale } from '../lib/i18n';
-import type { Fold, Presentation, Stimulus } from '../lib/types';
+import type { Figure, Fold, Presentation, Stimulus } from '../lib/types';
 
 interface Props {
   stimulus: Stimulus;
@@ -119,6 +119,35 @@ export default function StimulusView({
             testid="search"
             locale={locale}
           />
+        </div>
+      );
+
+    case 'figure-weights':
+      return (
+        <div data-stimulus="figure-weights" class="weights">
+          <div>
+            <p class="subtle symbol-row-title">{t.weights.premisesLabel}</p>
+            <div class="weights-premises">
+              {stimulus.premises.map((premise, i) => (
+                <Balance
+                  key={i}
+                  left={premise.left}
+                  right={premise.right}
+                  locale={locale}
+                  label={t.weights.premiseLabel(i + 1)}
+                />
+              ))}
+            </div>
+          </div>
+          <div>
+            <p class="subtle symbol-row-title">{t.weights.targetLabel}</p>
+            <Balance
+              left={stimulus.target}
+              right={null}
+              locale={locale}
+              label={t.weights.targetLabel}
+            />
+          </div>
         </div>
       );
 
@@ -236,6 +265,56 @@ function SymbolRow({
             <FigureView figure={f} label={`${title} ${i + 1}: ${describeFigure(f, locale)}`} />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One balance scale: two pans and a fulcrum, or one pan and a blank to be filled.
+ *
+ * The pans are ordinary `grid2x2` figures, so the objects in them are drawn by exactly the
+ * renderer that draws every other figure on the site — same sizes, same textures, same
+ * `data-*` hooks. Only the beam and the fulcrum are new, and they are inline SVG rather than
+ * a glyph so they inherit `currentColor` and scale with the box.
+ *
+ * The beam is drawn level in both states. A tilted beam would be a second, wordless claim
+ * about which side is heavier, and for the target scale that claim would give the answer away.
+ */
+function Balance({
+  left,
+  right,
+  locale,
+  label,
+}: {
+  left: Figure;
+  /** `null` draws the empty pan the reader has to fill. */
+  right: Figure | null;
+  locale: Locale;
+  label: string;
+}) {
+  const t = dict(locale).quiz;
+  return (
+    <div class="weights-scale" role="group" aria-label={label} data-weights-scale>
+      <div class="weights-pan" data-weights-pan="left">
+        <FigureView figure={left} label={describeFigure(left, locale)} />
+      </div>
+      <svg
+        class="weights-beam"
+        viewBox="0 0 48 40"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <line x1="2" y1="14" x2="46" y2="14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+        <line x1="24" y1="14" x2="24" y2="30" stroke="currentColor" stroke-width="2.5" />
+        <polygon points="24,26 33,38 15,38" fill="currentColor" />
+      </svg>
+      <div class="weights-pan" data-weights-pan="right" data-blank={String(right === null)}>
+        {right === null ? (
+          <span aria-label={t.missingFigure}>?</span>
+        ) : (
+          <FigureView figure={right} label={describeFigure(right, locale)} />
+        )}
       </div>
     </div>
   );

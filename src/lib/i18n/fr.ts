@@ -87,6 +87,11 @@ const fr: Dict = {
     nBackReady: (length: number, n: number) =>
       `${length} lettres, une à la fois. Comptez celles qui reprennent la lettre ${n === 1 ? 'précédente' : `apparue ${n} rangs plus tôt`}.`,
     nBackDone: 'Combien y en avait-il ?',
+    weights: {
+      premisesLabel: 'Ces balances s’équilibrent',
+      targetLabel: 'Équilibrez celle-ci',
+      premiseLabel: (n: number) => `Balance équilibrée ${n}`,
+    },
     coding: {
       keyLabel: 'Légende',
       probeLabel: 'Cherchez ce chiffre',
@@ -281,7 +286,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que dix courbes sur un même axe : dix couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que treize courbes sur un même axe : treize couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -418,6 +423,13 @@ const fr: Dict = {
       description:
         'Deux symboles cibles, puis un groupe à parcourir. Indiquez si l’un des deux y figure. Chaque item est facile isolément — ce qui est mesuré, c’est la vitesse à laquelle vous en enchaînez beaucoup sans faute. La précision restant proche du plafond, ce type est évalué sur le temps de réponse médian plutôt que sur le pourcentage de réussite.',
       seenIn: 'Symboles de la WAIS et de la WISC, Code de la WAIS (même indice)',
+    },
+    'figure-weights': {
+      name: 'Balances',
+      blurb: 'Les balances s’équilibrent. Quel groupe équilibre la dernière ?',
+      description:
+        'Une série de balances, chacune montrant ce qui équilibre quoi. Ces prémisses donnent à chaque forme un poids relatif aux autres ; il manque un plateau à la dernière balance, et vous choisissez le groupe qui l’équilibre. Les formes étant des valeurs et les balances des équations, il s’agit de raisonnement quantitatif sans aucune notation arithmétique — et le problème est décidable, si bien qu’une seule réponse peut équilibrer. L’erreur la plus fréquente consiste à égaler le nombre d’objets au lieu de leur poids.',
+      seenIn: 'Balances de la WAIS-IV et de la WISC-V, Cattell CFIT (Conditions), épreuves de raisonnement quantitatif en général',
     },
     'n-back': {
       name: 'Tâche N-back',
@@ -596,6 +608,21 @@ const fr: Dict = {
       ruleSpeed:
         'Ce type est évalué sur la vitesse : votre temps de réponse médian compte davantage que votre précision, qui devrait rester proche du plafond.',
     },
+    figureWeights: {
+      prompt: 'Quel groupe équilibre la dernière balance ?',
+      premisesLabel: 'Ces balances s’équilibrent',
+      targetLabel: 'Équilibrez celle-ci',
+      summary: (group: string) => `${group} l’équilibre.`,
+      rulePremise: (heavier: string, ratio: number, lighter: string) =>
+        `Un ${heavier} pèse autant que ${ratio} ${plural(lighter, ratio)}.`,
+      ruleTarget: (group: string, weight: number) =>
+        `Le plateau à égaler contient ${group}, soit ${weight} unités de la forme la plus légère.`,
+      ruleCount:
+        'C’est le poids qui équilibre, non le nombre d’objets : un groupe comptant le bon nombre de pièces pour un total erroné ne s’équilibrera pas.',
+      quantity: (n: number, shape: string) => `${n} ${plural(shape, n)}`,
+      join: (parts: string[]) =>
+        parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} et ${parts.at(-1)}`,
+    },
     nBack: {
       prompt: (n: number) =>
         n === 1
@@ -631,7 +658,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Dix formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Treize formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -681,14 +708,14 @@ const fr: Dict = {
     test: {
       title: 'Test complet',
       description:
-        'Une série mixte sur les dix formats, deux items chacun, sans retour avant la fin.',
-      lede: 'Vingt items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
+        'Une série mixte sur les treize formats, deux items chacun, sans retour avant la fin.',
+      lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
       differs: [
         'Une vraie batterie est administrée en tête-à-tête par un examinateur formé, avec des consignes, un chronométrage et des règles d’arrêt fixés. Ici, c’est vous, seul, dans un onglet.',
         'Une vraie batterie convertit votre score brut par comparaison à un échantillon d’étalonnage apparié en âge. Il n’y a pas d’échantillon ici : donc pas de centile et pas de QI — seulement vos propres chiffres.',
         'Une vraie batterie comporte de la compréhension verbale, qui ne peut pas être générée par procédure avec des réponses vérifiables. Rien ici ne la mesure.',
-        'Vingt items, c’est bien trop peu pour estimer quoi que ce soit de stable. Ce n’est pas pour rien que les batteries publiées comptent dix à quinze subtests.',
+        'Vingt-six items, c’est bien trop peu pour estimer quoi que ce soit de stable. Ce n’est pas pour rien que les batteries publiées comptent dix à quinze subtests.',
       ],
     },
 
@@ -836,7 +863,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces dix formats est une information sur ces dix formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces treize formats est une information sur ces treize formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

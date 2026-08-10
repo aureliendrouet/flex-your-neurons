@@ -14,7 +14,7 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
 /** How many formats ship. See the registry test below before changing this. */
-const EXPECTED_TYPES = 12;
+const EXPECTED_TYPES = 13;
 
 function optionKey(o: Option): string {
   switch (o.kind) {

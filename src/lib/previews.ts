@@ -47,6 +47,14 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   // size the extra columns are illegible rather than informative.
   // Level 1: a 1-back over seven elements. The card shows the stream's shape; a 3-back over
   // fourteen would be the same picture with more letters in it.
+  /*
+   * Hand-picked, and the pin matters more here than elsewhere. With a small weight system the
+   * only group of the right weight is often the other pan of the premise that defines it, so
+   * the answer is the premise copied out — a legitimate item, but one whose miniature reads as
+   * "find the matching picture" rather than as algebra. This seed's answer is three of a shape
+   * that appears nowhere as a pan, so the card shows the format doing its actual work.
+   */
+  'figure-weights': { seed: 'PRVWGHT1', difficulty: 2 },
   'n-back': { seed: 'PRVNBACK', difficulty: 1 },
   coding: { seed: 'PRVCODNG', difficulty: 1 },
 };

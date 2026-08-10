@@ -200,6 +200,40 @@ function ThumbBody({ item }: { item: Item }) {
       );
 
     /*
+     * One premise and the unknown pan. The blank is what tells a reader at card size that
+     * this format asks them to *complete* a balance rather than just look at scales.
+     */
+    case 'figure-weights':
+      return (
+        <div class="thumb-weights">
+          {s.premises[0] && (
+            <div class="thumb-row thumb-row--tight">
+              <div class="thumb-slot">
+                <Mini figure={s.premises[0].left} />
+              </div>
+              <span class="thumb-op" aria-hidden="true">
+                =
+              </span>
+              <div class="thumb-slot">
+                <Mini figure={s.premises[0].right} />
+              </div>
+            </div>
+          )}
+          <div class="thumb-row thumb-row--tight">
+            <div class="thumb-slot">
+              <Mini figure={s.target} />
+            </div>
+            <span class="thumb-op" aria-hidden="true">
+              =
+            </span>
+            <div class="thumb-slot" data-blank="true">
+              <span class="thumb-blank">?</span>
+            </div>
+          </div>
+        </div>
+      );
+
+    /*
      * The stream, with the first matching pair marked. A row of letters alone would not say
      * what the format asks; the mark is the difference between "letters" and "n-back".
      */

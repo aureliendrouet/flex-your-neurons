@@ -88,7 +88,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Ten generators across four CHC domains:
+Thirteen generators across four CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -100,8 +100,11 @@ Ten generators across four CHC domains:
 | `syllogism` | 2 premises, 4 conclusions | figure; # negative/particular premises |
 | `rotation` | 2-D polyomino, rotation vs. mirror | rotation angle; shape complexity |
 | `paper-folding` | folds + punches, 5 options | # folds; # punches |
+| `figure-weights` | balance-scale algebra, 4 options | # shapes in the chain; objects in the target pan |
 | `span` | digit/letter span, fwd & backward | span length (adaptive) |
+| `n-back` | count the N-back repeats in a stream | N; stream length; step rate |
 | `symbol-search` | target detection, latency-scored | set size; distractor similarity |
+| `coding` | digit→symbol lookup, latency-scored | key size; symbol confusability |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. This
@@ -110,6 +113,25 @@ Ten generators across four CHC domains:
 > measurement, and the wording here and in the UI is kept literal for that reason. Adding a
 > genuine per-item deadline (visible countdown, auto-submit on expiry, deadline stored on
 > the response) is a *feature*, deliberately not folded into a wording fix.
+
+> **On the two formats adapted to a one-response loop.** Both were shipped as the decision
+> matrix above allows, but neither is the lab task unchanged, and the difference is a property
+> of this site's structure rather than of the item:
+>
+> - **`n-back`** normally collects a hit/miss on *every* element of a minutes-long stream and
+>   scores d-prime over the block. Here one item is one short stream and one question — how
+>   many matches went past. The construct that matters survives (the N-window has to be
+>   maintained and updated, and the stream is gone before you answer), but the per-element
+>   sensitivity of a d-prime does not: a reader who loses the window mid-stream and guesses the
+>   count can still land on it.
+> - **`coding`** is a two-minute written sprint scored on completions. Here one item is one
+>   substitution, scored on latency, so it measures substitution speed and not the sustained
+>   output a timed page adds.
+>
+> Both would become the real thing given a **continuous timed block** — a mode this site does
+> not have, for the same reason there is no per-item deadline (see the note above). That mode
+> is the prerequisite for the speeded formats still unbuilt: mental arithmetic sprints, Stroop,
+> Trail Making.
 
 Every generator implements one interface:
 
