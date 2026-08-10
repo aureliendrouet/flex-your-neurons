@@ -65,6 +65,9 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
    */
   'head-count': { seed: 'PRVROOM2', difficulty: 1 },
   coding: { seed: 'PRVCODNG', difficulty: 1 },
+  // Level 3, where multiplication first appears: an addition of two small numbers advertises the
+  // format as easier than it is, and the card is the only thing a reader sees before choosing.
+  arithmetic: { seed: 'PRVMATHS', difficulty: 3 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */

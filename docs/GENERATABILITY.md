@@ -50,17 +50,18 @@ Legend: ✅ pass · ⚠️ passes with engineering · ❌ fails
 | 12 | **Digit–symbol coding** (latency-scored) | Gs | ✅ | ✅ | ✅ | **SHIP** |
 | 13 | **Figure weights** / balance algebra | Gf/Gq | ✅ | ✅ | ✅ | **SHIP** |
 | 14 | **Head count** / running-count updating | Gwm | ✅ | ✅ | ✅ | **SHIP** |
-| 15 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
-| 16 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
-| 17 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
-| 18 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
-| 19 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
-| 20 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 21 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
-| 22 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
-| 23 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
-| 24 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
-| 25 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
+| 15 | **Mental arithmetic** (latency-scored) | Gq | ✅ | ✅ | ✅ | **SHIP** |
+| 16 | **Number analogies / number matrices** | Gq | ✅ | ✅ | ⚠️ | *v2 — subsumed by #2/#1* |
+| 17 | **Cube-net folding** | Gv | ✅ | ✅ | ✅ | *v2 — cost, not feasibility* |
+| 18 | **3-D block rotation** (Shepard–Metzler) | Gv | ✅ | ✅ | ✅ | *v2 — needs 3-D rendering; #7 covers the construct* |
+| 19 | **Visual puzzles** (assemble the target) | Gv | ✅ | ✅ | ⚠️ | *v2 — hard to guarantee a unique decomposition* |
+| 20 | **Corsi block-tapping** | Gv/Gwm | ✅ | ✅ | ✅ | *v2 — #9 covers span* |
+| 21 | **Verbal analogies** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 22 | **Vocabulary / synonyms / antonyms** | Gc | ⚠️ | ⚠️ | ❌ | **REJECT** |
+| 23 | **Similarities** ("how are X and Y alike?") | Gc | ❌ | ❌ | ❌ | **REJECT** |
+| 24 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
+| 25 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
+| 26 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
 
 ### Why the Gc items are rejected
 
@@ -77,7 +78,7 @@ Worse, it fails **U** unpredictably: for `up : ?` the intended answer is *down*,
 has no principled way to know. Distractor selection has the same problem — a randomly drawn
 word may be an *equally valid* answer.
 
-The honest consequence: **this site trains Gf, Gv, Gwm and Gs, and does not train Gc.** That is
+The honest consequence: **this site trains Gf, Gv, Gwm, Gs and Gq, and does not train Gc.** That is
 stated on the site itself rather than papered over. It also means the site cannot approximate a
 Full Scale IQ even in principle, since VCI has no analogue here — which is fine, because §8 of
 the knowledge doc already rules out reporting an IQ score at all.
@@ -89,7 +90,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Fourteen generators across four CHC domains:
+Fifteen generators across five CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -107,6 +108,7 @@ Fourteen generators across four CHC domains:
 | `head-count` | track arrivals and departures, report the total | # steps; step rate; group size |
 | `symbol-search` | target detection, latency-scored | set size; distractor similarity |
 | `coding` | digit→symbol lookup, latency-scored | key size; symbol confusability |
+| `arithmetic` | evaluate a short expression, 4 options | operators available; operand size; chaining |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. In
@@ -147,9 +149,13 @@ Fourteen generators across four CHC domains:
 > of seconds. A format carrying a `presentation` can never qualify, since the block would be spent
 > watching — asserted in `tests/generators.test.ts` rather than left to reviewer discipline.
 >
-> The block was also the prerequisite named here for the speeded formats still unbuilt: mental
-> arithmetic sprints, Stroop, Trail Making. That prerequisite is now met; the formats themselves
-> are the remaining work.
+> The block was also the prerequisite named here for the speeded formats still unbuilt. The first
+> of them, `arithmetic`, has shipped on top of it; Stroop and Trail Making are the remaining work.
+>
+> `arithmetic` is the one format designed for the block from the start rather than adapted to it,
+> and one decision follows from that: the answer is **picked, not typed**. A typed answer would put
+> keyboard speed inside a score that is meant to be about calculation, separating two readers who
+> calculate equally well by how fast they find the digits.
 >
 > `head-count` was never in that list. Its source task is already one short episode answered once,
 > so nothing about it is a compression of a longer block — which is why it could ship ahead of the

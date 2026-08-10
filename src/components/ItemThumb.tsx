@@ -263,6 +263,20 @@ function ThumbBody({ item }: { item: Item }) {
      * size would be a row of specks, and the arrows alone would not say what is being tracked —
      * the total is the thing the format asks for, so the total is what the miniature shows.
      */
+    /*
+     * The expression itself, at card size. The one format whose stimulus needs no reduction to fit
+     * a miniature — it is already one short line, so the thumbnail is the item.
+     */
+    case 'expression':
+      return (
+        <div class="thumb-expression">
+          <span class="thumb-expression-text">{s.expression}</span>
+          <span class="thumb-expression-blank" aria-hidden="true">
+            = ?
+          </span>
+        </div>
+      );
+
     case 'head-count': {
       let running = 0;
       /*

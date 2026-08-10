@@ -518,3 +518,122 @@ describe('head count is decidable from the stream alone', () => {
     }
   });
 });
+
+/**
+ * Arithmetic, re-evaluated from the expression the reader is shown.
+ *
+ * The generator builds the expression and its value together, so it necessarily agrees with itself.
+ * This parses the *displayed string* — the thing the reader actually solves — and evaluates it with
+ * an independent left-to-right walk. A mismatch means the item shows one sum and keys another.
+ */
+describe('arithmetic is decidable from the expression on screen', () => {
+  const SEEDS = Array.from({ length: 60 }, (_, i) => `AR${i}`);
+
+  /** Evaluates "12 + 7 − 5" strictly left to right. Deliberately not the generator's evaluator. */
+  function evaluateDisplayed(expression: string): number {
+    const tokens = expression.split(' ');
+    let total = Number(tokens[0]);
+    for (let i = 1; i < tokens.length; i += 2) {
+      const operator = tokens[i];
+      const operand = Number(tokens[i + 1]);
+      expect(Number.isInteger(operand), `bad operand in "${expression}"`).toBe(true);
+      if (operator === '+') total += operand;
+      else if (operator === '−') total -= operand;
+      else if (operator === '×') total *= operand;
+      else if (operator === '÷') total /= operand;
+      else throw new Error(`unknown operator "${operator}" in "${expression}"`);
+    }
+    return total;
+  }
+
+  it('keys the value the displayed expression actually evaluates to', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('arithmetic', seed, difficulty);
+        const where = `arithmetic ${seed} d${difficulty}`;
+        if (item.stimulus.kind !== 'expression') throw new Error('unexpected stimulus');
+
+        const value = evaluateDisplayed(item.stimulus.expression);
+        expect(Number.isInteger(value), `${where}: "${item.stimulus.expression}" is not whole`).toBe(true);
+        expect(value, `${where}: negative result`).toBeGreaterThanOrEqual(0);
+
+        const values = item.options.map((o) => {
+          if (o.kind !== 'text') throw new Error('expected text options');
+          return Number(o.text);
+        });
+        expect(values.filter((v) => v === value), `${where}: options equal to the value`).toHaveLength(1);
+        expect(values[item.answerIndex], `${where}: keyed answer is not the value`).toBe(value);
+      }
+    }
+  });
+
+  /**
+   * The units-digit shortcut, closed off.
+   *
+   * The last digit of a sum or product is fixed by the last digits of the operands, so an item whose
+   * answer is the only option ending in that digit can be solved by computing one digit — the whole
+   * calculation skipped. At least two options must therefore share the answer's units digit.
+   */
+  it('never lets the units digit alone identify the answer', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('arithmetic', seed, difficulty);
+        const values = item.options.map((o) => Number((o as { text: string }).text));
+        const answer = values[item.answerIndex]!;
+        const sharing = values.filter((v) => v % 10 === answer % 10).length;
+        expect(
+          sharing,
+          `arithmetic ${seed} d${difficulty}: only the answer ${answer} ends in ${answer % 10}`,
+        ).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  /**
+   * No option out of scale with the answer.
+   *
+   * This shipped broken. Substituting × for + is a realistic misreading, but it produces a value
+   * from another world: `34 + 26 = 60` was offered alongside 884, and `37 − 26 = 11` alongside 962.
+   * An option that far out is discarded on sight, so the item was answerable without arithmetic —
+   * the same leak as an option set that answers the question on its own.
+   */
+  it('offers no option that can be dismissed on size alone', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('arithmetic', seed, difficulty);
+        const values = item.options.map((o) => Number((o as { text: string }).text));
+        const answer = values[item.answerIndex]!;
+        const band = Math.max(12, Math.ceil(answer * 0.35));
+        for (const v of values) {
+          expect(
+            Math.abs(v - answer),
+            `arithmetic ${seed} d${difficulty}: option ${v} against answer ${answer}`,
+          ).toBeLessThanOrEqual(band);
+        }
+      }
+    }
+  });
+
+  /**
+   * Precedence must never decide the answer.
+   *
+   * `7 + 3 × 2` is 13 by convention and 20 read left to right. An item like that measures whether
+   * the reader remembers a convention, not whether they can calculate — so chains only ever mix
+   * operators of equal precedence, and the two readings coincide.
+   */
+  it('never mixes precedence classes in one expression', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('arithmetic', seed, difficulty);
+        if (item.stimulus.kind !== 'expression') throw new Error('unexpected stimulus');
+        const operators = item.stimulus.expression.split(' ').filter((t) => '+−×÷'.includes(t));
+        const additive = operators.filter((o) => o === '+' || o === '−').length;
+        const multiplicative = operators.length - additive;
+        expect(
+          additive === 0 || multiplicative === 0,
+          `arithmetic ${seed} d${difficulty}: "${item.stimulus.expression}" mixes precedence`,
+        ).toBe(true);
+      }
+    }
+  });
+});

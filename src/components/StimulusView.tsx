@@ -220,6 +220,23 @@ export default function StimulusView({
         />
       );
 
+    /*
+     * The expression, shown whole. It carries no `presentation` and no gate: this is the one format
+     * meant to be answered in a couple of seconds, so anything between painting and answering is
+     * pure overhead on a measurement about calculation.
+     */
+    case 'expression':
+      return (
+        <div data-stimulus="expression" class="expression-stage">
+          <span class="expression-text" data-expression={stimulus.expression}>
+            {stimulus.expression}
+          </span>
+          <span class="expression-blank" aria-hidden="true">
+            = ?
+          </span>
+        </div>
+      );
+
     case 'head-count':
       return (
         <StreamPlayer<number>

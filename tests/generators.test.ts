@@ -14,7 +14,7 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
 /** How many formats ship. See the registry test below before changing this. */
-const EXPECTED_TYPES = 14;
+const EXPECTED_TYPES = 15;
 
 function optionKey(o: Option): string {
   switch (o.kind) {
@@ -52,7 +52,7 @@ describe('generator registry', () => {
     expect(GENERATORS).toHaveLength(EXPECTED_TYPES);
     expect(new Set(ITEM_TYPE_IDS).size).toBe(EXPECTED_TYPES);
     for (const g of GENERATORS) {
-      expect(['Gf', 'Gv', 'Gwm', 'Gs']).toContain(g.meta.domain);
+      expect(['Gf', 'Gv', 'Gwm', 'Gs', 'Gq']).toContain(g.meta.domain);
       expect(g.meta.icon.length).toBeGreaterThan(0);
       // The human-readable text lives in the dictionaries, one entry per locale.
       for (const locale of LOCALES) {
@@ -96,9 +96,9 @@ describe('generator registry', () => {
     expect(GENERATORS.filter((g) => g.meta.sprintable).length).toBeGreaterThan(0);
   });
 
-  it('covers all four CHC domains the site claims to train', () => {
+  it('covers all five CHC domains the site claims to train', () => {
     const domains = new Set(GENERATORS.map((g) => g.meta.domain));
-    expect([...domains].sort()).toEqual(['Gf', 'Gs', 'Gv', 'Gwm']);
+    expect([...domains].sort()).toEqual(['Gf', 'Gq', 'Gs', 'Gv', 'Gwm']);
   });
 
   it('rejects unknown ids rather than returning undefined', () => {

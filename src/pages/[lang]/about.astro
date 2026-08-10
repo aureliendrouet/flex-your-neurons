@@ -15,8 +15,13 @@ const p = t.pages.about;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const href = (path: string) => `${base}/${locale}/${path}`;
 
-const domains: ChcDomain[] = ['Gf', 'Gv', 'Gwm', 'Gs'];
+/*
+ * Derived from the registry, not listed by hand. A hand-written list silently omitted Gq the day
+ * the arithmetic format shipped — the page went on claiming four domains while the site trained
+ * five. The order follows the registry's presentation order for the same reason the cards do.
+ */
 const types = allItemTypes(locale);
+const domains: ChcDomain[] = [...new Set(types.map((m) => m.domain))];
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>

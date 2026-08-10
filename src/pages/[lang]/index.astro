@@ -19,8 +19,14 @@ const p = t.pages.home;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const href = (path: string) => `${base}/${locale}/${path}`;
 
-const domains: ChcDomain[] = ['Gf', 'Gv', 'Gwm', 'Gs'];
 const types = allItemTypes(locale);
+/*
+ * Derived from the registry, never listed by hand. This page groups the format cards by domain, so
+ * a hand-written list does not merely mislabel — it *drops every card* in an unlisted domain. That
+ * is exactly what happened when the arithmetic format shipped with a new domain: Gq was absent
+ * here, and the card vanished from the home page while every other page showed it.
+ */
+const domains: ChcDomain[] = [...new Set(types.map((m) => m.domain))];
 const byDomain = domains.map((d) => ({
   domain: d,
   label: t.domains[d],

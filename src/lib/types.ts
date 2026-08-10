@@ -26,10 +26,18 @@ export type ItemTypeId =
   | 'coding'
   | 'n-back'
   | 'head-count'
-  | 'figure-weights';
+  | 'figure-weights'
+  | 'arithmetic';
 
-/** CHC broad ability. See docs/IQ-TESTS.md §2. */
-export type ChcDomain = 'Gf' | 'Gv' | 'Gwm' | 'Gs';
+/**
+ * CHC broad ability. See docs/IQ-TESTS.md §2.
+ *
+ * `Gq` arrived with the arithmetic format and is deliberately narrow: number series and figure
+ * weights both involve numbers but are filed under `Gf`, because what they measure is the
+ * inference of a rule with the arithmetic incidental. `Gq` is for formats where the calculation
+ * *is* the task.
+ */
+export type ChcDomain = 'Gf' | 'Gv' | 'Gwm' | 'Gs' | 'Gq';
 
 // ---------------------------------------------------------------------------
 // Figures — the visual vocabulary shared by all figural item types.
@@ -130,6 +138,12 @@ export type Stimulus =
    */
   | { kind: 'head-count'; events: number[] }
   /**
+   * An arithmetic expression to evaluate, pre-formatted for display. A string rather than a term
+   * list because the reader's task is to read exactly what is shown: any reassembly in the view
+   * would be a second place where the expression could differ from the one that was solved.
+   */
+  | { kind: 'expression'; expression: string }
+  /**
    * Balance-scale algebra. Each premise is a pair of pans that balance, establishing the
    * shapes' relative weights; `target` is the pan the chosen option must balance.
    */
@@ -171,6 +185,13 @@ export type ErrorType =
    * formats, where reversing one step is the commonest single mistake.
    */
   | 'wrong-direction'
+  /*
+   * The units digit right and a higher place wrong — the carry slip. Named rather than lumped in
+   * with `plausible` because it is the characteristic arithmetic error, and because the distractor
+   * that expresses it is load-bearing: it is what stops an item being answerable by computing a
+   * single digit.
+   */
+  | 'carry'
   | 'plausible'; // a generic near-miss with no single diagnosis
 
 export interface Explanation {

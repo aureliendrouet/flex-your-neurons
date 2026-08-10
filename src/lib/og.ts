@@ -286,6 +286,18 @@ function stage(item: Item): string {
     }
 
     /*
+     * The expression, drawn large and centred with a trailing blank. Nothing to lay out and
+     * nothing to abbreviate: the whole item is one short line, which is the point of the format.
+     */
+    case 'expression': {
+      const text = `${s.expression} =`;
+      return (
+        `<text x="${STAGE.x + STAGE.w / 2}" y="${STAGE.y + STAGE.h / 2}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="72" font-weight="700" fill="${INK}">${esc(text)}</text>` +
+        `<text x="${STAGE.x + STAGE.w / 2}" y="${STAGE.y + STAGE.h / 2 + 78}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="48" font-weight="700" fill="${SUBTLE}">?</text>`
+      );
+    }
+
+    /*
      * The script as signed chips, with the running total beneath each one. The totals are the
      * whole point: a row of "+3 −2 +4" is arithmetic, and it is only the line of totals under
      * it that says the quantity being held is rewritten at every step.

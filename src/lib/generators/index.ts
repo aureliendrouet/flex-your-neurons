@@ -19,8 +19,13 @@ import { codingGenerator } from './coding';
 import { nBackGenerator } from './n-back';
 import { headCountGenerator } from './head-count';
 import { figureWeightsGenerator } from './figure-weights';
+import { arithmeticGenerator } from './arithmetic';
 
-/** Presentation order: reasoning first, then spatial, then memory and speed. */
+/**
+ * Presentation order: reasoning first, then spatial, then memory, then speed, with the
+ * quantitative format last. The order is cosmetic but not arbitrary — `typeHue` derives a
+ * format's colour from its index here, so reordering re-spaces the whole wheel.
+ */
 export const GENERATORS: Generator[] = [
   matrixGenerator,
   numberSeriesGenerator,
@@ -36,6 +41,7 @@ export const GENERATORS: Generator[] = [
   nBackGenerator,
   headCountGenerator,
   codingGenerator,
+  arithmeticGenerator,
 ];
 
 const BY_ID = new Map<ItemTypeId, Generator>(GENERATORS.map((g) => [g.meta.id, g]));

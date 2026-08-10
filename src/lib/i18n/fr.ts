@@ -57,6 +57,7 @@ const fr: Dict = {
     Gv: 'Traitement visuel',
     Gwm: 'Mémoire de travail',
     Gs: 'Vitesse de traitement',
+    Gq: 'Raisonnement quantitatif',
   },
 
   quiz: {
@@ -206,6 +207,7 @@ const fr: Dict = {
       'wrong-attribute': 'mauvais attribut',
       mirror: 'image miroir',
       'wrong-direction': 'sens inversé',
+      carry: 'report oublié',
       plausible: 'presque juste',
     },
     bodies: {
@@ -221,6 +223,8 @@ const fr: Dict = {
         'La bonne règle, mais sur le mauvais attribut. La transformation que vous avez appliquée existe bien ici, mais elle gouverne autre chose que ce que vous avez fait varier.',
       mirror:
         'C’est un reflet, pas une rotation. Choisissez un détail asymétrique et suivez-le : tourner conserve sa position relative, retourner l’inverse.',
+      carry:
+        'Le chiffre des unités est juste, un rang supérieur est faux. C’est la signature d’un report oublié ou compté deux fois — la part du calcul qui relève de la tenue de comptes plutôt que de l’arithmétique. C’est aussi pourquoi l’une des réponses fausses se termine toujours par le même chiffre que la bonne : sans cela, l’item pourrait se résoudre en ne calculant qu’un seul chiffre.',
       'wrong-direction':
         'La bonne quantité, mais dans le sens inverse. Vous teniez la taille du pas, mais vous l’avez appliqué à l’envers : ajouté ce qu’il fallait retrancher, ou l’inverse. Sur un flux qui ne se rejoue pas, un pas inversé coûte deux fois plus qu’un pas manqué.',
       plausible:
@@ -281,7 +285,7 @@ const fr: Dict = {
     byDomain: 'Par domaine cognitif',
     domainChartLabel: 'Précision par domaine cognitif',
     domainLede:
-      'Votre précision sur les quatre aptitudes larges du modèle Cattell–Horn–Carroll que ces formats sollicitent. Un profil, pas un score : aucun étalonnage ne sous-tend ces barres, elles vous comparent à vous-même et à personne d’autre.',
+      'Votre précision sur les cinq aptitudes larges du modèle Cattell–Horn–Carroll que ces formats sollicitent. Un profil, pas un score : aucun étalonnage ne sous-tend ces barres, elles vous comparent à vous-même et à personne d’autre.',
     provisional: (attempts: number) =>
       `${attempts} item${attempts === 1 ? '' : 's'} — bien trop peu pour en tirer quoi que ce soit`,
     provisionalKey: 'Les barres estompées reposent sur moins de dix items.',
@@ -321,7 +325,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que quatorze courbes sur un même axe : quatorze couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que quinze courbes sur un même axe : quinze couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -472,6 +476,13 @@ const fr: Dict = {
       description:
         'Un flux de lettres défile, une à la fois. Comptez celles qui reprennent la lettre apparue un nombre fixe de rangs plus tôt — un rang d’abord, jusqu’à trois. La mémoire des chiffres demande de retenir une liste immobile ; cette épreuve demande de tenir une fenêtre glissante des derniers éléments et de la réécrire à chaque pas, d’où une mesure de la mise à jour plutôt que du stockage. Le flux a disparu au moment de répondre, et il ne se rejoue pas.',
       seenIn: 'Recherche sur l’entraînement cognitif et la mémoire de travail (Jaeggi et al.), Cogmed, littérature sur le double n-back',
+    },
+    arithmetic: {
+      name: 'Calcul mental',
+      blurb: 'Trouvez le résultat. Vite.',
+      description:
+        'Une courte expression à évaluer — additions et soustractions d’abord, puis multiplications et divisions exactes, enfin deux opérateurs enchaînés. Les divisions tombent toujours juste et les soustractions ne passent jamais sous zéro : la gestion des signes et les fractions sont des compétences distinctes, qui méritent un traitement à part plutôt que de surgir sans prévenir dans une épreuve de vitesse. On choisit la réponse au lieu de la saisir, pour que la vitesse de frappe reste hors d’une mesure qui porte sur le calcul. L’une des réponses fausses se termine toujours par le même chiffre que la bonne : sans cela, on pourrait répondre en ne calculant que le chiffre des unités.',
+      seenIn: 'Arithmétique de la WAIS et de la WISC, sections quantitatives des batteries d’aptitude, logiciels d’entraînement au calcul',
     },
     'head-count': {
       name: 'Compte des présents',
@@ -682,6 +693,15 @@ const fr: Dict = {
       ruleUpdating:
         'Les compter suppose de retenir les dernières lettres et de remplacer la plus ancienne à chaque pas. C’est cette mise à jour, et non la quantité stockée, que ce format mesure.',
     },
+    arithmetic: {
+      prompt: 'Combien cela fait-il ?',
+      summary: (expression: string, value: number) => `${expression} fait ${value}.`,
+      ruleSingle: 'Un opérateur, un calcul.',
+      ruleLeftToRight:
+        'Deux opérateurs de même nature, lus strictement de gauche à droite. Rien ici ne mêle addition et multiplication : aucune règle de priorité n’est donc à retenir — un item dont la réponse en dépendrait mesurerait la convention plutôt que le calcul.',
+      ruleUnitsDigit: (digit: number) =>
+        `La réponse se termine par ${digit}, et l’une des réponses fausses aussi — délibérément. Le chiffre des unités d’une somme ou d’un produit est fixé par celui des nombres de départ : si une seule réponse se terminait par ${digit}, l’item se résoudrait sans achever le calcul.`,
+    },
     headCount: {
       prompt: 'Combien de personnages restaient-ils dans la salle ?',
       summary: (count: number) => `Il en restait ${count} dans la salle.`,
@@ -711,7 +731,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Quatorze formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Quinze formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -784,7 +804,7 @@ const fr: Dict = {
     test: {
       title: 'Test complet',
       description:
-        'Une série mixte sur les quatorze formats, deux items chacun, sans retour avant la fin.',
+        'Une série mixte sur les quinze formats, deux items chacun, sans retour avant la fin.',
       lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
       differs: [
@@ -823,7 +843,7 @@ const fr: Dict = {
 
       chcHeading: 'La carte : le modèle CHC',
       chcP1:
-        'Presque toutes les batteries modernes s’organisent autour du modèle de Cattell–Horn–Carroll : l’aptitude générale g au sommet, une dizaine d’aptitudes larges en dessous, et quelque soixante-dix aptitudes étroites encore en dessous. Les quatre aptitudes larges travaillées ici :',
+        'Presque toutes les batteries modernes s’organisent autour du modèle de Cattell–Horn–Carroll : l’aptitude générale g au sommet, une dizaine d’aptitudes larges en dessous, et quelque soixante-dix aptitudes étroites encore en dessous. Les cinq aptitudes larges travaillées ici :',
       chcColCode: 'Code',
       chcColAbility: 'Aptitude',
       chcColFormats: 'Formats disponibles',
@@ -939,7 +959,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces quatorze formats est une information sur ces quatorze formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces quinze formats est une information sur ces quinze formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

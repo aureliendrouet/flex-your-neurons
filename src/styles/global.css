@@ -3264,3 +3264,46 @@ table.data th.num {
   margin: 0;
   font-weight: 600;
 }
+
+/*
+ * The arithmetic expression, in the drill and on the card. Monospace with tabular figures so the
+ * operators line up and the expression does not shift width between items — this is a speeded
+ * format, and a stimulus that jitters between trials adds a perceptual cost to every one of them.
+ */
+.expression-stage {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 2rem;
+  min-width: min(100%, 26rem);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+
+.expression-text {
+  font: 700 clamp(2rem, 8vw, 3.25rem) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.expression-blank {
+  font: 700 var(--step-1) / 1 var(--font-code);
+  color: var(--text-subtle);
+}
+
+.thumb-expression {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.thumb-expression-text {
+  font: 700 1.05rem/1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb-expression-blank {
+  font: 600 0.8rem/1 var(--font-code);
+  color: var(--text-subtle);
+}

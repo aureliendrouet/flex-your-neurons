@@ -87,7 +87,9 @@ test.describe('the CHC profile', () => {
     const chart = page.getByTestId('domain-chart');
     await expect(chart).toBeVisible();
 
-    for (const domain of ['Gf', 'Gv', 'Gwm', 'Gs']) {
+    // Derived from the registry, so a new CHC domain is covered the day it ships rather than
+    // silently skipped by a list nobody remembered to extend.
+    for (const domain of new Set(ALL_META.map((m) => m.domain))) {
       await expect(chart.locator(`[data-bar="${domain}"]`), domain).toHaveCount(1);
     }
   });

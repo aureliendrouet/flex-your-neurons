@@ -50,6 +50,7 @@ const en = {
     Gv: 'Visual processing',
     Gwm: 'Working memory',
     Gs: 'Processing speed',
+    Gq: 'Quantitative reasoning',
   } as Record<ChcDomain | 'Gc', string>,
 
   quiz: {
@@ -235,6 +236,7 @@ const en = {
       'wrong-attribute': 'wrong attribute',
       mirror: 'mirrored',
       'wrong-direction': 'wrong direction',
+      carry: 'carry slip',
       plausible: 'near miss',
     } as Record<ErrorType, string>,
     bodies: {
@@ -250,6 +252,8 @@ const en = {
         'Right rule, wrong feature. The transformation you applied is a real one here, but it governs a different attribute from the one you moved.',
       mirror:
         'That is a reflection, not a rotation. Pick one asymmetric feature and follow it: turning preserves its position relative to the rest, flipping reverses it.',
+      carry:
+        'The units digit is right and a higher place is wrong. That is the signature of a dropped or doubled carry — the part of the calculation that is bookkeeping rather than arithmetic. It is also why one wrong option always ends in the same digit as the answer: otherwise the item could be answered by working out a single digit.',
       'wrong-direction':
         'Right amount, opposite direction. You had the size of the step but applied it the wrong way — adding what should have come off, or the reverse. On a stream that does not repeat, a reversed step costs twice what a missed one does.',
       plausible:
@@ -314,7 +318,7 @@ const en = {
     byDomain: 'By cognitive domain',
     domainChartLabel: 'Accuracy by cognitive domain',
     domainLede:
-      'Your accuracy on the four Cattell–Horn–Carroll broad abilities these formats load on. A profile, not a score: there is no norm behind any of these bars, so they compare you with yourself and with nobody else.',
+      'Your accuracy on the five Cattell–Horn–Carroll broad abilities these formats load on. A profile, not a score: there is no norm behind any of these bars, so they compare you with yourself and with nobody else.',
     /** Marks a bar with too few attempts to mean anything yet. */
     provisional: (attempts: number) =>
       `${attempts} item${attempts === 1 ? '' : 's'} — too few to read anything into`,
@@ -361,7 +365,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than fourteen lines on one axis — fourteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than fifteen lines on one axis — fifteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -511,6 +515,13 @@ const en = {
       description:
         'A stream of letters goes past one at a time. Count how many of them match the letter a fixed number of places earlier — one place back at first, up to three. Span asks you to hold a list still; this asks you to keep a moving window of the last few elements and rewrite it at every step, which is why it measures updating rather than storage. The stream is gone when you answer, and it does not replay.',
       seenIn: 'Cognitive-training and working-memory research (Jaeggi et al.), Cogmed, the dual n-back literature',
+    },
+    arithmetic: {
+      name: 'Mental arithmetic',
+      blurb: 'Work out the answer. Quickly.',
+      description:
+        'A short expression to evaluate — addition and subtraction at first, then multiplication and exact division, and finally two operators chained together. Division always comes out whole and subtraction never goes below zero, because sign handling and fractions are separate skills that deserve their own treatment rather than arriving unannounced inside a speed drill. Answers are picked rather than typed, so that keyboard speed stays out of a measurement about calculation. One wrong option always ends in the same digit as the right one: without it, an item could be answered by working out the units digit alone.',
+      seenIn: 'WAIS Arithmetic, WISC Arithmetic, the quantitative sections of aptitude batteries, commercial calculation drills',
     },
     'head-count': {
       name: 'Head count',
@@ -718,6 +729,15 @@ const en = {
       ruleUpdating:
         'Counting these means holding the last few letters and replacing the oldest at every step. That updating, rather than how much you can store, is what this format measures.',
     },
+    arithmetic: {
+      prompt: 'What does this come to?',
+      summary: (expression: string, value: number) => `${expression} comes to ${value}.`,
+      ruleSingle: 'One operator, one calculation.',
+      ruleLeftToRight:
+        'Two operators of the same kind, read strictly left to right. Nothing here mixes addition with multiplication, so no order-of-operations convention has to be remembered — an item whose answer depended on that would be measuring the convention rather than the arithmetic.',
+      ruleUnitsDigit: (digit: number) =>
+        `The answer ends in ${digit}, and so does one of the wrong options — deliberately. The units digit of a sum or product is fixed by the units digits of what went into it, so if only one option ended in ${digit} the item could be answered without finishing the calculation.`,
+    },
     headCount: {
       prompt: 'How many figures were left in the room?',
       summary: (count: number) => `${count} were left in the room.`,
@@ -747,7 +767,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Fourteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Fifteen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -818,7 +838,7 @@ const en = {
     test: {
       title: 'Full test',
       description:
-        'A mixed run across all fourteen reasoning-test formats, two items each, with no feedback until the end.',
+        'A mixed run across all fifteen reasoning-test formats, two items each, with no feedback until the end.',
       lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
       differsHeading: 'How this differs from a real battery',
       differs: [
@@ -857,7 +877,7 @@ const en = {
 
       chcHeading: 'The map: CHC theory',
       chcP1:
-        'Nearly every modern battery is organised around the Cattell–Horn–Carroll model: general ability g at the top, about ten broad abilities beneath it, and seventy-odd narrow abilities below those. The four broad abilities this site trains:',
+        'Nearly every modern battery is organised around the Cattell–Horn–Carroll model: general ability g at the top, about ten broad abilities beneath it, and seventy-odd narrow abilities below those. The five broad abilities this site trains:',
       chcColCode: 'Code',
       chcColAbility: 'Ability',
       chcColFormats: 'Formats here',
@@ -979,7 +999,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these fourteen formats is evidence about these fourteen formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these fifteen formats is evidence about these fifteen formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',
