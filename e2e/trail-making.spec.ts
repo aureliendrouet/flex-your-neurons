@@ -143,3 +143,41 @@ test.describe('trail making', () => {
    * `interference.spec.ts`. Recorded rather than left as an unexplained gap.
    */
 });
+
+/**
+ * Two trail items in a row.
+ *
+ * Every case above runs a single-item session, and that is precisely how the bug this guards against
+ * survived: a board's labels are a pure function of (form, target count), so two consecutive items at
+ * one difficulty draw an identical set about half the time. The board identified itself by those
+ * labels, so on the second item its reset never fired — it stayed finished, every click was swallowed,
+ * and the run could neither be answered nor advanced.
+ */
+test.describe('trail making, item to item', () => {
+  test('a second item with the same labels still plays', async ({ page }) => {
+    const seed = 'TMDUP4';
+    const first = expectedItem('trail-making', seed, 0, 1);
+    const second = expectedItem('trail-making', seed, 1, 1);
+    if (first.stimulus.kind !== 'trail' || second.stimulus.kind !== 'trail') {
+      throw new Error('unexpected stimulus');
+    }
+    const labels = (item: typeof first) =>
+      item.stimulus.kind === 'trail' ? item.stimulus.nodes.map((n) => n.label).join('') : '';
+    // The case only bites when the two boards carry the same labels; assert the fixture really does.
+    expect(labels(first)).toBe(labels(second));
+
+    await page.goto(practiceUrl('trail-making', { seed, difficulty: 1, length: 2 }));
+    await expect(page.getByTestId('quiz')).toHaveAttribute('data-hydrated', 'true');
+
+    for (const node of first.stimulus.nodes) {
+      await page.getByTestId(`trail-node-${node.label}`).click();
+    }
+    await page.getByTestId('next').click();
+
+    // The second board must be live: back at the start of the path, with targets that respond.
+    const board = page.getByTestId('trail-board');
+    await expect(board).toHaveAttribute('data-trail-progress', '0');
+    await page.getByTestId(`trail-node-${second.stimulus.nodes[0]!.label}`).click();
+    await expect(board).toHaveAttribute('data-trail-progress', '1');
+  });
+});

@@ -2027,6 +2027,20 @@ kbd {
   width: 100%;
 }
 
+/*
+ * Coding's options are capped so the whole 2x2 tray sits above the fold on a phone.
+ *
+ * Measured on a 412px viewport, options 3 and 4 began 53px past it — and since the answer's position
+ * is uniform, roughly half of all items charged the reader a scroll before they could see the option
+ * they needed. In a format whose entire score is response latency, that is a scroll inside the
+ * measurement. The symbols themselves are small marks; drawing them at 138px was never doing any
+ * work that 84px does not.
+ */
+.quiz-answer[data-format='coding'] .option-figure {
+  max-width: 3.5rem;
+  margin-inline: auto;
+}
+
 .num-tabular {
   font-variant-numeric: tabular-nums;
 }
@@ -2252,7 +2266,15 @@ kbd {
 }
 
 .coding-symbol {
-  width: 2.1rem;
+  /*
+   * 3.2rem, not 2.1rem, because shading is one of the symbol vocabulary's three dimensions and at
+   * the smaller size it was not a dimension at all. The hatch tile is 8 user units on a 100-unit box
+   * and the dense tile 4.5, with strokes around 1.6 — at 34px that renders as sub-pixel lines, so
+   * both patterns flattened to plain grey and the only surviving cue was the wash, 0.10 against
+   * 0.24. That is the pure-opacity ramp `fillStyleFor` was rewritten to eliminate, reintroduced by a
+   * width.
+   */
+  width: 2.8rem;
 }
 
 .coding-probe {
@@ -3299,8 +3321,19 @@ table.data th.num {
 }
 
 .expression-text {
-  font: 700 clamp(2rem, 8vw, 3.25rem) / 1 var(--font-code);
+  /*
+   * Never wraps, and sized so it does not have to.
+   *
+   * The longest difficulty-5 expression is fifteen characters, and at 8vw that needed about 370px of
+   * line on a 412px phone — so `148 − 132 + 108` broke across two lines. A wrap is the largest
+   * jitter a stimulus can have between trials, in the one format whose score *is* the clock, and the
+   * comment two rules below says the stimulus must not jitter. `min()` keeps the viewport term but
+   * caps it against the character count, and `nowrap` makes any future overflow visible as overflow
+   * rather than silently rearranging the sum.
+   */
+  font: 700 clamp(1.5rem, min(8vw, 5.5cqw + 1rem), 3.25rem) / 1 var(--font-code);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   color: var(--text);
 }
 
@@ -3667,4 +3700,18 @@ table.data th.num {
   width: 100%;
   height: 100%;
   color: var(--text);
+}
+
+/*
+ * The guessing floor, printed under the accuracy it qualifies.
+ *
+ * Small and muted on purpose: it is context for a number rather than a number of its own, and the
+ * column has to stay scannable. It appears only where guessing is a strategy — a typed span has no
+ * floor worth naming.
+ */
+.chance-baseline {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
 }

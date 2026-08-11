@@ -50,6 +50,34 @@ export const GENERATORS: Generator[] = [
   arithmeticGenerator,
 ];
 
+/**
+ * Which generation of the generators produced an item. Bump on any change that alters what
+ * `(type, seed, difficulty)` yields.
+ *
+ * Items are not stored, only their seeds — which is what keeps history small, and also what makes
+ * history only as stable as the generators. A response records the tuple, so anything derived from
+ * the item *afterwards* is derived from whatever the generators produce today. Two read-outs do
+ * exactly that: `interferenceScore` recovers each Stroop trial's congruency by regenerating it, and
+ * `switchCostScore` recovers each trail's form the same way. Change a plan and those old responses
+ * are silently sorted into the wrong condition — a Stroop effect computed from a coin flip, with no
+ * outward sign that anything is wrong.
+ *
+ * This is the outward sign. Sessions carry the version they were played at, and the two re-derived
+ * contrasts read only sessions matching the current one. Everything a response records directly —
+ * accuracy, latency, the chosen error type — stays valid across a bump and keeps being counted.
+ *
+ * Not the same thing as `SCHEMA_VERSION` in `store.ts`, which is about the persisted *shape*: a
+ * schema bump discards the old key entirely, whereas an item bump keeps every session and narrows
+ * what may be inferred from it.
+ *
+ * History:
+ *  1 — original.
+ *  2 — 2026-08: the distractor-leakage pass reworked twelve formats' option sets. Neither
+ *      `interference` nor `trail-making` was among them, so no contrast actually lost data at
+ *      this bump — the stamp exists so that the next one is not silent.
+ */
+export const ITEM_VERSION = 2;
+
 const BY_ID = new Map<ItemTypeId, Generator>(GENERATORS.map((g) => [g.meta.id, g]));
 
 export const ITEM_TYPE_IDS: ItemTypeId[] = GENERATORS.map((g) => g.meta.id);

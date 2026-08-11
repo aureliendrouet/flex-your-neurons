@@ -141,7 +141,13 @@ const fr: Dict = {
     },
     describeFigure: (count: number, shape: string, size: number, shading: string) =>
       `${count} ${plural(shape, count)}, taille ${size}, ${shading}`,
-    describeGrid: (cells: number) => `une forme de ${cells} cases`,
+    describeGrid: (rows: string[], filled: number) =>
+      `${filled} cases : ${rows.map((row, i) => `ligne ${i + 1} ${row || 'vide'}`).join(', ')}`,
+    gridRowCells: (columns: number[]) => listPhrase(columns.map(String), 'et'),
+    listSeparator: ' et ',
+    turnedBy: (degrees: number) => `tournée de ${degrees} degrés`,
+    atPositions: (positions: number[], total: number) =>
+      `en position${positions.length === 1 ? '' : 's'} ${listPhrase(positions.map(String), 'et')} sur ${total}`,
     emptyCell: 'une case vide',
     unfilled: 'sans remplissage',
     shadingLevel: (n: number) => `remplissage niveau ${n}`,
@@ -270,6 +276,7 @@ const fr: Dict = {
   },
 
   dashboard: {
+    chanceLevel: (percent: string) => `hasard ${percent}`,
     switchHeading: 'Coût du basculement',
     switchLede:
       'Issu des plateaux à relier : de combien les plateaux mêlant nombres et lettres prennent plus de temps que ceux à nombres seuls. Les deux sortes exigent autant de recherche et de clics, si bien que l’écart mesure le coût de tenir deux suites à la fois et d’alterner entre elles — la part de la tâche qui n’est pas de la simple vitesse.',
@@ -812,8 +819,8 @@ const fr: Dict = {
       ruleTrack:
         'Chaque mouvement fait entrer ou sortir des personnages. Ce qu’il faut tenir, c’est le total courant et non les mouvements : additionnez ou soustrayez, puis oubliez le nombre que vous teniez.',
       ruleSteps: (steps: string) => `Pas à pas : ${steps}.`,
-      ruleMissedStep: (n: number) =>
-        `Deux des réponses proposées correspondent à une seule étape mal traitée : avoir manqué ${n === 1 ? 'celui qui sortait' : `les ${n} qui sortaient`}, ou l’avoir ajouté${n === 1 ? '' : 's'} au lieu de le${n === 1 ? '' : 's'} retrancher. Toutes deux sont volontairement proches de la bonne — une réponse écartable parce qu’elle est trop éloignée permettrait de répondre sans avoir regardé.`,
+      ruleMissedStep:
+        'Les autres réponses correspondent à une seule étape mal traitée : un mouvement jamais compté — ce qui laisse le total trop haut s’ils sortaient, trop bas s’ils entraient — ou un mouvement compté à l’envers. Elles se répartissent volontairement de part et d’autre de la bonne, et tout près d’elle : une réponse écartable parce qu’elle est trop éloignée, ou parce qu’elle occupe toujours la même place dans la liste, permettrait de répondre sans avoir regardé.',
     },
     coding: {
       prompt: (digit: string) => `Quel symbole est associé au ${digit} ?`,
@@ -1186,5 +1193,12 @@ const fr: Dict = {
     },
   },
 };
+
+
+/** "1", "1 and 3", "1, 2 and 4" — a readable list for a screen reader. */
+function listPhrase(items: string[], conjunction: string): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} ${conjunction} ${items[items.length - 1]}`;
+}
 
 export default fr;

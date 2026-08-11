@@ -7,6 +7,7 @@
  * camelCase props straight to `setAttribute`, and SVG attribute names are case-sensitive,
  * so `fillOpacity` would be silently ignored and every cell would paint solid.
  */
+import { dict, type Locale } from '../lib/i18n';
 import type { CellGrid } from '../lib/types';
 
 interface Props {
@@ -102,4 +103,26 @@ export default function GridView({ grid, variant = 'solid', label, className }: 
       {cells}
     </svg>
   );
+}
+
+/**
+ * A grid described row by row, for screen readers and test assertions.
+ *
+ * The sibling of `describeFigure`, and it exists for the same reason: the previous label was the
+ * cell *count* alone, so every option of a rotation or paper-folding item read as "a shape of 6
+ * cells" and the item could not be answered without seeing it. Position is the whole content of both
+ * formats — a polyomino is a shape, a punched sheet is a set of places — so the description has to
+ * carry it.
+ */
+export function describeGrid(grid: CellGrid, locale: Locale): string {
+  const t = dict(locale).quiz;
+  const rows: string[] = [];
+  for (let r = 0; r < grid.rows; r++) {
+    const columns: number[] = [];
+    for (let c = 0; c < grid.cols; c++) {
+      if (grid.cells[r * grid.cols + c]) columns.push(c + 1);
+    }
+    rows.push(columns.length === 0 ? '' : t.gridRowCells(columns));
+  }
+  return t.describeGrid(rows, grid.cells.filter(Boolean).length);
 }

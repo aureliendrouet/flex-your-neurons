@@ -27,6 +27,9 @@ import type { TrailNode } from '../lib/types';
  */
 import { NODE_RADIUS } from '../lib/generators/trail-making';
 
+/** How long the wrong-click mark stays. Matches the flash animation in the stylesheet. */
+const WRONG_MARK_MS = 600;
+
 interface Props {
   nodes: TrailNode[];
   locale: Locale;
@@ -43,12 +46,47 @@ export default function TrailBoard({ nodes, locale, onComplete, frozen }: Props)
   /** The last wrong click, for a brief mark. Keyed by a counter so repeats re-animate. */
   const [wrong, setWrong] = useState<{ index: number; at: number } | null>(null);
 
+  /*
+   * A within-instance guard only. The board is mounted with a per-item `key` by the quiz, so a new
+   * item arrives as a fresh instance and this effect fires on mount — which is what makes the reset
+   * correct even for two consecutive items whose labels are identical, as any two boards of the same
+   * form and target count are.
+   */
   const key = nodes.map((n) => n.label).join('');
   useEffect(() => {
     setProgress(0);
     setMisses(0);
     setWrong(null);
   }, [key]);
+
+  /*
+   * The miss count is read by `onComplete`, which fires from the click handler — so it cannot read
+   * it from render state: a miss and the final click landing in one task would submit the stale
+   * count from before the miss. Real clicks arrive in separate tasks, but a programmatic or
+   * assistive double-activation does not.
+   */
+  const missesRef = useRef(0);
+  missesRef.current = misses;
+
+  /*
+   * Clearing the mark rather than leaving it on the node it happened to land on. Under
+   * `prefers-reduced-motion` the stylesheet swaps the flash for a static border, which without this
+   * would stay until the next wrong click somewhere else.
+   */
+  const nodeRefs = useRef(new Map<number, HTMLButtonElement>());
+  useEffect(() => {
+    if (!wrong) return;
+    /* Re-arm the animation by hand: the attribute is already present when the same node is missed
+       twice, and changing only its value does not restart a CSS animation. */
+    const el = nodeRefs.current.get(wrong.index);
+    if (el) {
+      el.removeAttribute('data-trail-wrong');
+      void el.offsetWidth;
+      el.setAttribute('data-trail-wrong', String(wrong.at));
+    }
+    const id = setTimeout(() => setWrong(null), WRONG_MARK_MS);
+    return () => clearTimeout(id);
+  }, [wrong]);
 
   /*
    * `onComplete` is called from the click handler rather than from an effect watching `progress`.
@@ -77,12 +115,15 @@ export default function TrailBoard({ nodes, locale, onComplete, frozen }: Props)
     if (index === progress) {
       const next = progress + 1;
       setProgress(next);
-      if (next >= nodes.length) completeRef.current(misses);
+      if (next >= nodes.length) completeRef.current(missesRef.current);
       return;
     }
     // Already-joined targets are inert rather than wrong: re-clicking one is not a mistake.
     if (index < progress) return;
-    setMisses((m) => m + 1);
+    setMisses((m) => {
+      missesRef.current = m + 1;
+      return missesRef.current;
+    });
     setWrong({ index, at: performance.now() });
   }
 
@@ -129,6 +170,10 @@ export default function TrailBoard({ nodes, locale, onComplete, frozen }: Props)
           return (
             <button
               key={node.label}
+              ref={(el) => {
+                if (el) nodeRefs.current.set(index, el);
+                else nodeRefs.current.delete(index);
+              }}
               type="button"
               class="trail-node"
               data-testid={`trail-node-${node.label}`}

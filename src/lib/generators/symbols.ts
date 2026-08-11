@@ -12,6 +12,7 @@
  * — hue is never load-bearing anywhere on this site, because roughly one man in twelve
  * would be answering a different question.
  */
+import { canonicalRotation } from '../geometry';
 import type { Rng } from '../rng';
 import type { ColorLevel, Figure, ShapeType, SizeLevel } from '../types';
 
@@ -43,9 +44,29 @@ export interface Symbol {
   rotation: number;
 }
 
-/** Identity of a symbol, for the duplicate checks both generators depend on. */
+/**
+ * Identity of a symbol, for the duplicate checks both generators depend on.
+ *
+ * Keyed on the rotation the shape is *drawn* at, not the one it stores. A hexagon at 60° and one at
+ * 120° are the same picture, and a key that separated them would let a coding key hold the same
+ * symbol under two digits, or let a symbol-search trial hide a target in plain sight and call it
+ * absent. See `canonicalRotation`.
+ */
 export function symbolKey(s: Symbol): string {
-  return `${s.type}|${s.color}|${s.rotation}`;
+  return `${s.type}|${s.color}|${canonicalRotation(s.type, s.rotation)}`;
+}
+
+/** The orientations that produce a *visibly* different mark for a given shape. */
+function rotationsFor(type: ShapeType): number[] {
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const r of ROTATIONS) {
+    const c = canonicalRotation(type, r);
+    if (seen.has(c)) continue;
+    seen.add(c);
+    out.push(c);
+  }
+  return out;
 }
 
 export function toFigure(s: Symbol, size: SizeLevel = 4): Figure {
@@ -56,17 +77,34 @@ export function toFigure(s: Symbol, size: SizeLevel = 4): Figure {
 }
 
 export function randomSymbol(rng: Rng): Symbol {
+  const type = rng.pick(SHAPES);
   return {
-    type: rng.pick(SHAPES),
+    type,
     color: rng.pick(SHADINGS),
-    rotation: rng.pick(ROTATIONS),
+    /* Stored already reduced, so the record and the ink never disagree. The draw is still made from
+       the full ladder, so the RNG stream is unchanged by the reduction. */
+    rotation: canonicalRotation(type, rng.pick(ROTATIONS)),
   };
 }
 
-/** A symbol exactly one dimension away from `s` — the near-miss that costs a second look. */
+/**
+ * A symbol exactly one dimension away from `s` — the near-miss that costs a second look.
+ *
+ * "One dimension away" has to mean one *visible* dimension. Rotation is not a usable dimension on
+ * every shape: on a circle it is not drawn at all, and on a hexagon only two of the six orientations
+ * are distinct. Offering it anyway produced near-misses that were pixel-identical to the symbol they
+ * were supposed to be confusable with — the opposite of a near-miss, and the source of items whose
+ * correct answer appeared twice.
+ */
 export function confusableWith(s: Symbol, rng: Rng): Symbol {
-  const dim = rng.pick(['type', 'color', 'rotation'] as const);
-  if (dim === 'type') return { ...s, type: rng.pick(SHAPES.filter((t) => t !== s.type)) };
+  const rotations = rotationsFor(s.type).filter((r) => r !== canonicalRotation(s.type, s.rotation));
+  const dims: ('type' | 'color' | 'rotation')[] = ['type', 'color'];
+  if (rotations.length > 0) dims.push('rotation');
+  const dim = rng.pick(dims);
+  if (dim === 'type') {
+    const type = rng.pick(SHAPES.filter((t) => t !== s.type));
+    return { ...s, type, rotation: canonicalRotation(type, s.rotation) };
+  }
   if (dim === 'color') return { ...s, color: rng.pick(SHADINGS.filter((c) => c !== s.color)) };
-  return { ...s, rotation: rng.pick(ROTATIONS.filter((r) => r !== s.rotation)) };
+  return { ...s, rotation: rng.pick(rotations) };
 }

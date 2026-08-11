@@ -99,20 +99,20 @@ Eighteen generators across five CHC domains:
 | `matrix` | 3×3 RAVEN-style, 8 options | # attributes under a rule; rule complexity |
 | `series-number` | numeric sequence, 5 options | ANSIG operator (AOS→PS→CF→NPCP→PCP) |
 | `series-letter` | letter sequence, 5 options | step size; # interleaved streams |
-| `odd-one-out` | 5–6 figures, pick the violator | # shared attributes; salience of the violation |
+| `odd-one-out` | 5–6 figures, pick the violator | # attributes varying among the conformers; layout |
 | `analogy-figural` | A:B :: C:?, 5 options | # simultaneous transformations |
 | `syllogism` | 2 premises, 4 conclusions | figure; # negative/particular premises |
 | `rotation` | 2-D polyomino, rotation vs. mirror | rotation angle; shape complexity |
 | `paper-folding` | folds + punches, 5 options | # folds; # punches |
 | `figure-weights` | balance-scale algebra, 4 options | # shapes in the chain; objects in the target pan |
-| `span` | digit/letter span, fwd & backward | span length (adaptive) |
+| `span` | digit span, fwd & backward | span length; backward from level 3 |
 | `block-span` | watch nine blocks light, tap them back | sequence length, and nothing else |
 | `n-back` | count the N-back repeats in a stream | N; stream length; step rate |
-| `head-count` | track arrivals and departures, report the total | # steps; step rate; group size |
+| `head-count` | track arrivals and departures, report the total | # steps; step rate |
 | `symbol-search` | target detection, latency-scored | set size; distractor similarity |
 | `coding` | digit→symbol lookup, latency-scored | key size; symbol confusability |
 | `arithmetic` | evaluate a short expression, 4 options | operators available; operand size; chaining |
-| `interference` | count the glyphs, ignore what they say | share of incongruent trials |
+| `interference` | count the glyphs, ignore what they say | share of incongruent trials (see the note below) |
 | `trail-making` | join the targets in order, timed as one run | number of targets |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
@@ -168,6 +168,27 @@ Eighteen generators across five CHC domains:
 > so nothing about it is a compression of a longer block — which is why it could ship ahead of the
 > block mode rather than waiting on it.
 
+> **On sameness being a question about ink, not about records.** Three formats shipped items whose
+> correct answer was scored wrong, and all three had the same cause. `rotation` is a free number in
+> the data model and a *quotient* on the page: a regular polygon turned by one of its own symmetry
+> steps is the same picture, and the drawing code has always known this while the identity checks did
+> not. A hexagon at 60° and at 120° are one mark; a circle takes no angle at all, so the vocabulary's
+> six orientations collapse to one; and across shapes, a square turned 45° is drawn as the same four
+> points as an upright diamond, which no per-shape symmetry table can see.
+>
+> So a coding key held two identical symbols under different digits, a symbol-search trial keyed
+> "target absent" displayed a pixel-perfect copy of the target in a third of its hardest items, and a
+> figural analogy put its own answer on screen twice. In each case a reader who did the task
+> perfectly was marked incorrect — and for the two speeded formats the damage compounded, because
+> latency medians are taken over *correct* responses, so the corrupted trials were silently dropped
+> from the measurement the format exists to produce.
+>
+> `canonicalRotation` and `figureSignature` in `geometry.ts` are the fix, and the rule they encode is
+> the general one: **anywhere two figures are compared for sameness, keyed for de-duplication, or
+> described to a reader, compare what is drawn.** `tests/rendering-identity.test.ts` holds every
+> figural format to it, including the description channel — two options that read alike to a screen
+> reader are two options that cannot be chosen between.
+
 > **On what difficulty is allowed to scale.** Worth stating once, because getting it wrong is
 > easy and the result still passes every test. `head-count` first scaled by letting the room
 > fill up, so by level 5 the running total reached the twenties — and holding "23, now 26" is
@@ -196,6 +217,17 @@ Eighteen generators across five CHC domains:
 > stored on a response — it did not need to be, because every item regenerates exactly from
 > `(type, seed, difficulty)`, so the partition is re-derived at read time from history written before
 > the read-out existed.
+>
+> That trick has a price, and it is now paid explicitly. A re-derived condition is only sound while
+> the generators still produce what the reader answered — change a plan and every old response is
+> sorted by a congruency it never had, while the contrast goes on returning a confident number. A
+> wrong statistic is worse than a missing one. So `ITEM_VERSION` (in `generators/index.ts`) names the
+> current generation of the generators, `newSession` stamps it, and `rederivableSessions` narrows the
+> two seed-derived contrasts to sessions that match. Bump it whenever a change alters what a
+> `(type, seed, difficulty)` tuple yields. Nothing else narrows: accuracy, latency and the recorded
+> error type are measured rather than inferred, and survive any generator change intact. It is a
+> different axis from `SCHEMA_VERSION` in `store.ts`, which governs the persisted *shape* and discards
+> the old key outright.
 
 > **On trail making, the third response mode, and a deviation worth naming.** Every other format
 > collects one decision. A trail collects a *path*: targets are joined in order and the whole run is
@@ -205,9 +237,13 @@ Eighteen generators across five CHC domains:
 > counted and the run continues, as it does when an examiner says "no, that one".
 >
 > Form A (numbers) and form B (numbers alternating with letters) are a *within-format* condition and
-> not difficulty levels, for the same reason the incongruent share is not spread across levels in the
-> Stroop format: making level 4 a different construct from level 1 would leave the levels
-> incomparable. Difficulty scales the target count; form varies per item. That buys the **B-minus-A
+> not difficulty levels: making level 4 a different construct from level 1 would leave the levels
+> incomparable. Difficulty scales the target count; form varies per item.
+>
+> (This paragraph used to justify that by saying the Stroop format keeps its incongruent share off the
+> difficulty ladder. It does not — the share *is* that format's only dial, rising from about half at
+> level 1 to nearly nine in ten at level 5, and `interference.ts` says so in as many words. The two
+> formats genuinely differ here; what follows from it for the Stroop read-out is recorded below.) That buys the **B-minus-A
 > switch cost**, the classic executive measure, recoverable from history by regenerating items — the
 > second contrast on the site built out of the seed architecture rather than out of a stored field.
 >
@@ -215,6 +251,14 @@ Eighteen generators across five CHC domains:
 > Twenty-five circles fit an A4 sheet; on a phone-width board they cannot be placed without either
 > overlapping or shrinking below a tappable size. Fewer targets changes the amount of search while
 > leaving the task intact, which is the only one of the three options that does not break something.
+>
+> Worth stating precisely, because the wording implies more than is delivered: sixteen is what keeps
+> the targets from *overlapping*, not what makes them comfortable. Measured on a 360px-wide phone they
+> are about 23px across — clear of the WCAG 2.2 AA minimum only through its spacing exception, and
+> well short of the 44px AAA guideline. The radius is a constant besides, so an eight-target board at
+> level 1 has exactly the same target size as a sixteen-target one at level 5: cutting twenty-five to
+> sixteen bought packing feasibility, not tappability. The stylesheet states that trade honestly and
+> this note now does too.
 
 > **On block span (Corsi), and the fourth response mode.** Nine blocks light one after another and are
 > tapped back in order — digit span with places instead of digits, and the pair dissociate, which is
@@ -319,6 +363,30 @@ seeds × each difficulty are generated and every invariant is asserted on all of
 - a **distractors-only** solver, shown the options but *not* the stimulus, scores at chance
   (verifies Guard 2 — this is the direct regression test for the RAVEN flaw);
 - the same seed produces a byte-identical item across runs (verifies reproducibility).
+
+**Guard 2 is enforced centrally, in `tests/leakage.test.ts`, and that is a correction rather than a
+refactor.** It used to be asserted per format, by hand, wherever someone had thought to. That failed
+the way hand-written guards fail: each one tested the attack its author had in mind. The matrix guard
+scored options by shared-value count — which its balanced attribute cube makes uniform *by
+construction* — and so reported chance against a real leak of three times chance; the head-count
+guard checked that every option was within ten of the answer, which is a fact about distance and says
+nothing about rank, while the answer was the second-smallest of four in **every item the format had
+ever produced**. Twelve of the fifteen multiple-choice formats were leaking when the sweep was first
+run, several of them at four to five times chance.
+
+The shared harness fixes the shape of the mistake, not just the instances. It runs a *family* of
+stimulus-blind strategies — extremes, ranks, cluster centres, neighbour gaps, attribute-wise
+majority, equivalence-class outliers — over generic features of the option list, and holds every
+format to the best of them, per difficulty as well as pooled.
+
+Two details make it trustworthy rather than merely strict. Ties are scored as ties: a strategy that
+narrows five options to three earns a third of a guess, so "it cannot quite decide" is measured as
+what it is. And the bar is **calibrated rather than assumed** — the same family is re-run against the
+same option sets with the answer position replaced by an arbitrary one, and a format is asked to
+score no better on its real answers than the family scores on invented ones. Raw chance would have
+been the wrong bar in both directions: plausible near-miss distractors leave the answer near the
+middle of the set often enough to beat 1/n on their own, and the maximum of fifty noisy estimators is
+not an unbiased estimate of anything.
 
 ---
 

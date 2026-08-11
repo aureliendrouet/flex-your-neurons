@@ -61,6 +61,23 @@ function buildFigure(s: Spec, layout: SlotLayout): Figure {
 /**
  * The independent check. Returns the indices of every figure that is unique on at least
  * one dimension — i.e. every figure a solver could defensibly call the odd one.
+ *
+ * Two readings count, and only the first used to.
+ *
+ * **Unique against a consensus.** One figure holds a value nobody else holds, and every other
+ * figure agrees on one value. This is the cleanest case and the one the generator builds towards.
+ *
+ * **The loner among groups.** One figure holds a value nobody else holds, and the rest fall into
+ * two or more groups of at least two. This is *also* how classification works — the reader sees
+ * three squares, two circles and one star, and the star is the odd one — and requiring a unanimous
+ * remainder missed it entirely. A second defensible answer existed in a third to a half of all items
+ * above difficulty 1, and in about 3% of them it was the *more* salient reading: the keyed answer
+ * differed by one shading step while some other figure was the only single-shape figure among
+ * figures of three and four. The user-facing copy promised "exactly one figure is defensibly odd, on
+ * exactly one dimension", which is a promise the guard was not keeping.
+ *
+ * A group of one among singletons is not a reading: if every figure holds a different value on a
+ * dimension, nothing about that dimension is shared, so nothing violates it.
  */
 function defensibleOddOnes(specs: Spec[]): number[] {
   const dims: Dim[] = ['type', 'size', 'color', 'count'];
@@ -71,13 +88,15 @@ function defensibleOddOnes(specs: Spec[]): number[] {
       const v = s[dim];
       tally.set(v, [...(tally.get(v) ?? []), i]);
     });
-    // A figure is defensibly odd on this dimension when it holds a value no one else
-    // holds AND every other figure agrees on a single common value.
+
     for (const [, idxs] of tally) {
       if (idxs.length !== 1) continue;
       const i = idxs[0]!;
-      const others = specs.filter((_, j) => j !== i).map((s) => s[dim]);
-      if (new Set(others).size === 1) odd.add(i);
+      const otherGroups = [...tally.values()].filter((g) => g[0] !== i || g.length > 1);
+      const remainder = otherGroups.filter((g) => !(g.length === 1 && g[0] === i));
+      if (remainder.length === 0) continue;
+      // Every remaining figure sits in a group of two or more — one consensus, or several.
+      if (remainder.every((g) => g.length >= 2)) odd.add(i);
     }
   }
   return [...odd].sort((a, b) => a - b);
@@ -101,10 +120,15 @@ function planFor(difficulty: Difficulty): Plan {
       return { count: 5, layout: 'center', noiseDims: 2 };
     case 3:
       return { count: 6, layout: 'grid2x2', noiseDims: 2 };
+    /* Levels 3 and 4 were byte-identical plans, so they drew from one pool and differed only in the
+       seconds suggested for them. A third varying dimension is the format's own dial. */
     case 4:
-      return { count: 6, layout: 'grid2x2', noiseDims: 2 };
-    case 5:
       return { count: 6, layout: 'grid2x2', noiseDims: 3 };
+    /* The last rung changes the layout rather than adding a seventh figure: nine slots give the
+       count dimension a wider range to hide in, and keeping the option count at six across the top
+       three levels keeps the answer's position comparable between them. */
+    case 5:
+      return { count: 6, layout: 'grid3x3', noiseDims: 3 };
   }
 }
 
@@ -211,7 +235,15 @@ function randomValueFor(dim: Dim, rng: Rng, maxCount: number, layout: SlotLayout
     case 'color':
       return rng.int(1, 5);
     case 'count':
-      return layout === 'center' ? 1 : rng.int(1, maxCount);
+      /*
+       * The same range the shared count is drawn from — see the draw in `generate`.
+       *
+       * These two disagreed: the conforming majority was drawn from 2..max while the odd figure and
+       * the noise were drawn from 1..max, so a single-shape figure could never be the majority and a
+       * sparse pan was disproportionately the violator. "Pick the figure with the fewest shapes"
+       * scored around 50% against a 17% base rate, which is a shortcut that needs no concept at all.
+       */
+      return layout === 'center' ? 1 : rng.int(2, maxCount);
   }
 }
 

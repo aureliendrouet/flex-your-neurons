@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { GENERATORS, generateItem, getGenerator, getItemText, ITEM_TYPE_IDS } from '@/lib/generators';
 import { LOCALES } from '@/lib/i18n';
+import { figureSignature } from '@/lib/geometry';
 import { DIFFICULTIES } from '@/lib/types';
 import type { Difficulty, Item, Option } from '@/lib/types';
 
@@ -23,10 +24,13 @@ function optionKey(o: Option): string {
     case 'grid':
       return `g:${o.grid.rows}x${o.grid.cols}:${o.grid.cells.map((b) => (b ? 1 : 0)).join('')}`;
     case 'figure':
-      return `f:${o.figure.layout}:${o.figure.shapes
-        .map((s) => `${s.type},${s.size},${s.color},${s.rotation},${s.x},${s.y}`)
-        .sort()
-        .join(';')}`;
+      /*
+       * Keyed on the rendered outline, not on the record. Two options that store different rotations
+       * can paint the same pixels — a hexagon at 60° and at 120°, a square at 45° and a diamond at 0
+       * — and "options are pairwise distinct" has to mean distinct to the reader, who is the one
+       * being asked to choose between them.
+       */
+      return `f:${figureSignature(o.figure)}`;
   }
 }
 

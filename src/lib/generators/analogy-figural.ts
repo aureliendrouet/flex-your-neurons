@@ -10,6 +10,7 @@
  */
 import { createRng, type Rng } from '../rng';
 import { dict, type Locale } from '../i18n';
+import { canonicalRotation, figureSignature, ROTATION_PERIOD } from '../geometry';
 
 type T = ReturnType<typeof dict>['gen']['analogy'];
 import type {
@@ -24,19 +25,7 @@ import type {
   SizeLevel,
 } from '../types';
 
-/** Order of rotational symmetry: a rotation by 360/order degrees is invisible. */
-const SYMMETRY_ORDER: Record<ShapeType, number> = {
-  circle: 360, // effectively continuous — never rotate a circle
-  square: 4,
-  triangle: 3,
-  diamond: 2,
-  pentagon: 5,
-  hexagon: 6,
-  star: 5,
-  cross: 4,
-};
-
-const SHAPES: ShapeType[] = ['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'cross'];
+const SHAPES: ShapeType[] =['circle', 'square', 'triangle', 'diamond', 'pentagon', 'hexagon', 'star', 'cross'];
 
 interface Spec {
   type: ShapeType;
@@ -67,10 +56,15 @@ function apply(spec: Spec, t: Transform): Spec | null {
       return { ...spec, color: v as ColorLevel };
     }
     case 'rotation': {
-      const order = SYMMETRY_ORDER[spec.type];
-      // The rotation must be visible for this shape, or the analogy is undetermined.
-      if (t.amount % (360 / order) === 0) return null;
-      return { ...spec, rotation: (spec.rotation + t.amount) % 360 };
+      /*
+       * The rotation must be visible for this shape, or the analogy is undetermined. Asked of the
+       * outline the renderer will draw rather than of a hand-kept symmetry table — the table said a
+       * diamond had order 2, when it is drawn as a regular 4-gon, so quarter turns of it were
+       * emitted as "rotations" that changed nothing on screen.
+       */
+      const turned = canonicalRotation(spec.type, spec.rotation + t.amount);
+      if (turned === canonicalRotation(spec.type, spec.rotation)) return null;
+      return { ...spec, rotation: turned };
     }
     case 'type': {
       const i = SHAPES.indexOf(spec.type);
@@ -106,12 +100,137 @@ function toFigure(spec: Spec): Figure {
   };
 }
 
-/** Identity as drawn — rotation normalised by symmetry, so invisible spins collapse. */
+/**
+ * Identity as drawn.
+ *
+ * Delegates to the rendered outline, which collapses two things a per-shape symmetry table cannot:
+ * an invisible spin, and the cross-type coincidence that a square turned 45° *is* an upright
+ * diamond. Both used to reach the option list, where they put the answer on screen twice.
+ */
 function figureKey(spec: Spec): string {
-  const order = SYMMETRY_ORDER[spec.type];
-  const period = 360 / order;
-  const rot = order >= 360 ? 0 : ((spec.rotation % period) + period) % period;
-  return `${spec.type}|${spec.size}|${spec.color}|${Math.round(rot)}`;
+  return figureSignature(toFigure(spec));
+}
+
+/** Figures offered per item: the answer and four wrong readings of the rule. */
+const OPTION_COUNT = 5;
+
+const BISECT_ATTRS = ['type', 'size', 'color', 'rotation'] as const;
+type BisectAttr = (typeof BISECT_ATTRS)[number];
+
+/** Another legal value for one attribute, or `null` where the attribute has no room to move. */
+function shift(spec: Spec, attr: BisectAttr, rng: Rng): Spec | null {
+  switch (attr) {
+    /*
+     * The numeric attributes step at least two levels, not one.
+     *
+     * A shared value one step away leaves the distractors sitting either side of the answer, and
+     * the answer at the centre of mass of the set — so "pick the option closest to the average of
+     * the others" still found it above chance even once the counts were balanced. Moving further
+     * puts the wrong values together on one side, where they say nothing about what is between them.
+     */
+    case 'size': {
+      const far = [1, 2, 3, 4, 5].filter((v) => Math.abs(v - spec.size) >= 2);
+      const options = far.length > 0 ? far : [1, 2, 3, 4, 5].filter((v) => v !== spec.size);
+      return { ...spec, size: rng.pick(options) as SizeLevel };
+    }
+    case 'color': {
+      const far = [0, 1, 2, 3, 4, 5].filter((v) => Math.abs(v - spec.color) >= 2);
+      const options = far.length > 0 ? far : [0, 1, 2, 3, 4, 5].filter((v) => v !== spec.color);
+      return { ...spec, color: rng.pick(options) as ColorLevel };
+    }
+    case 'type': {
+      /* Stay within the same rotational symmetry, so a shifted shape cannot make a turn that was
+         visible on the original invisible on it. */
+      const options = SHAPES.filter(
+        (s) => s !== spec.type && ROTATION_PERIOD[s] === ROTATION_PERIOD[spec.type],
+      );
+      return options.length > 0 ? { ...spec, type: rng.pick(options) } : null;
+    }
+    case 'rotation': {
+      const period = ROTATION_PERIOD[spec.type];
+      if (period === 0) return null;
+      const current = canonicalRotation(spec.type, spec.rotation);
+      const options: number[] = [];
+      for (let r = 0; r < 360; r += 15) {
+        const c = canonicalRotation(spec.type, r);
+        if (c !== current && !options.includes(c)) options.push(c);
+      }
+      return options.length > 0 ? { ...spec, rotation: rng.pick(options) } : null;
+    }
+  }
+}
+
+/**
+ * Nudge distractors until no attribute carries the answer's value in a majority of the options.
+ *
+ * The I-RAVEN repair, in the smallest form that fits this format. Returns `null` when the spread
+ * cannot be achieved without colliding — the caller redraws, which is cheaper than shipping a set
+ * that can be read without the stimulus.
+ */
+function bisect(
+  answer: Spec,
+  distractors: { spec: Spec; errorType: ErrorType }[],
+  rng: Rng,
+): { spec: Spec; errorType: ErrorType }[] | null {
+  const out = distractors.map((w) => ({ ...w }));
+  const total = out.length + 1;
+
+  /*
+   * Moving distractors *away* from the answer is not enough, and getting that wrong made things
+   * three times worse before it made them better. If each distractor simply takes its own fresh
+   * value on the shared attributes, every one of them disagrees with every other, and the answer —
+   * which still matches whichever distractors were left alone — holds the largest count of agreeing
+   * neighbours on every attribute at once. It becomes *more* identifiable, not less.
+   *
+   * What is needed is for the distractors to agree with **each other**. On every attribute at most
+   * one distractor is allowed to keep the answer's value, and the rest are given one shared
+   * alternative — so the modal value on each attribute belongs to the distractors, and reading off
+   * the majority builds a figure that is not the answer.
+   */
+  for (const attr of BISECT_ATTRS) {
+    const same = rng.shuffle(out.filter((w) => keyOfAttr(w.spec, attr) === keyOfAttr(answer, attr)));
+    const diff = out.filter((w) => keyOfAttr(w.spec, attr) !== keyOfAttr(answer, attr));
+
+    /*
+     * Only attributes that already vary are touched.
+     *
+     * An attribute every option agrees on carries no information — it is the item's constant
+     * background, not part of what is being asked. Spreading it would *create* a difference where
+     * there was none, and a created difference is correlated with the answer by construction,
+     * because the answer is the one figure that was not moved.
+     */
+    if (diff.length === 0 || same.length <= 1) continue;
+
+    /*
+     * The target shape is a *balanced* count, not a minimal or maximal one, and both extremes were
+     * tried before this. Leaving the answer's value in the majority let "take the commonest value on
+     * every attribute" rebuild it (42%, then 32% after a partial fix). Moving every distractor off
+     * the answer's value inverted the tell rather than removing it — the answer became the lone
+     * outlier and "pick the one furthest from its neighbours" found it 41% of the time.
+     *
+     * So exactly one distractor keeps the answer's value, one joins a value some other distractor
+     * already holds, and any remainder takes a fresh one. The answer's value ends up held by two
+     * options and so does a wrong value: whichever way a reader reads the majority, it does not
+     * single out the answer.
+     */
+    const [, ...excess] = same;
+    for (let i = 0; i < excess.length; i++) {
+      const w = excess[i]!;
+      const donor = i === 0 ? diff[i % diff.length]! : null;
+      const value = donor ? donor.spec[attr] : shift(w.spec, attr, rng)?.[attr];
+      if (value === undefined) continue;
+      w.spec = { ...w.spec, [attr]: value } as Spec;
+    }
+  }
+
+  const keys = new Set([figureKey(answer), ...out.map((w) => figureKey(w.spec))]);
+  return keys.size === total ? out : null;
+}
+
+/** One attribute of a spec, as drawn — rotation reduced by the shape's symmetry. */
+function keyOfAttr(spec: Spec, attr: BisectAttr): string {
+  if (attr === 'rotation') return String(canonicalRotation(spec.type, spec.rotation));
+  return String(spec[attr]);
 }
 
 function transformCount(difficulty: Difficulty): number {
@@ -137,7 +256,12 @@ function randomTransform(rng: Rng, exclude: Set<TransformKind>, t: T): Transform
       return { kind, amount, label: t.colorChange(amount) };
     }
     case 'rotation': {
-      const amount = rng.pick([90, 180, 45]);
+      /*
+       * No 45° step. It is visible on the quarter-turn shapes and on nothing else — and on exactly
+       * those shapes it is the one angle that turns a square into an upright diamond, so the item
+       * showed a rotation and read as a change of shape.
+       */
+      const amount = rng.pick([90, 180]);
       return { kind, amount, label: t.rotationChange(amount) };
     }
     case 'type': {
@@ -176,8 +300,24 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
       color: rng.int(1, 4) as ColorLevel,
       rotation: 0,
     };
+    /*
+     * When the rule turns the figure, C must share A's rotational symmetry.
+     *
+     * A turn is only ever inferable *modulo the symmetry of the shape it was shown on*: a hexagon
+     * turned 90° is equally a hexagon turned 30°, 150° or 270°. That is harmless while the reader
+     * stays on one shape, and fatal the moment the rule is carried to a shape with a different
+     * period — each reading of A→B then predicts a different answer for C, and more than one of them
+     * was reaching the option list.
+     */
+    const rotationShapes = SHAPES.filter(
+      (s) => ROTATION_PERIOD[s] === ROTATION_PERIOD[a.type] && ROTATION_PERIOD[s] !== 0,
+    );
+    // A circle has no orientation to read, so it can never carry a turn — redraw rather than pick.
+    if (used.has('rotation') && rotationShapes.length === 0) continue;
     const c: Spec = {
-      type: used.has('type') ? a.type : rng.pick(SHAPES),
+      type: used.has('type')
+        ? a.type
+        : rng.pick(used.has('rotation') ? rotationShapes : SHAPES),
       size: rng.int(2, 4) as SizeLevel,
       color: rng.int(1, 4) as ColorLevel,
       rotation: 0,
@@ -194,30 +334,131 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
     if (figureKey(c) === figureKey(d)) continue;
     if (figureKey(b) === figureKey(d)) continue;
 
-    // Distractors: each is the answer with one transformation done wrong — the errors a
-    // real solver makes (applying the inverse, forgetting one step, copying B).
-    const wrong: { spec: Spec; errorType: ErrorType }[] = [];
-    for (const t of transforms) {
-      const inverse = applyAll(c, [...transforms.filter((x) => x !== t), { ...t, amount: -t.amount }]);
-      if (inverse) wrong.push({ spec: inverse, errorType: 'wrong-rule' });
-      const skipped = applyAll(c, transforms.filter((x) => x !== t));
-      if (skipped) wrong.push({ spec: skipped, errorType: 'off-by-one' });
+    /*
+     * Distractors are the rule applied the *wrong number of times*, over a window that decides where
+     * the answer falls.
+     *
+     * "Applied once" is the answer; zero times is C copied unchanged, twice is one application too
+     * many, minus once is the rule run backwards. Every one of those is a mistake a reader really
+     * makes, so the set stays diagnostic — but taken as a fixed collection they arrange themselves
+     * around the answer, one short and one long, and leave it at the centre of mass of the option
+     * set. That was still readable after the attribute counts were balanced: "pick the figure
+     * closest to the average of the others" ran at 30% against a 20% baseline on the level with a
+     * single transformation, where the pool is small enough that the arrangement is forced.
+     *
+     * Drawing the answer's rank in the window and building outward from there keeps the same wrong
+     * answers available and stops their arrangement from naming the right one.
+     */
+    /*
+     * "The rule applied k times", with a fallback to "one of the rules applied k times".
+     *
+     * Scaling every transformation at once runs some attribute off its scale as soon as there is
+     * more than one of them — size and shading each have five or six levels, so a compound rule
+     * tripled is almost always out of range. Over-applying a *single* rule while getting the rest
+     * right is just as real a mistake, and it keeps the window populated on the compound levels
+     * where the pool would otherwise collapse back to a fixed arrangement.
+     */
+    const scaled = (k: number): Spec | null => {
+      if (k === 1) return d;
+      const all = applyAll(c, transforms.map((t) => ({ ...t, amount: t.amount * k })));
+      if (all) return all;
+      for (const target of transforms) {
+        const one = applyAll(
+          c,
+          transforms.map((t) => (t === target ? { ...t, amount: t.amount * k } : t)),
+        );
+        if (one) return one;
+      }
+      return null;
+    };
+
+    const diagnose = (k: number): ErrorType => {
+      if (k === 0) return 'copy';
+      if (k === -1) return 'wrong-direction';
+      if (k === 2) return 'off-by-one';
+      return 'plausible';
+    };
+
+    const keys = new Set<string>([figureKey(d)]);
+    const feasible: { k: number; spec: Spec; errorType: ErrorType }[] = [];
+    for (const k of [0, 2, -1, 3, -2, 4, -3, 5]) {
+      const spec = scaled(k);
+      if (!spec) continue;
+      const key = figureKey(spec);
+      if (keys.has(key)) continue;
+      keys.add(key);
+      feasible.push({ k, spec, errorType: diagnose(k) });
     }
-    wrong.push({ spec: b, errorType: 'copy' });
-    wrong.push({ spec: c, errorType: 'copy' });
-    const doubled = applyAll(d, transforms);
-    if (doubled) wrong.push({ spec: doubled, errorType: 'off-by-one' });
 
-    const seen = new Set<string>([figureKey(d)]);
-    const distractors = rng.shuffle(wrong).filter((w) => {
-      const k = figureKey(w.spec);
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    });
-    if (distractors.length < 4) continue;
+    /* Fewer applications than the answer on one side, more on the other. Ordered by how close each
+       is to the answer, so a rank is realised with the most plausible readings available. */
+    const fewer = feasible.filter((f) => f.k < 1).sort((x, y) => y.k - x.k);
+    const more = feasible.filter((f) => f.k > 1).sort((x, y) => x.k - y.k);
 
-    const chosen = distractors.slice(0, 4);
+    const need = OPTION_COUNT - 1;
+    const ranks: number[] = [];
+    for (let r = 0; r <= need; r++) {
+      if (fewer.length >= r && more.length >= need - r) ranks.push(r);
+    }
+
+    let distractors: { spec: Spec; errorType: ErrorType }[];
+    if (ranks.length > 0) {
+      const rank = rng.pick(ranks);
+      distractors = [...fewer.slice(0, rank), ...more.slice(0, need - rank)];
+    } else {
+      /*
+       * Fallback for the compound rules. With three transformations, scaling all of them together
+       * runs some attribute off its scale for almost every multiple, so the window above rarely
+       * has both sides to draw from. Those items fall back to the per-transformation mistakes —
+       * one rule inverted, one rule forgotten, a visible cell copied — which is a richer pool
+       * precisely because there are more rules to get individually wrong, and whose arrangement is
+       * therefore far less regular than the single-transformation case that needed the window.
+       */
+      const wrong: { spec: Spec; errorType: ErrorType }[] = [];
+      for (const t of transforms) {
+        const inverse = applyAll(c, [
+          ...transforms.filter((x) => x !== t),
+          { ...t, amount: -t.amount },
+        ]);
+        if (inverse) wrong.push({ spec: inverse, errorType: 'wrong-direction' });
+        const skipped = applyAll(c, transforms.filter((x) => x !== t));
+        if (skipped) wrong.push({ spec: skipped, errorType: 'off-by-one' });
+      }
+      wrong.push({ spec: b, errorType: 'copy' });
+      wrong.push({ spec: c, errorType: 'copy' });
+      const doubled = applyAll(d, transforms);
+      if (doubled) wrong.push({ spec: doubled, errorType: 'off-by-one' });
+
+      const fallbackSeen = new Set<string>([figureKey(d)]);
+      const usable = rng.shuffle(wrong).filter((w) => {
+        const key = figureKey(w.spec);
+        if (fallbackSeen.has(key)) return false;
+        fallbackSeen.add(key);
+        return true;
+      });
+      if (usable.length < need) continue;
+      distractors = usable.slice(0, need);
+    }
+
+    /*
+     * Spread the distractors' attributes so the answer is not the attribute-wise mode.
+     *
+     * Every distractor above is the answer with *one* thing done wrong, which is exactly what makes
+     * it diagnostic — and exactly what made the option set answerable on its own. Four figures each
+     * agreeing with the answer on all but one attribute leave the answer holding the majority value
+     * everywhere, so "take the commonest shape, the commonest size, the commonest shading" rebuilds
+     * it without the analogy being read at all. Measured at 42% against a 20% baseline, and it is the
+     * original RAVEN defect, which `docs/GENERATABILITY.md` §1 names and I-RAVEN fixed by bisecting
+     * the attributes instead of perturbing one at a time.
+     *
+     * The repair keeps each distractor's headline mistake and nudges a *second*, non-diagnostic
+     * attribute on some of them, until no attribute has the answer's value in the majority. The
+     * error type still describes the transformation that was got wrong, which is what the review
+     * screen reports.
+     */
+    const chosen = bisect(d, distractors.slice(0, 4), rng);
+    if (!chosen) continue;
+
     const all = rng.shuffle([
       { spec: d, errorType: 'correct' as ErrorType },
       ...chosen,

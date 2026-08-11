@@ -45,6 +45,14 @@ const MATRIX_SHAPES: ShapeType[] = ['triangle', 'square', 'pentagon', 'hexagon',
 
 type Attr = 'number' | 'position' | 'type' | 'size' | 'color';
 
+/**
+ * The attributes whose values lie on a scale, so that "one step off" names a real mistake.
+ *
+ * `type` and `position` are nominal — the shape after a hexagon is only "after" it in the order this
+ * file happens to declare, and a reader has no access to that order.
+ */
+const ORDINAL_ATTRS: Attr[] = ['number', 'size', 'color'];
+
 const ALLOWED_RULES: Record<Attr, RuleName[]> = {
   number: ['constant', 'progression', 'arithmetic', 'distribute-three'],
   position: ['constant', 'distribute-three'],
@@ -61,10 +69,18 @@ interface Plan {
   ruleWeights: RuleName[];
 }
 
+/*
+ * `constant` is not among the rules any level may draw as its *only* rule.
+ *
+ * An item whose single ruled attribute is "stays the same across the row", with every unruled
+ * attribute globally fixed, is a cell identical to the two beside it — and 70% of difficulty 1 was
+ * exactly that. It is a matching task wearing a matrix's clothes: nothing is inferred, the answer is
+ * recognised. The easiest rung should be the easiest *inference*, which is a single progression.
+ */
 function planFor(difficulty: Difficulty): Plan {
   switch (difficulty) {
     case 1:
-      return { layout: 'center', ruledCount: 1, ruleWeights: ['constant', 'progression', 'progression'] };
+      return { layout: 'center', ruledCount: 1, ruleWeights: ['progression'] };
     case 2:
       return { layout: 'center', ruledCount: 2, ruleWeights: ['progression', 'distribute-three', 'constant'] };
     case 3:
@@ -258,9 +274,31 @@ function perturbationFor(
     for (const p of solveAttribute(colObs).predictions) {
       candidates.push({ value: p, errorType: 'wrong-axis' });
     }
-    // The rule applied but miscounted by one step.
-    candidates.push({ value: correct + 1, errorType: 'off-by-one' });
-    candidates.push({ value: correct - 1, errorType: 'off-by-one' });
+    /*
+     * The rule applied but miscounted by one step — in a drawn direction.
+     *
+     * The order of these two lines was, for a long time, the largest defect on the site. `correct+1`
+     * came first and the candidates ahead of it almost never survived, so whenever an attribute was
+     * perturbed the distractor took the value *above* the answer. Across a whole option set that
+     * made the answer reliably the smaller, paler, sparser figure: a solver shown only the eight
+     * candidates and told to pick the one minimal on every varying attribute scored 39% against a
+     * 12.5% chance baseline, and 56% at difficulty 5.
+     *
+     * Nothing about the diagnosis wanted that order. Miscounting is as easily short as long, and
+     * `off-by-one` describes both.
+     */
+    const step = rng.bool() ? 1 : -1;
+    /*
+     * "One step too far" is only a description of a mistake on an attribute that *has* steps.
+     * `type` and `position` are nominal: their values index a list of shapes and a list of slot
+     * arrangements, and neighbouring entries are neighbours only in the source. Labelling those
+     * `off-by-one` told 42% of the readers who saw that diagnosis to "count the steps rather than
+     * eyeballing the end point" about a quantity with no steps to count — advice for a mistake they
+     * could not have made.
+     */
+    const miscount: ErrorType = ORDINAL_ATTRS.includes(attr) ? 'off-by-one' : 'wrong-rule';
+    candidates.push({ value: correct + step, errorType: miscount });
+    candidates.push({ value: correct - step, errorType: miscount });
     // Simply repeating the cell to the left.
     candidates.push({ value: m[2]![1]!, errorType: 'copy' });
     candidates.push({ value: m[1]![2]!, errorType: 'copy' });

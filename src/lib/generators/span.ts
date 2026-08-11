@@ -11,8 +11,12 @@ import { dict, type Locale } from '../i18n';
 import type { Difficulty, Generator, Item, ItemTypeMeta } from '../types';
 
 const DIGITS = '123456789'.split('');
-// Letters that are unambiguous when spoken or read quickly.
-const LETTERS = 'BDFHJKLMNPRSTVWXZ'.split('');
+/*
+ * There is no letter alphabet here any more, and its removal is the point rather than a tidy-up.
+ * Switching to letters at the top rung changed the phonological similarity of what had to be held,
+ * so the hardest level measured a different thing from the four below it — see `planFor`. The format
+ * is called "digit span" in both locales, and now that is what it is.
+ */
 
 interface Plan {
   length: number;
@@ -21,18 +25,38 @@ interface Plan {
   stepMs: number;
 }
 
+/**
+ * One element per second, at every level, and digits throughout.
+ *
+ * The ladder used to move three things at once — length 4→7, rate 1000→800 ms, and the alphabet from
+ * digits to letters at the top rung — while the docs and the on-screen description promised only
+ * that "sequences lengthen as difficulty rises". Two of those three were the drifts this repo's own
+ * design notes forbid elsewhere:
+ *
+ *  - **Rate** trades storage against encoding speed, which is a different construct. `block-span`'s
+ *    design note rules it out in as many words; the same argument applies to its sibling.
+ *  - **Alphabet** changes phonological similarity, so difficulty 5 was a different task from
+ *    difficulty 4 rather than a longer one — and difficulty 5 is the level `peakDifficulty` reports
+ *    on, which makes it the number most likely to be read as "my span is seven".
+ *
+ * What remains is length, and the forward/backward condition — which is a genuine second dimension,
+ * introduced once at level 3 and held from there, so no level is a mixture of the two.
+ */
+const STEP_MS = 900;
+
 function planFor(difficulty: Difficulty): Plan {
+  const base = { alphabet: DIGITS, stepMs: STEP_MS };
   switch (difficulty) {
     case 1:
-      return { length: 4, direction: 'forward', alphabet: DIGITS, stepMs: 1000 };
+      return { ...base, length: 4, direction: 'forward' };
     case 2:
-      return { length: 5, direction: 'forward', alphabet: DIGITS, stepMs: 900 };
+      return { ...base, length: 5, direction: 'forward' };
     case 3:
-      return { length: 5, direction: 'backward', alphabet: DIGITS, stepMs: 900 };
+      return { ...base, length: 5, direction: 'backward' };
     case 4:
-      return { length: 6, direction: 'backward', alphabet: DIGITS, stepMs: 800 };
+      return { ...base, length: 6, direction: 'backward' };
     case 5:
-      return { length: 7, direction: 'backward', alphabet: LETTERS, stepMs: 800 };
+      return { ...base, length: 7, direction: 'backward' };
   }
 }
 

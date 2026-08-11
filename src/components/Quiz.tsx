@@ -14,7 +14,7 @@ import StimulusView from './StimulusView';
 import TrailBoard from './TrailBoard';
 import BlockSpanBoard from './BlockSpanBoard';
 import FigureView, { describeFigure } from './FigureView';
-import GridView from './GridView';
+import GridView, { describeGrid } from './GridView';
 import { generateItem, getItemText, getMeta } from '../lib/generators';
 import { deriveSeed, normaliseSeed, randomSeed } from '../lib/rng';
 import { dict, type Locale } from '../lib/i18n';
@@ -797,7 +797,9 @@ export default function Quiz({
           </div>
         </div>
 
-        <div class="quiz-answer" data-testid="answer-tray">
+        {/* The format is exposed so the stylesheet can size a tray that has to fit a particular
+            shape of option — see `.quiz-answer[data-format='coding']`. */}
+        <div class="quiz-answer" data-testid="answer-tray" data-format={item.type}>
         {item.responseMode === 'trail' ? (
           /*
            * The board owns its own progress and reports once, when the path is finished. It is left
@@ -805,6 +807,14 @@ export default function Quiz({
            * feedback — the shape of the path is the most informative thing about the run.
            */
           <TrailBoard
+            /*
+             * Keyed by the item, not by anything derived from the stimulus. A board's labels are a
+             * pure function of (form, target count), so two consecutive items at one difficulty and
+             * form draw an identical set — and a board that identified itself by its content would
+             * then never notice the item had changed, leaving the previous run's finished state on
+             * screen with nothing left to click.
+             */
+            key={`${item.type}:${item.seed}:${item.difficulty}`}
             nodes={(item.stimulus as { kind: 'trail'; nodes: TrailNode[] }).nodes}
             locale={locale}
             frozen={revealed}
@@ -821,6 +831,10 @@ export default function Quiz({
            * drawn on the board it happened on, which no amount of prose could replace.
            */
           <BlockSpanBoard
+            /* Keyed by the item for the same reason as the trail board: the sequence is short enough
+               that two consecutive items genuinely repeat one, and a board keyed on its own sequence
+               would sit out the second of the pair. */
+            key={`${item.type}:${item.seed}:${item.difficulty}`}
             blocks={item.stimulus.blocks}
             sequence={item.stimulus.sequence}
             presentation={item.presentation}
@@ -1081,10 +1095,7 @@ function optionLabel(option: Option, i: number, locale: Locale): string {
     case 'figure':
       return t.quiz.optionLabel(i + 1, describeFigure(option.figure, locale));
     case 'grid':
-      return t.quiz.optionLabel(
-        i + 1,
-        t.quiz.describeGrid(option.grid.cells.filter(Boolean).length),
-      );
+      return t.quiz.optionLabel(i + 1, describeGrid(option.grid, locale));
   }
 }
 

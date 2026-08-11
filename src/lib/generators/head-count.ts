@@ -35,6 +35,7 @@
  */
 import { createRng, type Rng } from '../rng';
 import { dict, type Locale } from '../i18n';
+import { windowOptions } from './distractors';
 import type { Difficulty, ErrorType, Generator, Item, ItemTypeMeta, Option } from '../types';
 
 const OPTION_COUNT = 4;
@@ -52,24 +53,42 @@ interface Plan {
    * twenties — and holding "23, now 26" is mental addition on two-digit numbers, which is a
    * different construct with its own format. Difficulty here is how many times the held
    * value is rewritten and how fast, never how large it gets.
+   *
+   * Which is why it is a constant rather than a per-level field: as a dial it had crept back up to
+   * 10 at level 5, so a fifth of the hardest items crossed into two digits. The load this format
+   * scales is `events` and `stepMs`, and nothing else.
    */
   capacity: number;
   /** Milliseconds each step is shown. */
   stepMs: number;
 }
 
+/**
+ * Held constant across every level, on purpose. See `Plan.capacity`.
+ *
+ * Nine is the largest total that stays comfortably inside single digits with room for a group of
+ * three to arrive, and it is the same at level 1 as at level 5 so that the two levels differ only
+ * in how often the held value is rewritten.
+ */
+const CAPACITY = 9;
+const MAX_PER_EVENT = 3;
+
+/** Smallest final total an item may end on. See the check in `buildScript`. */
+const MIN_ANSWER = 4;
+
 function planFor(difficulty: Difficulty): Plan {
+  const base = { maxPerEvent: MAX_PER_EVENT, capacity: CAPACITY };
   switch (difficulty) {
     case 1:
-      return { events: 4, maxPerEvent: 3, capacity: 7, stepMs: 1200 };
+      return { ...base, events: 4, stepMs: 1200 };
     case 2:
-      return { events: 5, maxPerEvent: 3, capacity: 8, stepMs: 1100 };
+      return { ...base, events: 5, stepMs: 1100 };
     case 3:
-      return { events: 6, maxPerEvent: 4, capacity: 9, stepMs: 1000 };
+      return { ...base, events: 6, stepMs: 1000 };
     case 4:
-      return { events: 8, maxPerEvent: 4, capacity: 9, stepMs: 950 };
+      return { ...base, events: 8, stepMs: 950 };
     case 5:
-      return { events: 9, maxPerEvent: 4, capacity: 10, stepMs: 850 };
+      return { ...base, events: 9, stepMs: 850 };
   }
 }
 
@@ -145,6 +164,17 @@ function buildScript(plan: Plan, rng: Rng): number[] | null {
   }
 
   if (events.filter((d) => d < 0).length < minDepartures(plan.events)) return null;
+  /*
+   * The final total must leave room for three options underneath it.
+   *
+   * Not an aesthetic constraint. The floor at one is real — a room cannot hold fewer than nobody —
+   * so an answer of 1 or 2 simply has nowhere to put a full set of lower distractors, and the
+   * option set has to be top-heavy. Across many items that is a tell in itself: "pick the smallest"
+   * beat chance by half again, purely on the items with small answers. Keeping the answer at four
+   * or more costs nothing the format cares about, since what it measures is how often the held
+   * value is rewritten, not how large it is.
+   */
+  if (total < MIN_ANSWER) return null;
   return events;
 }
 
@@ -183,26 +213,36 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
      * by a single step's size, so neither can stick out.
      */
     const departures = events.filter((d) => d < 0).map(Math.abs);
-    const missed = rng.pick(departures);
+    const arrivals = events.filter((d) => d > 0);
 
-    const values: number[] = [answer];
-    const errors = new Map<number, ErrorType>([[answer, 'correct']]);
-    const offer = (v: number, type: ErrorType) => {
-      if (v < 0 || errors.has(v) || values.length >= OPTION_COUNT) return;
-      values.push(v);
-      errors.set(v, type);
-    };
-
-    // Blinked through one departure: it never came off the total.
-    offer(answer + missed, 'wrong-rule');
-    // Saw the group leave but added it: right magnitude, wrong direction.
-    offer(answer + 2 * missed, 'wrong-direction');
-    for (let delta = 1; values.length < OPTION_COUNT; delta++) {
-      offer(answer - delta, delta === 1 ? 'off-by-one' : 'plausible');
-      offer(answer + delta, delta === 1 ? 'off-by-one' : 'plausible');
-      if (delta > OPTION_COUNT + 3) break;
-    }
-    if (values.length !== OPTION_COUNT) continue;
+    /*
+     * The same mistake lands on either side depending on which way the step was moving: miss a
+     * departure and the total is too high, miss an arrival and it is too low. Both are offered as
+     * candidates, and `numericOptions` decides how many of each to spend — see that module for why
+     * the arrangement, not just the values, has to be drawn.
+     *
+     * The floor is 1 throughout: the room is guaranteed never to empty, so a zero is an option no
+     * reader ever has to weigh, and its presence would announce that the answer is 1.
+     */
+    const set = windowOptions(
+      rng,
+      answer,
+      OPTION_COUNT,
+      (value) => {
+        /*
+         * What arriving at this number would mean. A step that never reached the total leaves the
+         * count high if they were leaving and low if they were arriving; a step counted the wrong
+         * way round moves it by twice the group.
+         */
+        if (departures.some((d) => value === answer + d)) return 'wrong-rule';
+        if (arrivals.some((a) => value === answer - a)) return 'wrong-rule';
+        if (events.some((e) => value === answer - 2 * e)) return 'wrong-direction';
+        return Math.abs(value - answer) === 1 ? 'off-by-one' : 'plausible';
+      },
+      1,
+    );
+    if (!set) continue;
+    const { values, errors } = set;
 
     const shuffled = rng.shuffle(values);
     const options: Option[] = shuffled.map((v) => ({ kind: 'text', text: String(v) }));
@@ -224,7 +264,7 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
          * *where* it slipped, which a final number alone cannot tell them — and it is the only
          * way to review an item whose stimulus is gone by the time the answer appears.
          */
-        rules: [t.ruleTrack, t.ruleSteps(runningTotals(events, locale)), t.ruleMissedStep(missed)],
+        rules: [t.ruleTrack, t.ruleSteps(runningTotals(events, locale)), t.ruleMissedStep],
       },
       suggestedSeconds: 12 + plan.events * 2,
       presentation: { stepMs: plan.stepMs, gapMs: 250 },

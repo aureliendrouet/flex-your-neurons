@@ -265,3 +265,47 @@ test.describe('block span', () => {
     }
   });
 });
+
+/**
+ * Two block-span items in a row.
+ *
+ * The board identified "which item is this" by the sequence it was given, and at the shortest length
+ * two consecutive items genuinely draw the same three blocks about once in five hundred. When they
+ * did, the reset never ran: the board stayed in recall with a full tap buffer, no start button, and
+ * every tap refused — and the only way out was Undo, after which the reader re-tapped the previous
+ * item's order and was marked correct for it. Every case above runs a single-item session, which is
+ * why none of them saw it.
+ */
+test.describe('block span, item to item', () => {
+  test('a second item with the same sequence still plays', async ({ page }) => {
+    const seed = 'BSDUP510';
+    const first = expectedItem('block-span', seed, 0, 1);
+    const second = expectedItem('block-span', seed, 1, 1);
+    if (first.stimulus.kind !== 'block-span' || second.stimulus.kind !== 'block-span') {
+      throw new Error('unexpected stimulus');
+    }
+    // The case only bites when the two sequences match; assert the fixture really does.
+    expect(first.stimulus.sequence).toEqual(second.stimulus.sequence);
+
+    await page.goto(practiceUrl('block-span', { seed, difficulty: 1, length: 2 }));
+    await expect(page.getByTestId('quiz')).toHaveAttribute('data-hydrated', 'true');
+
+    await playAndWaitForRecall(page);
+    for (const index of first.stimulus.sequence) {
+      await page.getByTestId(blockId(index)).click();
+    }
+    await expect(page.getByTestId('feedback')).toBeVisible();
+    await page.getByTestId('next').click();
+
+    // The second item must offer its playback again rather than arriving already finished.
+    const board = page.getByTestId('block-span-board');
+    await expect(board).toHaveAttribute('data-block-phase', 'gate');
+    await expect(page.getByTestId('span-start')).toBeVisible();
+
+    await playAndWaitForRecall(page);
+    for (const index of second.stimulus.sequence) {
+      await page.getByTestId(blockId(index)).click();
+    }
+    await expect(page.getByTestId('verdict')).toHaveText('Correct');
+  });
+});

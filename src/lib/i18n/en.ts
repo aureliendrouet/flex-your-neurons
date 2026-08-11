@@ -142,7 +142,22 @@ const en = {
     },
     describeFigure: (count: number, shape: string, size: number, shading: string) =>
       `${count} ${shape}${count === 1 ? '' : 's'}, size ${size}, ${shading}`,
-    describeGrid: (cells: number) => `a shape of ${cells} cells`,
+    /*
+     * Row by row, not just a total.
+     *
+     * "A shape of 6 cells" was the entire accessible name of every grid option, so all five read
+     * identically and the item was unanswerable without seeing it — while still being presented as
+     * answerable. A punched sheet is worse than a polyomino here, because its answer *is* where the
+     * marks sit inside a fixed frame.
+     */
+    describeGrid: (rows: string[], filled: number) =>
+      `${filled} cells: ${rows.map((row, i) => `row ${i + 1} ${row || 'empty'}`).join(', ')}`,
+    gridRowCells: (columns: number[]) => listPhrase(columns.map(String), 'and'),
+    /** Joins the groups of a figure that holds more than one kind of shape. */
+    listSeparator: ' and ',
+    turnedBy: (degrees: number) => `turned ${degrees} degrees`,
+    atPositions: (positions: number[], total: number) =>
+      `in place${positions.length === 1 ? '' : 's'} ${listPhrase(positions.map(String), 'and')} of ${total}`,
     emptyCell: 'an empty cell',
     unfilled: 'unfilled',
     shadingLevel: (n: number) => `shading level ${n}`,
@@ -303,6 +318,7 @@ const en = {
   },
 
   dashboard: {
+    chanceLevel: (percent: string) => `chance ${percent}`,
     switchHeading: 'Switch cost',
     switchLede:
       'From the trail boards: how much longer the number-and-letter boards take than the numbers-only ones. Both kinds are matched on how much searching and clicking they need, so the gap between them is the cost of holding two sequences at once and alternating between them — the part of the task that is not simply speed.',
@@ -849,8 +865,8 @@ const en = {
       ruleTrack:
         'Each step moves figures in or out. What has to be held is the running total, not the steps: add or subtract, then forget the number you were holding.',
       ruleSteps: (steps: string) => `Step by step: ${steps}.`,
-      ruleMissedStep: (n: number) =>
-        `Two of the options are what you get by mishandling a single step: missing the ${n === 1 ? 'one who left' : `${n} who left`}, or adding them instead of subtracting. Both sit close to the answer on purpose — an option you could dismiss for being far out would let you answer without watching.`,
+      ruleMissedStep:
+        'The other options are what a single mishandled step gives you: one movement never counted — which leaves the total too high if they were leaving and too low if they were arriving — or one counted the wrong way round. They sit on both sides of the answer, and close to it, on purpose: an option you could dismiss for being far out, or for sitting in a telltale place in the list, would let you answer without watching.',
     },
     coding: {
       prompt: (digit: string) => `Which symbol is paired with ${digit}?`,
@@ -1226,5 +1242,12 @@ const en = {
     },
   },
 };
+
+
+/** "1", "1 and 3", "1, 2 and 4" — a readable list for a screen reader. */
+function listPhrase(items: string[], conjunction: string): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(', ')} ${conjunction} ${items[items.length - 1]}`;
+}
 
 export default en;

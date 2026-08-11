@@ -296,7 +296,19 @@ export default function ProgressDashboard({ locale }: { locale: Locale }) {
                     </td>
                     <td class="muted">{meta.domain}</td>
                     <td class="num">{stats?.attempts ?? 0}</td>
-                    <td class="num">{formatPercent(stats?.accuracy ?? null, locale)}</td>
+                    {/*
+                      * Accuracy beside what guessing would score. Without it the column is not
+                      * comparable down its own length: 50% on an eight-option matrix is four times
+                      * chance, and 50% on two-option symbol search is a coin.
+                      */}
+                    <td class="num">
+                      {formatPercent(stats?.accuracy ?? null, locale)}
+                      {stats && stats.accuracy !== null && stats.chanceLevel !== null && (
+                        <span class="chance-baseline">
+                          {t.dashboard.chanceLevel(formatPercent(stats.chanceLevel, locale))}
+                        </span>
+                      )}
+                    </td>
                     <td class="num">{formatDuration(stats?.medianLatencyMs ?? null, locale)}</td>
                     <td class="num">{stats?.bestStreak ?? 0}</td>
                     <td class="num">{stats?.peakDifficulty ?? '—'}</td>

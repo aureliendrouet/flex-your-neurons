@@ -28,6 +28,7 @@
  */
 import { createRng, type Rng } from '../rng';
 import { dict, type Locale } from '../i18n';
+import { windowOptions } from './distractors';
 import type { Difficulty, ErrorType, Generator, Item, ItemTypeMeta, Option } from '../types';
 
 /** Letters that stay distinct when they flash past. Same set as the span alphabet. */
@@ -51,22 +52,45 @@ interface Plan {
    * property test still passed with a constant here, because the streams did vary; only the
    * answer did not. The lower bound stays above zero: "none" is the answer you reach by not
    * looking, and it cannot be told apart from not having engaged at all.
+   *
+   * The range is now the *same* at every level, for two reasons that turned out to be one. It used
+   * to widen with difficulty (1-3 up to 3-6), which quietly made "how large a tally you can carry"
+   * part of the ladder — an adjacent construct, and the mistake `GENERATABILITY.md` records against
+   * `head-count`. It also meant each level's answers came from a narrow, level-specific band, which
+   * is what let the option set identify the answer. What this format scales is `n` and the rate.
    */
   matches: [min: number, max: number];
 }
 
+/**
+ * Held constant across every level. See `Plan.matches`.
+ *
+ * The floor is four rather than one so that the option window has somewhere to sit: with an answer
+ * of one or two there is no room for three lower distractors above the zero floor, and the resulting
+ * top-heavy sets made "pick the smallest" beat chance by half again.
+ */
+const MATCHES: [number, number] = [4, 7];
+
+/**
+ * How often a non-match position is filled with an n±1 lure rather than a free letter.
+ *
+ * Around the lab convention of a quarter to a third of non-targets. See `buildStream` for why this
+ * has to be planted deliberately rather than left to chance.
+ */
+const LURE_RATE = 0.3;
+
 function planFor(difficulty: Difficulty): Plan {
   switch (difficulty) {
     case 1:
-      return { n: 1, length: 7, stepMs: 1100, matches: [1, 3] };
+      return { n: 1, length: 9, stepMs: 1100, matches: MATCHES };
     case 2:
-      return { n: 1, length: 9, stepMs: 1000, matches: [2, 4] };
+      return { n: 1, length: 11, stepMs: 1000, matches: MATCHES };
     case 3:
-      return { n: 2, length: 10, stepMs: 1000, matches: [2, 4] };
+      return { n: 2, length: 13, stepMs: 1000, matches: MATCHES };
     case 4:
-      return { n: 2, length: 12, stepMs: 900, matches: [2, 5] };
+      return { n: 2, length: 15, stepMs: 900, matches: MATCHES };
     case 5:
-      return { n: 3, length: 14, stepMs: 900, matches: [3, 6] };
+      return { n: 3, length: 17, stepMs: 900, matches: MATCHES };
   }
 }
 
@@ -113,6 +137,33 @@ function buildStream(plan: Plan, rng: Rng, wanted: number): string[] | null {
     const previous = sequence[i - 1];
     const pool = LETTERS.filter((ch) => ch !== back && ch !== previous);
     if (pool.length === 0) return null;
+
+    /*
+     * Lures are planted, not merely permitted.
+     *
+     * A non-match position used to be filled from whatever was left after excluding the N-back and
+     * the immediately previous letter — which does not just fail to create lures, it actively
+     * suppresses them: at n = 2 the (n−1) lure *is* the previous letter, so the commonest and most
+     * diagnostic near-miss in the literature was structurally impossible. Measured lure density was
+     * 2-3% of non-target positions against the 25-33% a lab task aims for, and the consequence is a
+     * task passable by "have I seen that letter recently?" rather than by holding a position — which
+     * is the whole construct.
+     *
+     * A lure repeats the letter at n±1, so it feels like a match to a reader whose window has
+     * drifted by one, while not being one. The immediate-repeat rule still stands, so a lure is only
+     * offered where it would not double a letter.
+     */
+    const lures: string[] = [];
+    for (const offset of [plan.n - 1, plan.n + 1]) {
+      if (offset < 1 || i - offset < 0) continue;
+      const candidate = sequence[i - offset]!;
+      if (candidate === back || candidate === previous) continue;
+      lures.push(candidate);
+    }
+    if (lures.length > 0 && rng.bool(LURE_RATE)) {
+      sequence.push(rng.pick(lures));
+      continue;
+    }
     sequence.push(rng.pick(pool));
   }
   return sequence;
@@ -145,21 +196,28 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
      * distractors diagnostic: choosing one is having miscounted by that much, and miscounting
      * by one is `off-by-one` rather than an unexplained miss. Never below 1, because a zero
      * option would be answerable by never watching.
+     *
+     * The *window* is what matters, though, and it used to be nailed to the answer: the set was
+     * always `{actual-2, actual-1, actual, actual+1}` clipped at 1, so the four numbers offered
+     * named the answer outright. Since each difficulty draws its match count from a narrow band,
+     * every count in the band mapped to a different option set — at level 5 the mapping was
+     * one-to-one across 750 items, and a reader who never watched a single stream could score
+     * 100%. Drawing the answer's position in the window instead leaves the same diagnostic
+     * neighbours in play while making the set itself say nothing.
      */
-    const counts = new Set<number>([actual]);
-    for (let delta = 1; counts.size < OPTION_COUNT; delta++) {
-      if (actual - delta >= 1) counts.add(actual - delta);
-      if (counts.size < OPTION_COUNT) counts.add(actual + delta);
-      if (delta > OPTION_COUNT + 2) break;
-    }
-    if (counts.size !== OPTION_COUNT) continue;
+    const set = windowOptions(
+      rng,
+      actual,
+      OPTION_COUNT,
+      (value) => (Math.abs(value - actual) === 1 ? 'off-by-one' : 'plausible'),
+      1,
+    );
+    if (!set) continue;
 
-    const values = rng.shuffle([...counts]);
+    const values = rng.shuffle(set.values);
     const options: Option[] = values.map((v) => ({ kind: 'text', text: String(v) }));
     const answerIndex = values.indexOf(actual);
-    const errorTypes: ErrorType[] = values.map((v) =>
-      v === actual ? 'correct' : Math.abs(v - actual) === 1 ? 'off-by-one' : 'plausible',
-    );
+    const errorTypes: ErrorType[] = values.map((v) => set.errors.get(v) ?? 'plausible');
 
     return {
       type: 'n-back',

@@ -122,7 +122,14 @@ function finish(terms: number[], rule: string): Built | null {
   // A sequence that repeats a value is usually a sign of a degenerate rule.
   const visible = terms.slice(0, VISIBLE_TERMS);
   if (new Set(visible).size !== visible.length) return null;
-  return { terms: visible, answer: terms[VISIBLE_TERMS]!, rule };
+  const answer = terms[VISIBLE_TERMS]!;
+  /*
+   * The answer may not be a number already on screen. Distractors were always checked against the
+   * visible terms, but the answer was not — so on the items where it repeated one, it was the only
+   * option that did, and "pick the number you can already see" was right every single time.
+   */
+  if (visible.includes(answer)) return null;
+  return { terms: visible, answer, rule };
 }
 
 function buildFor(operator: Operator, rng: Rng, difficulty: Difficulty, t: T): Built | null {
@@ -153,53 +160,82 @@ function buildOptions(
   const last = terms[terms.length - 1]!;
   const lastDiff = last - terms[terms.length - 2]!;
 
-  const pool: { value: number; errorType: ErrorType }[] = [
-    { value: answer + 1, errorType: 'off-by-one' },
-    { value: answer - 1, errorType: 'off-by-one' },
-    { value: last + lastDiff, errorType: 'wrong-rule' },
-    { value: last - lastDiff, errorType: 'wrong-rule' },
-    { value: answer + lastDiff, errorType: 'off-by-one' },
-    { value: answer - lastDiff, errorType: 'off-by-one' },
-    { value: last * 2, errorType: 'wrong-rule' },
-    { value: answer + 2, errorType: 'plausible' },
-    { value: answer - 2, errorType: 'plausible' },
-    { value: answer + Math.max(3, Math.round(Math.abs(lastDiff) / 2)), errorType: 'plausible' },
-    { value: answer - Math.max(3, Math.round(Math.abs(lastDiff) / 2)), errorType: 'plausible' },
-  ];
+  /*
+   * The options are evenly spaced, and the answer's place among them is drawn.
+   *
+   * Rank alone was already drawn here, and it was not enough. The distractors were built as
+   * `answer ± 1`, `answer ± 2`, `answer ± lastDiff/2` and so on, which left the answer with the
+   * tightest neighbours in the set wherever it was placed — so "pick the number with the smallest
+   * gap to its nearest neighbour" found it 34% of the time against a 20% baseline, without reading
+   * the sequence at all. Spacing them evenly removes the cue completely: every option has the same
+   * gap to its neighbours, and the only thing that varies is which one is right.
+   *
+   * The gap is drawn at the scale of the sequence itself, so the alternatives stay the kind of
+   * number the series could plausibly have reached rather than always sitting one apart.
+   */
+  const scale = Math.max(1, Math.round(Math.abs(lastDiff) / 3));
+  const gaps = [...new Set([1, 2, scale])].filter((g) => g >= 1);
 
-  const seen = new Set<number>([answer, ...terms]);
-  const usable: { value: number; errorType: ErrorType }[] = [];
-  for (const c of rng.shuffle(pool)) {
-    if (seen.has(c.value)) continue;
-    if (!Number.isInteger(c.value) || Math.abs(c.value) > MAX_TERM * 4) continue;
-    seen.add(c.value);
-    usable.push(c);
+  /*
+   * Each offered number is named for the slip that would land on it. The diagnoses are read off the
+   * window rather than deciding it — which is the whole point, since letting them decide it is what
+   * made the geometry informative in the first place.
+   */
+  const diagnose = (v: number): ErrorType => {
+    if (v === answer) return 'correct';
+    if (v === last + lastDiff || v === last - lastDiff || v === last * 2) return 'wrong-rule';
+    if (Math.abs(v - answer) === 1) return 'off-by-one';
+    return 'plausible';
+  };
+
+  const forbidden = new Set<number>(terms);
+  const windowFor = (gap: number, rank: number): number[] | null => {
+    const values: number[] = [];
+    for (let i = 0; i < 5; i++) values.push(answer + (i - rank) * gap);
+    if (values.some((v) => !Number.isInteger(v) || Math.abs(v) > MAX_TERM * 4)) return null;
+    // A distractor that is already on screen is not a near-miss, it is a different question.
+    if (values.some((v) => v !== answer && forbidden.has(v))) return null;
+    if (new Set(values).size !== values.length) return null;
+    return values;
+  };
+
+  /*
+   * Rank is grouped and drawn first, gap second. Searching the two together and taking the first
+   * that fitted would have let the constraints choose the rank — the large-gap windows on a fast
+   * growing series run out of range on one side, so the answer drifted towards the bottom of the
+   * list — which is the same bias in a new place.
+   */
+  const byRank = new Map<number, number[][]>();
+  for (const rank of [0, 1, 2, 3, 4]) {
+    const windows: number[][] = [];
+    for (const gap of gaps) {
+      const w = windowFor(gap, rank);
+      if (w) windows.push(w);
+    }
+    if (windows.length > 0) byRank.set(rank, windows);
   }
+  if (byRank.size === 0) return null;
 
-  const below = usable.filter((c) => c.value < answer);
-  const above = usable.filter((c) => c.value > answer);
+  const windows = byRank.get(rng.pick([...byRank.keys()].sort((a, b) => a - b)))!;
+  /* Among the windows that realise the drawn rank, prefer the one naming the most mistakes: a
+     distractor a reader can be told something about is worth more than one that is merely wrong. */
+  const scored = windows
+    .map((values) => ({
+      values,
+      named: values.filter((v) => v !== answer && diagnose(v) !== 'plausible').length,
+    }))
+    .sort((a, b) => b.named - a.named);
+  const best = scored.filter((s) => s.named === scored[0]!.named);
+  const values = rng.pick(best).values;
 
-  // Target rank for the correct answer, so it is not systematically the largest.
-  const feasible = [0, 1, 2, 3, 4].filter((r) => below.length >= r && above.length >= 4 - r);
-  if (feasible.length === 0) return null;
-  const rank = rng.pick(feasible);
-
-  const chosen = [
-    ...rng.shuffle(below).slice(0, rank),
-    ...rng.shuffle(above).slice(0, 4 - rank),
-  ];
-  if (chosen.length !== 4) return null;
-
-  const all = [...chosen, { value: answer, errorType: 'correct' as ErrorType }].sort(
-    (a, b) => a.value - b.value,
-  );
-
+  const all = values.map((value) => ({ value, errorType: diagnose(value) }));
   return {
     options: all.map((c) => ({ kind: 'text', text: String(c.value) })),
     answerIndex: all.findIndex((c) => c.errorType === 'correct'),
     errorTypes: all.map((c) => c.errorType),
   };
 }
+
 
 const meta: ItemTypeMeta = {
   id: 'series-number',

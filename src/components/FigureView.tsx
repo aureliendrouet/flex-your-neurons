@@ -13,10 +13,12 @@ import { useId } from 'preact/hooks';
 import {
   PATTERN_TILE,
   VIEWBOX,
+  canonicalRotation,
   fillStyleFor,
   pointsAttr,
   radiusIn,
   shapeOutline,
+  slotsFor,
   type PatternName,
 } from '../lib/geometry';
 import { dict, type Locale } from '../lib/i18n';
@@ -184,11 +186,66 @@ export default function FigureView({ figure, label, className }: Props) {
   );
 }
 
-/** A short text description, used for screen readers and for test assertions. */
+/**
+ * A short text description, used for screen readers and for test assertions.
+ *
+ * This is the whole non-visual channel for every figural format, and it used to report the count,
+ * the *first* shape's type, its size and its shading — nothing else. Three things a reader has to
+ * choose between were therefore invisible:
+ *
+ *  - **Where the shapes sit.** A quarter of matrix items had two options with identical
+ *    descriptions, always differing only in arrangement, and half of them at the top difficulty.
+ *  - **Which way a shape is turned.** Rotation-only analogy items — 112 of the 800 easiest ones —
+ *    read as five identical figures, and a coding key at difficulty 4 had nine of its ten entries
+ *    ambiguous.
+ *  - **What a mixed figure actually holds.** Figure weights is the one format whose pans hold
+ *    different shapes at once, so "2 circles and 1 square" was announced as "3 circles". That is
+ *    worse than silence: the premises read correctly, so the item is confidently unanswerable.
+ *
+ * Shapes are grouped by how they are *drawn* — see `canonicalRotation` — so a description never
+ * distinguishes two figures a sighted reader cannot.
+ */
 export function describeFigure(figure: Figure, locale: Locale): string {
   const t = dict(locale).quiz;
   if (figure.shapes.length === 0) return t.emptyCell;
-  const first = figure.shapes[0]!;
-  const shading = first.color === 0 ? t.unfilled : t.shadingLevel(first.color);
-  return t.describeFigure(figure.shapes.length, t.shapeNames[first.type], first.size, shading);
+
+  const groups = new Map<string, { shape: Shape; count: number }>();
+  for (const shape of figure.shapes) {
+    const key = `${shape.type}|${shape.size}|${shape.color}|${canonicalRotation(shape.type, shape.rotation)}`;
+    const existing = groups.get(key);
+    if (existing) existing.count += 1;
+    else groups.set(key, { shape, count: 1 });
+  }
+
+  const parts = [...groups.values()].map(({ shape, count }) => {
+    const shading = shape.color === 0 ? t.unfilled : t.shadingLevel(shape.color);
+    const base = t.describeFigure(count, t.shapeNames[shape.type], shape.size, shading);
+    const turn = canonicalRotation(shape.type, shape.rotation);
+    return turn === 0 ? base : `${base}, ${t.turnedBy(turn)}`;
+  });
+
+  const where = describeArrangement(figure, locale);
+  return where === null ? parts.join(t.listSeparator) : `${parts.join(t.listSeparator)}, ${where}`;
+}
+
+/**
+ * Which of the layout's places are occupied, when that is something a reader could be asked about.
+ *
+ * Reported as numbered places rather than named corners: a 3x3 layout would need nine names in every
+ * locale, and the numbering is unambiguous once the total is given.
+ */
+function describeArrangement(figure: Figure, locale: Locale): string | null {
+  const t = dict(locale).quiz;
+  const slots = slotsFor(figure.layout);
+  if (slots.length <= 1) return null;
+
+  const occupied: number[] = [];
+  slots.forEach((slot, i) => {
+    const here = figure.shapes.some(
+      (s) => Math.abs(s.x - slot.x) < 0.01 && Math.abs(s.y - slot.y) < 0.01,
+    );
+    if (here) occupied.push(i + 1);
+  });
+  if (occupied.length === 0 || occupied.length === slots.length) return null;
+  return t.atPositions(occupied, slots.length);
 }

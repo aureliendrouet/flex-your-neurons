@@ -254,9 +254,30 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
     );
     const rest = rng.shuffle(usable);
 
+    /*
+     * Every option holds the same number of objects as the answer.
+     *
+     * Exactly one distractor used to be drawn to match the answer's count, which made a
+     * `wrong-attribute` diagnosis available — "you counted the objects instead of weighing them".
+     * The cost was out of all proportion: the answer's count was then *never* unique in the set
+     * while the other two counts usually were, so throwing away every option whose count nothing
+     * else shared left two candidates, one of them the answer, on 1,271 items in 2,000. Reading
+     * nothing but the number of shapes in each pan scored 41% against a 25% baseline.
+     *
+     * Matching all four is better than balancing them two-and-two, and not only because it is
+     * simpler: with every pan holding the same number of objects, counting cannot even begin to
+     * separate the options, so the only way through the item is to weigh them — which is the thing
+     * the format exists to measure. What it costs is the `wrong-attribute` label, which no longer
+     * describes anything: a reader who counted has not been misled towards one option, they have
+     * been given no option at all.
+     */
     const distractors: Group[] = [];
     const taken = new Set<string>();
-    for (const pool of [sameCount.slice(0, 1), offByOne, rest]) {
+    const matched = sameCount.filter((g) => sizeOf(g) === answerSize);
+    for (const pool of [
+      matched.filter((g) => Math.abs(weightOf(g, units) - goal) === 1),
+      matched,
+    ]) {
       for (const g of pool) {
         if (distractors.length >= OPTION_COUNT - 1) break;
         if (taken.has(groupKey(g))) continue;
@@ -280,7 +301,8 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
 
     const errorTypes: ErrorType[] = picks.map((g) => {
       if (groupKey(g) === groupKey(answer)) return 'correct';
-      if (sizeOf(g) === answerSize) return 'wrong-attribute';
+      // Every option now holds the same number of objects, so weight is the only thing to be wrong
+      // about: one unit out is a miscount of the chain, anything further is a different reading.
       if (Math.abs(weightOf(g, units) - goal) === 1) return 'off-by-one';
       return 'plausible';
     });

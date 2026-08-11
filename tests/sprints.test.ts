@@ -16,7 +16,7 @@ import {
   switchCostScore,
   untimedSessions,
 } from '@/lib/scoring';
-import { generateItem } from '@/lib/generators';
+import { generateItem, ITEM_VERSION } from '@/lib/generators';
 import { isCongruent } from '@/lib/generators/interference';
 import { isFormB } from '@/lib/generators/trail-making';
 import type { Difficulty, ItemTypeId, Response, Session, SessionMode } from '@/lib/types';
@@ -37,7 +37,13 @@ let counter = 0;
 function session(
   mode: SessionMode,
   responses: Response[],
-  opts: { plannedMs?: number; finishedAt?: number | null; type?: ItemTypeId } = {},
+  opts: {
+    plannedMs?: number;
+    finishedAt?: number | null;
+    type?: ItemTypeId;
+    /** Defaults to the current generation; pass a stale one to test the re-derivation guard. */
+    itemVersion?: number;
+  } = {},
 ): Session {
   counter++;
   return {
@@ -48,6 +54,7 @@ function session(
     startedAt: 1_700_000_000_000 + counter * 1000,
     finishedAt: opts.finishedAt === undefined ? 1_700_000_000_000 + counter * 2000 : opts.finishedAt,
     responses,
+    itemVersion: opts.itemVersion === undefined ? ITEM_VERSION : opts.itemVersion,
     ...(opts.plannedMs === undefined ? {} : { plannedMs: opts.plannedMs }),
   };
 }
@@ -239,6 +246,31 @@ describe('the interference score', () => {
     const score = interferenceScore([session('practice', [...congruent, ...incongruent, ...noise])]);
     expect(score!.interferenceMs).toBe(200);
   });
+
+  it('ignores sprint blocks, which would flatten the contrast towards zero', () => {
+    /*
+     * The regression for the one read-out that forgot `untimedSessions`. A sprint's latencies are a
+     * measure of how fast someone chose to go under a running clock, so both conditions collapse
+     * towards the same floor and take their difference with them — and because a sprint produces
+     * items quickly, its trials outnumber the practice ones within a single block.
+     */
+    const congruent = seedsByCongruency(3, true, 10).map((s) => interferenceResponse(s, 600));
+    const incongruent = seedsByCongruency(3, false, 10).map((s) => interferenceResponse(s, 800));
+    const rushedCongruent = seedsByCongruency(4, true, 30).map((s) => interferenceResponse(s, 250));
+    const rushedIncongruent = seedsByCongruency(4, false, 30).map((s) =>
+      interferenceResponse(s, 260),
+    );
+
+    const score = interferenceScore([
+      session('practice', [...congruent, ...incongruent]),
+      session('sprint', [...rushedCongruent, ...rushedIncongruent]),
+    ]);
+
+    expect(score).not.toBeNull();
+    expect(score!.interferenceMs).toBe(200);
+    expect(score!.congruentTrials).toBe(10);
+    expect(score!.incongruentTrials).toBe(10);
+  });
 });
 
 /**
@@ -311,5 +343,66 @@ describe('the switch cost', () => {
     const noise = Array.from({ length: 30 }, () => response(true, 400));
     const score = switchCostScore([session('practice', [...formA, ...formB, ...noise])]);
     expect(score!.switchCostMs).toBe(6_000);
+  });
+});
+
+/**
+ * A response stores a seed, and both contrasts above recover a *condition* by regenerating the item
+ * from it. That inference silently expires when a generator changes: the same seed now yields a
+ * different board, so old responses are sorted by a condition their reader never faced. The contrast
+ * keeps returning a confident number computed from a coin flip, which is the worst possible failure —
+ * a wrong statistic is less useful than no statistic.
+ *
+ * Sessions therefore carry the generator generation they were played at, and only the current one is
+ * re-derivable. Everything a response records directly — accuracy, latency, the chosen error type —
+ * is unaffected by a bump and keeps being counted, so this narrows two read-outs rather than
+ * discarding history.
+ */
+describe('re-derived contrasts only read the generation they were played at', () => {
+  function seedsByForm(difficulty: Difficulty, wantFormB: boolean, count: number): string[] {
+    const found: string[] = [];
+    for (let i = 0; found.length < count && i < 4000; i++) {
+      const seed = `GEN${i}`;
+      const item = generateItem('trail-making', seed, difficulty);
+      if (item.stimulus.kind !== 'trail') continue;
+      if (isFormB(item.stimulus.nodes) === wantFormB) found.push(seed);
+    }
+    return found;
+  }
+
+  function trailResponse(seed: string, latencyMs: number): Response {
+    return {
+      type: 'trail-making',
+      seed,
+      difficulty: 2,
+      chosenIndex: null,
+      answerIndex: -1,
+      correct: true,
+      latencyMs,
+    };
+  }
+
+  const formA = seedsByForm(2, false, 5).map((s) => trailResponse(s, 9_000));
+  const formB = seedsByForm(2, true, 5).map((s) => trailResponse(s, 15_000));
+  const trails = [...formA, ...formB];
+
+  it('drops sessions stamped with an older generation', () => {
+    expect(switchCostScore([session('practice', trails, { itemVersion: ITEM_VERSION - 1 })])).toBeNull();
+    expect(switchCostScore([session('practice', trails)])).not.toBeNull();
+  });
+
+  it('drops sessions written before the stamp existed', () => {
+    // Not merely an old number — no number at all, which is the shape every pre-2026-08 session has.
+    const legacy = session('practice', trails);
+    delete legacy.itemVersion;
+    expect(switchCostScore([legacy])).toBeNull();
+  });
+
+  it('still counts an older session everywhere the response speaks for itself', () => {
+    // Accuracy and latency were measured, not inferred. A generator change cannot invalidate them.
+    const stale = session('practice', trails, { itemVersion: ITEM_VERSION - 1 });
+    const summary = summarise([stale]);
+    expect(summary.overall.attempts).toBe(trails.length);
+    expect(untimedSessions([stale])).toHaveLength(1);
   });
 });

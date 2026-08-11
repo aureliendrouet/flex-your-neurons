@@ -808,8 +808,22 @@ function StreamPlayer<T>({
   renderElement?: (element: T) => ComponentChildren;
 }) {
   const t = dict(locale).quiz;
-  const stepMs = reducedMotion ? 1400 : (presentation?.stepMs ?? 900);
-  const gapMs = reducedMotion ? 300 : (presentation?.gapMs ?? 200);
+  /*
+   * Reduced motion lengthens the *blank* between elements, and never the element itself.
+   *
+   * It used to replace both, at a flat 1400 ms per element — slower than every level's own step, so
+   * turning the preference on made a span or an n-back easier than any difficulty offered, flattened
+   * the level-to-level gradient to nothing, and did it silently: the flag is not recorded on the
+   * response, so those trials pool into `summarise`, `peakDifficulty` and the adaptive ladder beside
+   * unaided ones. For head-count and n-back the presentation rate *is* the difficulty dial, so the
+   * accessibility preference was quietly setting the score.
+   *
+   * The gap carries the whole accommodation instead. It is what the preference is actually about —
+   * how much sudden change arrives per second — and it costs the measurement nothing, because the
+   * time an element is *visible* is what the memory load depends on.
+   */
+  const stepMs = presentation?.stepMs ?? 900;
+  const gapMs = reducedMotion ? Math.max(500, (presentation?.gapMs ?? 200) * 2) : (presentation?.gapMs ?? 200);
   const [index, setIndex] = useState(-1);
   const [finished, setFinished] = useState(false);
   const [started, setStarted] = useState(false);

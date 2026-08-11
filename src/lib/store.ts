@@ -14,6 +14,7 @@ import { computed } from 'nanostores';
 import type { Difficulty, ErrorType, ItemTypeId, Response, Session, SessionMode } from './types';
 import { sprintSummary, summarise, type SprintStats, type Summary } from './scoring';
 import { randomSeed } from './rng';
+import { ITEM_VERSION } from './generators';
 import { dict, DEFAULT_LOCALE, type Locale } from './i18n';
 
 /** Bump when the persisted shape changes incompatibly; old keys are then ignored. */
@@ -108,6 +109,7 @@ export function newSession(
     startedAt: Date.now(),
     finishedAt: null,
     responses: [],
+    itemVersion: ITEM_VERSION,
     ...(plannedMs === undefined ? {} : { plannedMs }),
   };
 }

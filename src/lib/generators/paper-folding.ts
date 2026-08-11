@@ -8,7 +8,7 @@
  * true unfolding, which makes this one of the cleanly verifiable formats.
  */
 import { createRng, type Rng } from '../rng';
-import { cloneGrid, gridGet, gridKey, gridSet, makeGrid } from '../geometry';
+import { cloneGrid, gridCellsKey, gridGet, gridSet, makeGrid } from '../geometry';
 import { dict, type Locale } from '../i18n';
 import type {
   CellGrid,
@@ -118,13 +118,26 @@ function distractorsFor(
 ): { grid: CellGrid; errorType: ErrorType }[] {
   const out: { grid: CellGrid; errorType: ErrorType }[] = [];
 
-  // Forgot to unfold: only the topmost hole of each stack.
-  const topOnly = makeGrid(SHEET, SHEET);
-  for (const p of punches) {
-    const first = at(sheet, p.r, p.c)[0];
-    if (first) gridSet(topOnly, first[0], first[1], true);
-  }
-  out.push({ grid: topOnly, errorType: 'off-by-one' });
+  /*
+   * Every option carries the same number of holes as the answer, and the same symmetry.
+   *
+   * Unfolding doubles a punch per fold, so the correct sheet has a hole count no other reading
+   * produces and — because the outermost fold reflects across the sheet's own centre line — it is
+   * always mirror-symmetric about that line. Both facts were readable straight off the option list.
+   * "Keep only the symmetric options and guess among them" scored 50-63% against a 20% baseline, and
+   * a quarter of the hardest items had exactly one symmetric option, which is not a guess at all.
+   * The hole count gave away two more: the "forgot to unfold" sheet was always the strict minimum
+   * and the "one hole too many" sheet always the strict maximum, so both were free eliminations and
+   * a blind guess started from a third rather than a fifth.
+   *
+   * So the distractors below are all *rearrangements* — a wrong reflection, a quarter turn, or holes
+   * displaced in symmetric groups. A reader has to work out where the holes go, which is the task,
+   * rather than how many there are or whether the pattern looks balanced.
+   *
+   * The cost is the "forgot to unfold" option, which had the fewest holes by definition and could
+   * not be made to match. It was also the one distractor whose label was untrue — it was typed
+   * `off-by-one`, a miscount by a single step, when it is a whole stage of the task left undone.
+   */
 
   // Mirrored the unfolding the wrong way, horizontally and vertically.
   const flipH = makeGrid(SHEET, SHEET);
@@ -136,32 +149,6 @@ function distractorsFor(
       gridSet(flipV, SHEET - 1 - r, c, true);
     }
   }
-  out.push({ grid: flipH, errorType: 'mirror' });
-  out.push({ grid: flipV, errorType: 'mirror' });
-
-  // One hole too many, and one too few.
-  const extra = cloneGrid(correct);
-  const empties: [number, number][] = [];
-  for (let r = 0; r < SHEET; r++) {
-    for (let c = 0; c < SHEET; c++) if (!gridGet(extra, r, c)) empties.push([r, c]);
-  }
-  if (empties.length > 0) {
-    const [er, ec] = rng.pick(empties);
-    gridSet(extra, er, ec, true);
-    out.push({ grid: extra, errorType: 'plausible' });
-  }
-
-  const fewer = cloneGrid(correct);
-  const filled: [number, number][] = [];
-  for (let r = 0; r < SHEET; r++) {
-    for (let c = 0; c < SHEET; c++) if (gridGet(fewer, r, c)) filled.push([r, c]);
-  }
-  if (filled.length > 1) {
-    const [fr, fc] = rng.pick(filled);
-    gridSet(fewer, fr, fc, false);
-    out.push({ grid: fewer, errorType: 'plausible' });
-  }
-
   // A rotation of the correct pattern.
   const rot = makeGrid(SHEET, SHEET);
   for (let r = 0; r < SHEET; r++) {
@@ -169,11 +156,39 @@ function distractorsFor(
       if (gridGet(correct, r, c)) gridSet(rot, c, SHEET - 1 - r, true);
     }
   }
-  out.push({ grid: rot, errorType: 'wrong-axis' });
 
-  // Same hole count, one hole displaced. These matter because the symmetric patterns a
-  // fold produces are often their own mirror image, which silently kills the flip
-  // distractors above and would otherwise leave too few options to choose from.
+  /*
+   * The structural mistakes are offered only when they leave the sheet's symmetry unchanged.
+   *
+   * A quarter turn of a sheet that is symmetric about one axis is symmetric about the other, and
+   * that is visible without working anything out: it leaves one option whose balance differs from
+   * the rest, and the answer sits in the group that matches. Holding every option to the same
+   * symmetry profile costs a distractor now and then and removes the last thing about this option
+   * set that could be read at a glance.
+   */
+  const wanted = symmetryAxes(correct);
+  const sameSymmetry = (g: CellGrid) => {
+    const a = symmetryAxes(g);
+    return a.h === wanted.h && a.v === wanted.v;
+  };
+  for (const [grid, errorType] of [
+    [flipH, 'mirror'],
+    [flipV, 'mirror'],
+    [rot, 'wrong-axis'],
+  ] as const) {
+    if (sameSymmetry(grid)) out.push({ grid, errorType });
+  }
+
+  /*
+   * Holes displaced in symmetric groups, keeping both the count and the symmetry.
+   *
+   * These carry most of the option set. A single displaced hole would break the mirror symmetry the
+   * answer always has and hand the item over; moving a whole orbit — the cell together with its
+   * reflections in whichever axes the answer is symmetric about — produces a sheet that is wrong in
+   * the same way a reader is wrong, and indistinguishable from the answer by any property except
+   * where the holes actually are.
+   */
+  const axes = symmetryAxes(correct);
   const filledCells: [number, number][] = [];
   const emptyCells: [number, number][] = [];
   for (let r = 0; r < SHEET; r++) {
@@ -181,18 +196,68 @@ function distractorsFor(
       (gridGet(correct, r, c) ? filledCells : emptyCells).push([r, c]);
     }
   }
-  if (filledCells.length > 0 && emptyCells.length > 0) {
-    for (const from of rng.shuffle(filledCells).slice(0, 4)) {
-      for (const to of rng.shuffle(emptyCells).slice(0, 2)) {
-        const moved = cloneGrid(correct);
-        gridSet(moved, from[0], from[1], false);
-        gridSet(moved, to[0], to[1], true);
-        out.push({ grid: moved, errorType: 'plausible' });
-      }
+
+  /* Distinct orbits, not distinct cells: every cell of one orbit describes the same move, so
+     iterating cells would spend the whole budget regenerating a handful of sheets. */
+  const distinctOrbits = (cells: [number, number][]): [number, number][][] => {
+    const byKey = new Map<string, [number, number][]>();
+    for (const [r, c] of cells) {
+      const orbit = orbitOf(r, c, axes);
+      const key = orbit
+        .map(([rr, cc]) => `${rr},${cc}`)
+        .sort()
+        .join(' ');
+      if (!byKey.has(key)) byKey.set(key, orbit);
+    }
+    return [...byKey.values()];
+  };
+
+  const fromOrbits = rng.shuffle(distinctOrbits(filledCells));
+  const toOrbits = rng.shuffle(distinctOrbits(emptyCells));
+
+  for (const fromOrbit of fromOrbits) {
+    for (const toOrbit of toOrbits) {
+      // Only a like-for-like swap keeps the hole count, so the count can never single out an option.
+      if (toOrbit.length !== fromOrbit.length) continue;
+      if (fromOrbit.some(([r, c]) => toOrbit.some(([r2, c2]) => r === r2 && c === c2))) continue;
+
+      const moved = cloneGrid(correct);
+      for (const [r, c] of fromOrbit) gridSet(moved, r, c, false);
+      for (const [r, c] of toOrbit) gridSet(moved, r, c, true);
+      if (countHoles(moved) !== countHoles(correct)) continue;
+      out.push({ grid: moved, errorType: 'plausible' });
     }
   }
 
   return out;
+}
+
+/** Which mirror axes a finished sheet is symmetric about. */
+function symmetryAxes(grid: CellGrid): { h: boolean; v: boolean } {
+  let h = true;
+  let v = true;
+  for (let r = 0; r < SHEET; r++) {
+    for (let c = 0; c < SHEET; c++) {
+      if (gridGet(grid, r, c) !== gridGet(grid, r, SHEET - 1 - c)) h = false;
+      if (gridGet(grid, r, c) !== gridGet(grid, SHEET - 1 - r, c)) v = false;
+    }
+  }
+  return { h, v };
+}
+
+/** A cell together with its reflections in the axes the sheet is symmetric about. */
+function orbitOf(r: number, c: number, axes: { h: boolean; v: boolean }): [number, number][] {
+  const cells = new Map<string, [number, number]>();
+  const add = (rr: number, cc: number) => cells.set(`${rr},${cc}`, [rr, cc]);
+  add(r, c);
+  if (axes.h) add(r, SHEET - 1 - c);
+  if (axes.v) add(SHEET - 1 - r, c);
+  if (axes.h && axes.v) add(SHEET - 1 - r, SHEET - 1 - c);
+  return [...cells.values()];
+}
+
+function countHoles(grid: CellGrid): number {
+  return grid.cells.filter(Boolean).length;
 }
 
 const meta: ItemTypeMeta = {
@@ -243,9 +308,9 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
     // A sheet that ends up fully punched, or barely punched, is not discriminating.
     if (holeCount < 2 || holeCount >= SHEET * SHEET - 1) continue;
 
-    const seen = new Set<string>([gridKey(correct)]);
+    const seen = new Set<string>([gridCellsKey(correct)]);
     const distractors = distractorsFor(correct, sheet, punches, rng).filter((d) => {
-      const k = gridKey(d.grid);
+      const k = gridCellsKey(d.grid);
       if (seen.has(k)) return false;
       if (d.grid.cells.filter(Boolean).length === 0) return false;
       seen.add(k);
@@ -282,7 +347,15 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
       answerIndex,
       errorTypes: all.map((x) => x.errorType),
       explanation: {
-        summary: t.summary(answerIndex + 1, plan.punches, plan.folds + 1, holeCount),
+        /*
+         * Layers double with each fold — `2 ** folds`, not `folds + 1`.
+         *
+         * The old arithmetic was right only for a single fold, so every two-fold item told the
+         * reader "1 punch through 3 layers gives 4 holes", which does not multiply out and
+         * contradicted the diagram printed beside it. `StimulusView` had it right all along, which
+         * is why the two disagreed on screen.
+         */
+        summary: t.summary(answerIndex + 1, plan.punches, 2 ** plan.folds, holeCount),
         rules: [
           ...folds.map((f, i) => t.foldStep(i + 1, t.folds[f])),
           t.ruleUnfold,

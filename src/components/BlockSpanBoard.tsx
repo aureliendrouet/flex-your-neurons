@@ -86,8 +86,12 @@ export default function BlockSpanBoard({
    * reader's history against another's, so a consistently gentler presentation stays internally
    * comparable.
    */
-  const stepMs = reducedMotion ? 1100 : (presentation?.stepMs ?? 650);
-  const gapMs = reducedMotion ? 450 : (presentation?.gapMs ?? 350);
+  /* As in `StimulusView`: the accommodation lengthens the blank between flashes, never the flash
+     itself. How long a block is lit is the encoding time the span depends on, and a preference must
+     not move it — the board's own docs commit to flash rate being held constant across levels, and a
+     setting that overrode it would be that same drift arriving from the other direction. */
+  const stepMs = presentation?.stepMs ?? 650;
+  const gapMs = reducedMotion ? Math.max(700, (presentation?.gapMs ?? 350) * 2) : (presentation?.gapMs ?? 350);
 
   /** Identity of "which item is this", for re-arming everything on the next one. */
   const key = sequence.join('|');

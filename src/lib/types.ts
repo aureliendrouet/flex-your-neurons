@@ -413,5 +413,14 @@ export interface Session {
    * response landed. Two sprints are only comparable if their planned windows match.
    */
   plannedMs?: number;
+  /**
+   * The generator generation this session was played at — `ITEM_VERSION` at the time it started.
+   *
+   * A response stores a seed, not an item, so anything re-derived from the item later is re-derived
+   * from today's generators. This records which ones the reader actually saw. Optional, because
+   * sessions written before the stamp existed cannot have it; those are treated as unknown, which
+   * is to say not re-derivable.
+   */
+  itemVersion?: number;
 }
 

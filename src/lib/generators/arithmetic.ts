@@ -31,6 +31,7 @@
  */
 import { createRng, type Rng } from '../rng';
 import { dict, type Locale } from '../i18n';
+import { windowOptions } from './distractors';
 import type { Difficulty, ErrorType, Generator, Item, ItemTypeMeta, Option } from '../types';
 
 const OPTION_COUNT = 4;
@@ -153,7 +154,16 @@ function buildExpression(plan: Plan, rng: Rng): Expression | null {
       third = rng.pick(divisors);
     } else if (second === '−') {
       if (head <= 3) return null;
-      third = rng.int(2, head - 1);
+      /*
+       * Bounded by the plan as well as by the running total.
+       *
+       * Only the total bounded it before, and the total of a chained expression is larger than
+       * either operand — so a level whose operands are capped at 150 emitted `119 + 115 − 209`, with
+       * a third term half again the ceiling the level had set for itself. Rare (about one chained
+       * item in seventy) but squarely the drift the difficulty ladder exists to prevent: three-digit
+       * borrowing is a different task from the one the level advertises.
+       */
+      third = rng.int(2, Math.min(plan.additiveMax, head - 1));
     } else {
       third = rng.int(2, additive ? plan.additiveMax : Math.min(plan.factorMax, 9));
     }
@@ -201,16 +211,17 @@ function wrongOperatorValue(expression: Expression): number | null {
   return null;
 }
 
-/** The value from reading the first operator backwards: `b − a`, or `b ÷ a`. */
-function reversedValue(expression: Expression): number | null {
-  const first = expression.operators[0]!;
-  if (first !== '−' && first !== '÷') return null; // commutative: nothing to reverse
-  const [a, b] = [expression.terms[0]!, expression.terms[1]!];
-  const value = apply(b, first, a);
-  if (value === null || value === expression.value) return null;
-  const rest = evaluate([value, ...expression.terms.slice(2)], expression.operators.slice(1));
-  return rest !== null && rest >= 0 && rest !== expression.value ? rest : null;
-}
+/*
+ * There is no `reversedValue` here, and its absence is deliberate.
+ *
+ * Reading the first operator backwards — `b − a` for `a − b` — is a real misreading, and a
+ * distractor for it was offered for a long time. It could never fire: `drawPair` guarantees `a > b`
+ * for a subtraction, so the reversal is negative and rejected, and a division's terms are built as
+ * `[divisor × quotient, divisor]`, so the reversal is never a whole number. Across 20,000 items it
+ * produced exactly zero distractors while appearing in the taxonomy as though it were live.
+ * Restoring it would mean generating expressions whose reversal is representable, which is a change
+ * to what the format asks rather than to how it is scored.
+ */
 
 const meta: ItemTypeMeta = {
   id: 'arithmetic',
@@ -232,48 +243,93 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
     if (!expression) continue;
     const { value } = expression;
 
-    const values: number[] = [value];
-    const errors = new Map<number, ErrorType>([[value, 'correct']]);
     /*
-     * Every option has to be in scale with the answer, and this bound is the whole reason.
+     * The four options form a rectangle: `{v, v+d, v+j, v+j+d}` for a place-value step `d` (±10 or
+     * ±20) and a small step `j`.
      *
-     * Substituting an operator is a realistic misreading, but substituting × into an additive
-     * expression produces an answer from another world: `34 + 26` offered 884, and `37 − 26`
-     * offered 962. An option that far out is discarded on sight, without any arithmetic — the same
-     * leakage as an option set that answers the item on its own, arriving through a different door.
+     * Every option has to be in scale with the answer — substituting × into an additive expression
+     * offers 884 beside 60, and an option that far out is discarded on sight, which is leakage
+     * arriving through a different door — so the band below bounds how far any option may sit.
      *
-     * The band scales with the answer, because "far out" is relative: 203 beside 213 is a real
-     * candidate, while 16 beside 2 is not. A diagnostic distractor that falls outside it is simply
-     * dropped and filler takes the slot; a named error is worth having, but not at the price of a
-     * free elimination.
+     * The rectangle is what makes the set *uninformative*, and it replaces a construction that was
+     * the worst leak on the site. The carry slip sat at a fixed `±10` and the near-miss at a fixed
+     * `±1` from the answer, so the option list contained exactly one pair ten apart, and exactly one
+     * member of that pair had a neighbour one away: the answer. A solver reading nothing but the
+     * four numbers scored 98%. The irony is that the carry distractor is there to *stop* an item
+     * being answerable by computing a single digit, and it opened a much larger hole than the one it
+     * closed.
+     *
+     * With both steps applied to both members, every option has exactly one partner `d` away and one
+     * `j` away. Nothing distinguishes the four positions, the answer's rank is whatever the signs of
+     * `d` and `j` make it, and the units-digit defence still holds: `v` and `v+d` share a units
+     * digit, as do `v+j` and `v+j+d`.
      */
     const band = Math.max(12, Math.ceil(value * 0.35));
-    const offer = (candidate: number | null, type: ErrorType) => {
-      if (candidate === null || candidate < 0 || errors.has(candidate)) return;
-      if (values.length >= OPTION_COUNT) return;
-      if (Math.abs(candidate - value) > band) return;
-      values.push(candidate);
-      errors.set(candidate, type);
-    };
-
-    /*
-     * The carry slip goes in first and is not optional. It is the one distractor that shares the
-     * answer's units digit, so without it an item can be answered by computing a single digit —
-     * see the header. Preferring the direction that stays positive keeps it available at small
-     * answers too.
-     */
-    offer(value >= 12 ? value - 10 : value + 10, 'carry');
-    offer(reversedValue(expression), 'wrong-direction');
-    offer(wrongOperatorValue(expression), 'wrong-rule');
-    offer(rng.bool() ? value + 1 : value - 1, 'off-by-one');
-    // Filler, still drawn near the answer so nothing is dismissible on size alone.
-    for (let delta = 2; values.length < OPTION_COUNT && delta <= band; delta++) {
-      offer(value + delta, 'plausible');
-      offer(value - delta, 'plausible');
+    const combos: { d: number; j: number }[] = [];
+    for (const d of [10, -10, 20, -20]) {
+      for (const j of [1, -1, 2, -2, 3, -3, 4, -4]) {
+        const others = [value + d, value + j, value + j + d];
+        if (others.some((v) => v < 0)) continue;
+        if (others.some((v) => Math.abs(v - value) > band)) continue;
+        if (new Set([value, ...others]).size !== OPTION_COUNT) continue;
+        combos.push({ d, j });
+      }
     }
-    if (values.length !== OPTION_COUNT) continue;
-    // The guard the header is about: at least two options must share the answer's units digit.
-    if (values.filter((v) => v % 10 === value % 10).length < 2) continue;
+    /*
+     * Draw the answer's rank, then a rectangle that realises it.
+     *
+     * Because `|d|` is always larger than `|j|`, the two signs fix where the answer sorts: positive
+     * `d` puts it in the lower half, positive `j` puts it first within that half. Picking a
+     * rectangle at random would therefore inherit whatever bias the constraints above impose — and
+     * they are not symmetric, since options may not go negative, so small answers lose every
+     * downward step and land at the bottom of the set far too often. Grouping by rank first and
+     * choosing the rank uniformly is what makes the position carry no information.
+     */
+    const byRank = new Map<number, { d: number; j: number }[]>();
+    for (const c of combos) {
+      const rank = (c.d < 0 ? 2 : 0) + (c.j < 0 ? 1 : 0);
+      const bucket = byRank.get(rank);
+      if (bucket) bucket.push(c);
+      else byRank.set(rank, [c]);
+    }
+
+    let values: number[];
+    let errors: Map<number, ErrorType>;
+
+    if (byRank.size === OPTION_COUNT) {
+      const { d, j } = rng.pick(byRank.get(rng.int(0, OPTION_COUNT - 1))!);
+      const wrongOperator = wrongOperatorValue(expression);
+      values = [value, value + d, value + j, value + j + d];
+      errors = new Map<number, ErrorType>([
+        [value, 'correct'],
+        // The units digit right and a higher place wrong — the characteristic arithmetic slip.
+        [value + d, 'carry'],
+        [value + j, Math.abs(j) === 1 ? 'off-by-one' : 'plausible'],
+        /* The far corner is a generic near-miss, unless the arithmetic happens to land it on the
+           value a substituted operator would give — in which case say so. */
+        [value + j + d, value + j + d === wrongOperator ? 'wrong-rule' : 'plausible'],
+      ]);
+      // The guard the header is about: at least two options must share the answer's units digit.
+      if (values.filter((v) => v % 10 === value % 10).length < 2) continue;
+    } else {
+      /*
+       * A single-digit answer cannot support the rectangle — every downward step runs past zero —
+       * and does not need it either: when the answer *is* its units digit, there is no "compute one
+       * digit and stop" to defend against. A plain window with a drawn rank is both available and
+       * sufficient here.
+       */
+      if (value >= 10) continue;
+      const set = windowOptions(
+        rng,
+        value,
+        OPTION_COUNT,
+        (v) => (Math.abs(v - value) === 1 ? 'off-by-one' : 'plausible'),
+        0,
+      );
+      if (!set) continue;
+      values = set.values;
+      errors = set.errors;
+    }
 
     const shuffled = rng.shuffle(values);
     const options: Option[] = shuffled.map((v) => ({ kind: 'text', text: String(v) }));

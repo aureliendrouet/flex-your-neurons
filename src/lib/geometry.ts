@@ -5,7 +5,7 @@
  * `data-*` attributes that Playwright can assert on and a screen reader can be given a
  * label for, whereas a canvas is an opaque bitmap (docs/LIBRARIES.md §3).
  */
-import type { CellGrid, ColorLevel, ShapeType, SizeLevel, SlotLayout } from './types';
+import type { CellGrid, ColorLevel, Figure, Shape, ShapeType, SizeLevel, SlotLayout } from './types';
 
 /** Every figure is drawn in a 100x100 user-space box. */
 export const VIEWBOX = 100;
@@ -55,6 +55,44 @@ const BASE_ANGLE: Partial<Record<ShapeType, number>> = {
   pentagon: -90,
   hexagon: -90,
 };
+
+/**
+ * The angle after which a shape's drawing repeats itself.
+ *
+ * This is the bridge between the data model, where `rotation` is a free number, and the page, where
+ * a regular polygon turned by one of its own symmetry steps is *the same picture*. Two symbols that
+ * differ only by such a step are distinct records and identical ink, and every format that asks
+ * "are these two the same?" has to mean the ink — otherwise a key holds two entries a reader cannot
+ * tell apart, a "target absent" trial displays the target, and a correct answer is scored wrong.
+ *
+ * `circle` is 0, meaning no rotation is ever drawn: it is emitted as an SVG primitive that takes no
+ * angle at all, so all six of the vocabulary's orientations are one circle.
+ *
+ * Derived from `POLYGON_SIDES` for the regular polygons (360/sides), and by inspection for the two
+ * special-cased outlines: `star` has five arms (72°) and `cross` is a plus sign (90°).
+ */
+export const ROTATION_PERIOD: Record<ShapeType, number> = {
+  circle: 0,
+  square: 90,
+  diamond: 90,
+  cross: 90,
+  triangle: 120,
+  pentagon: 72,
+  star: 72,
+  hexagon: 60,
+};
+
+/**
+ * The rotation a shape is actually *drawn* at: the requested angle reduced into its first period.
+ *
+ * Use this — never the raw `rotation` field — anywhere two shapes are compared for sameness, keyed
+ * for de-duplication, or described to a reader.
+ */
+export function canonicalRotation(type: ShapeType, rotation: number): number {
+  const period = ROTATION_PERIOD[type];
+  if (period === 0) return 0;
+  return ((rotation % period) + period) % period;
+}
 
 export type Point = readonly [number, number];
 
@@ -114,6 +152,37 @@ export function shapeOutline(
   const sides = POLYGON_SIDES[type];
   if (sides === undefined) return null;
   return regularPolygon(cx, cy, r, sides, rotation + (BASE_ANGLE[type] ?? 0));
+}
+
+/**
+ * What a shape *looks like*, as a comparable string.
+ *
+ * Built from the outline the renderer will actually emit, so it collapses every way two records can
+ * describe one picture — a symmetry step (`hexagon@60` and `hexagon@120`), and the cross-type case a
+ * per-shape symmetry table cannot see at all: a square turned 45° is drawn as the same four points
+ * as an upright diamond.
+ *
+ * Vertices are rounded and sorted, so winding order and starting vertex do not enter the identity;
+ * a shape drawn at a fixed radius here compares by form alone, with `size` carried alongside.
+ */
+export function shapeSignature(shape: Shape): string {
+  const pts = shapeOutline(shape.type, 0, 0, 100, shape.rotation);
+  const form =
+    pts === null
+      ? 'circle'
+      : pts
+          .map(([x, y]) => `${Math.round(x)},${Math.round(y)}`)
+          .sort()
+          .join(' ');
+  return `${form}|${shape.size}|${shape.color}`;
+}
+
+/** What a whole figure looks like. See `shapeSignature` — same argument, one level up. */
+export function figureSignature(figure: Figure): string {
+  return `${figure.layout}:${figure.shapes
+    .map((s) => `${shapeSignature(s)}@${s.x.toFixed(3)},${s.y.toFixed(3)}`)
+    .sort()
+    .join(';')}`;
 }
 
 export function pointsAttr(points: Point[]): string {
@@ -309,6 +378,19 @@ export function normaliseGrid(g: CellGrid): CellGrid {
 export function gridKey(g: CellGrid): string {
   const n = normaliseGrid(g);
   return `${n.rows}x${n.cols}:${n.cells.map((b) => (b ? 1 : 0)).join('')}`;
+}
+
+/**
+ * A grid's identity *including where it sits in its frame*.
+ *
+ * `gridKey` crops to the bounding box first, which is right for a polyomino — a shape is the same
+ * shape wherever it is drawn — and wrong for anything whose frame is part of the answer. A punched
+ * sheet is the second kind: two sheets with the same holes in different places are different
+ * answers, and cropping made them compare equal, so a whole option set could collapse to a couple of
+ * distinct entries and the item would be discarded as unbuildable.
+ */
+export function gridCellsKey(g: CellGrid): string {
+  return `${g.rows}x${g.cols}:${g.cells.map((b) => (b ? 1 : 0)).join('')}`;
 }
 
 export function gridsEqual(a: CellGrid, b: CellGrid): boolean {

@@ -15,7 +15,7 @@ import type {
   ResponseMode,
   Session,
 } from './types';
-import { generateItem, getMeta } from './generators';
+import { generateItem, getMeta, ITEM_VERSION } from './generators';
 import { isCongruent } from './generators/interference';
 import { isFormB } from './generators/trail-making';
 import { dict, DEFAULT_LOCALE, type Locale } from './i18n';
@@ -86,6 +86,16 @@ export interface TypeStats {
   correct: number;
   /** 0-1, or null when there are no attempts. */
   accuracy: number | null;
+  /**
+   * What guessing alone would score on this format, 0-1, or `null` where guessing is not a strategy.
+   *
+   * Reported because accuracy is not comparable across formats without it, and the site was showing
+   * it as though it were. A matrix offers eight options and symbol search offers two, so 50% on the
+   * first is four times chance and on the second is a coin — presented side by side in one column,
+   * the same number, with nothing to say they mean opposite things. `null` for the formats with no
+   * option list to guess from: a typed span or a tapped sequence has no floor worth naming.
+   */
+  chanceLevel: number | null;
   medianLatencyMs: number | null;
   bestStreak: number;
   lastPlayedAt: number | null;
@@ -185,6 +195,38 @@ export function untimedSessions(sessions: Session[]): Session[] {
   return sessions.filter((s) => s.mode !== 'sprint');
 }
 
+/**
+ * The sessions whose items can still be regenerated as the reader saw them.
+ *
+ * Two read-outs recover a condition the response never stored — `interferenceScore` regenerates a
+ * Stroop trial to ask whether it was congruent, `switchCostScore` regenerates a trail to ask which
+ * form it was. That inference is only sound while the generators still produce what the reader
+ * answered. Change a plan and old responses get sorted into the wrong condition: the contrast keeps
+ * returning a confident number, computed from a coin flip.
+ *
+ * So these two filter to the current `ITEM_VERSION`, on top of the untimed rule. Nothing else does:
+ * accuracy, latency and the recorded error type are properties of the response itself and survive
+ * any generator change. A session written before the stamp existed has an unknown version and is
+ * therefore not re-derivable — which loses a small amount of pre-2026-08 history and is the point.
+ */
+export function rederivableSessions(sessions: Session[]): Session[] {
+  return untimedSessions(sessions).filter((s) => s.itemVersion === ITEM_VERSION);
+}
+
+/**
+ * What guessing scores on a format, or `null` where there is nothing to guess between.
+ *
+ * Derived by generating one item and counting its options rather than kept in a table, so it cannot
+ * drift away from what the format actually offers — the option count is a property of the generator,
+ * and a table of them would be a second place for it to be recorded and a first place for it to go
+ * stale.
+ */
+function chanceLevelFor(type: ItemTypeId): number | null {
+  const probe = generateItem(type, 'CHANCE', 3);
+  if (probe.responseMode !== 'choice' || probe.options.length === 0) return null;
+  return 1 / probe.options.length;
+}
+
 export function summarise(allSessions: Session[], now = Date.now()): Summary {
   const sessions = untimedSessions(allSessions);
   const responses = allResponses(sessions);
@@ -201,6 +243,7 @@ export function summarise(allSessions: Session[], now = Date.now()): Summary {
       attempts: rs.length,
       correct: correctResponses.length,
       accuracy: rs.length > 0 ? correctResponses.length / rs.length : null,
+      chanceLevel: chanceLevelFor(type),
       // Latency is only meaningful for items the user actually solved; timing a wrong
       // answer mostly measures how long they were willing to stare at it.
       medianLatencyMs: median(correctResponses.map((r) => r.latencyMs)),
@@ -288,7 +331,21 @@ export function interferenceScore(sessions: Session[]): InterferenceScore | null
   const congruent: number[] = [];
   const incongruent: number[] = [];
 
-  for (const session of sessions) {
+  /*
+   * Untimed sessions only — the same rule every other read-out follows, and the one this contrast
+   * was quietly breaking.
+   *
+   * A sprint's latencies measure how fast a reader *chose* to go under a running clock, not how long
+   * the item took them, and `interference` is sprintable. Pooling them compresses both conditions
+   * towards the same floor and takes the difference with them: a real +200 ms Stroop effect measured
+   * +10 ms once a single sprint block was in the history, and because a sprint produces items
+   * quickly, its trials come to outnumber the practice ones in the median within one session.
+   *
+   * And only sessions from the current generator generation, because the congruency below is
+   * recovered by regenerating the item rather than read from the response — see
+   * `rederivableSessions`.
+   */
+  for (const session of rederivableSessions(sessions)) {
     for (const response of session.responses) {
       if (response.type !== 'interference' || !response.correct) continue;
       const item = generateItem('interference', response.seed, response.difficulty);
@@ -345,7 +402,12 @@ export function switchCostScore(sessions: Session[]): SwitchCostScore | null {
   const formA: number[] = [];
   const formB: number[] = [];
 
-  for (const session of sessions) {
+  /* Untimed sessions only, as for the interference contrast. `trail-making` is not sprintable
+     today, so nothing reaches this from a sprint — but the invariant belongs where the statistic is
+     computed rather than in another file's metadata, which is exactly how the sibling read-out came
+     to be wrong. Current-generation sessions only too, since the form is regenerated from the seed
+     rather than stored — see `rederivableSessions`. */
+  for (const session of rederivableSessions(sessions)) {
     for (const response of session.responses) {
       if (response.type !== 'trail-making') continue;
       const item = generateItem('trail-making', response.seed, response.difficulty);

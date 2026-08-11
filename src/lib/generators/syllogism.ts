@@ -125,19 +125,86 @@ const meta: ItemTypeMeta = {
   sprintable: false,
 };
 
+/**
+ * The difficulty dial `docs/GENERATABILITY.md` describes — "figure; # negative/particular premises"
+ * — which until now did not exist in this file at all.
+ *
+ * Figure and both premise moods were drawn uniformly with no difficulty term, so levels 1 and 2
+ * produced identical item pools and differed only in the seconds suggested for them, and the
+ * measured share of negative premises across the five levels was non-monotone.
+ *
+ * Universal affirmatives are the easiest premises to hold; particulars and negatives are what make
+ * a syllogism hard, and the first figure is the one whose valid moods are most familiar.
+ */
+function moodPool(difficulty: Difficulty): PropType[] {
+  /* Every level keeps at least one particular premise available. A pool of universals alone can
+     never produce a particular conclusion, which would leave the key drawn from two moods instead
+     of four — and since the four conclusions differ in length on screen, a narrowed key is legible
+     without reading any of them. */
+  switch (difficulty) {
+    case 1:
+      return ['A', 'A', 'A', 'E', 'I'];
+    case 2:
+      return ['A', 'A', 'E', 'I', 'O'];
+    case 3:
+      return ['A', 'E', 'E', 'I', 'O'];
+    case 4:
+      return ['A', 'E', 'I', 'I', 'O', 'O'];
+    case 5:
+      /* One universal affirmative is kept in the pool. Without it almost the only Boolean-valid
+         conclusion reachable is O, and 80% of the level's keys were that one mood — the mood that
+         prints the longest line, so the level gave itself away on sight. */
+      return ['A', 'E', 'E', 'I', 'O', 'O'];
+  }
+}
+
+function figurePool(difficulty: Difficulty): typeof FIGURES {
+  switch (difficulty) {
+    case 1:
+      return FIGURES.slice(0, 1);
+    case 2:
+      return FIGURES.slice(0, 2);
+    case 3:
+      return FIGURES.slice(0, 3);
+    default:
+      return FIGURES;
+  }
+}
+
 const MAX_ATTEMPTS = 400;
 
 function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
   const t = dict(locale).gen.syllogism;
   const rng = createRng(`syllogism:${seed}:${difficulty}`);
-  // Higher difficulties bias towards "no valid conclusion", the answer people most often
-  // miss, and towards negative/particular premises, which are harder to reason about.
-  const wantNoConclusion = difficulty >= 3 ? rng.bool(0.35 + difficulty * 0.05) : rng.bool(0.2);
+  /*
+   * "No valid conclusion" is drawn at its fair share of the five options, at every difficulty.
+   *
+   * It used to be biased upward with level — 0.35 + 0.05·d, reaching 0.60 at difficulty 5 — on the
+   * reasoning that it is the answer people most often miss. The effect was the opposite of the
+   * intent. It made "none" the key in 40% of all items against a 20% chance baseline, so answering
+   * "no valid conclusion" to everything scored twice chance overall and *three times* at the level
+   * where the bias was strongest. It is also the longest option on screen, so the tell survived
+   * even for a reader who never read it: picking the longest line scored 43%.
+   *
+   * Difficulty is carried by the figure and the premise moods below, which is what
+   * `docs/GENERATABILITY.md` says the dial is.
+   */
+  /*
+   * The key is drawn first, from the five things it could be, and premises are then searched for.
+   *
+   * Equalising "none" against "some conclusion" is not enough on its own, because the four
+   * conclusions are not interchangeable on screen: "All X are Y" and "Some X are not Y" differ in
+   * length, and which mood happens to be valid is decided by the logic rather than by any draw. Left
+   * alone that made the key's *mood* predictable, and picking the second-longest line scored half
+   * again above chance without a word being read.
+   */
+  const targetKey: PropType | null = rng.pick([...PROP_TYPES, null]);
+  const wantNoConclusion = targetKey === null;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const figure = rng.pick(FIGURES);
-    const majorType = rng.pick(PROP_TYPES);
-    const minorType = rng.pick(PROP_TYPES);
+    const figure = rng.pick(figurePool(difficulty));
+    const majorType = rng.pick(moodPool(difficulty));
+    const minorType = rng.pick(moodPool(difficulty));
 
     const premises: Proposition[] = [
       { type: majorType, subject: figure.major[0], predicate: figure.major[1] },
@@ -157,7 +224,18 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
 
     // More than one valid conclusion would make the key ambiguous.
     if (valid.length > 1) continue;
-    if (wantNoConclusion !== (valid.length === 0)) continue;
+    /*
+     * The drawn key is insisted on for most of the attempt budget, then dropped. Not every mood is
+     * reachable from every level's premise pool, and a level that cannot produce one would otherwise
+     * run out of attempts and throw rather than fall back to a fair item.
+     */
+    const insist = attempt < MAX_ATTEMPTS / 2;
+    if (insist) {
+      if (wantNoConclusion !== (valid.length === 0)) continue;
+      if (targetKey !== null && valid[0]!.type !== targetKey) continue;
+    } else if (wantNoConclusion !== (valid.length === 0)) {
+      continue;
+    }
 
     const terms = rng.sample(TERM_WORDS, 3);
     // Present in the conventional order: major premise, then minor premise.

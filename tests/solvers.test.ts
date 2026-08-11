@@ -576,6 +576,13 @@ describe('arithmetic is decidable from the expression on screen', () => {
    * The last digit of a sum or product is fixed by the last digits of the operands, so an item whose
    * answer is the only option ending in that digit can be solved by computing one digit — the whole
    * calculation skipped. At least two options must therefore share the answer's units digit.
+   *
+   * The requirement is scoped to answers of two digits or more, and the scope is the point rather
+   * than an exemption: when the answer *is* its own units digit there is no partial calculation to
+   * stop at, so a shared last digit defends nothing. Insisting on it there would force a distractor
+   * ten away from a single-digit answer, and since such an answer has no room for a partner ten
+   * *below* it, every one of those items would have had to place the answer in the bottom half of
+   * the option list — trading a shortcut that does not exist for a positional tell that does.
    */
   it('never lets the units digit alone identify the answer', () => {
     for (const difficulty of DIFFICULTIES) {
@@ -583,6 +590,7 @@ describe('arithmetic is decidable from the expression on screen', () => {
         const item = generateItem('arithmetic', seed, difficulty);
         const values = item.options.map((o) => Number((o as { text: string }).text));
         const answer = values[item.answerIndex]!;
+        if (answer < 10) continue;
         const sharing = values.filter((v) => v % 10 === answer % 10).length;
         expect(
           sharing,

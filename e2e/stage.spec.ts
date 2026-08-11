@@ -141,3 +141,34 @@ test.describe('the item owns the viewport while it is live', () => {
     expect(head.top).toBeLessThan(results.top);
   });
 });
+
+/**
+ * The speeded formats get a stricter rule than the reasoning ones.
+ *
+ * The tray above is allowed to scroll, because eight figural options at a legible size genuinely do
+ * not fit beside a matrix on a phone — and a matrix is untimed, so a scroll costs the reader nothing
+ * that is being measured. Coding and arithmetic are scored on the clock. A scroll there is not a
+ * layout inconvenience, it is time added to the score, and it was being added to about half of all
+ * coding items: options 3 and 4 began 53px past the fold on a 412px viewport while the answer's
+ * position is uniform.
+ */
+test.describe('a speeded item never asks to be scrolled', () => {
+  for (const type of ['coding', 'arithmetic'] as const) {
+    test(`${type} fits its options above the fold`, async ({ page }) => {
+      await page.goto(practiceUrl(type, { seed: 'STAGE001', difficulty: 5, length: 3 }));
+      await waitForQuiz(page);
+
+      expect(await scrollY(page)).toBe(0);
+
+      const vh = page.viewportSize()!.height;
+      const tray = await box(page, '[data-testid="answer-tray"]');
+      expect(tray.bottom, `${type}: the option tray runs past the fold`).toBeLessThanOrEqual(vh + 1);
+
+      // And nothing inside the tray is parked out of reach of the tray itself.
+      const overflow = await page
+        .locator('[data-testid="answer-tray"]')
+        .evaluate((el) => el.scrollHeight - el.clientHeight);
+      expect(overflow, `${type}: the option tray scrolls internally`).toBeLessThanOrEqual(1);
+    });
+  }
+});
