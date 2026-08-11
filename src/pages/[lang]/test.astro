@@ -10,17 +10,28 @@ export function getStaticPaths() {
 
 const locale = Astro.params.lang as Locale;
 const p = dict(locale).pages.test;
+
+/**
+ * One item per format, derived rather than chosen.
+ *
+ * This was a hard-coded 20, which was fine while there were eighteen formats and became a defect
+ * the moment there were more than twenty: items are dealt by `types[index % types.length]`, so a
+ * run shorter than the registry covers a *prefix* of it and silently never reaches the rest. Four
+ * formats went unreachable in the full test — always the same four — with nothing on screen to say
+ * so. Deriving the length from the registry is what makes "full" true by construction.
+ */
+const items = ITEM_TYPE_IDS.length;
 ---
 
-<Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
+<Base locale={locale} title={p.title} description={p.description(items)} lede={p.lede(items)}>
   <div class="card quiz-stage">
-    <Quiz client:only="preact" mode="test" types={ITEM_TYPE_IDS} locale={locale} length={20} />
+    <Quiz client:only="preact" mode="test" types={ITEM_TYPE_IDS} locale={locale} length={items} />
   </div>
 
   <section class="card prose-card">
     <h2 class="section-heading section-heading--xs">{p.differsHeading}</h2>
     <ul class="muted spaced-list">
-      {p.differs.map((line) => <li>{line}</li>)}
+      {p.differs(items).map((line) => <li>{line}</li>)}
     </ul>
   </section>
 </Base>

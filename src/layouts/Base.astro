@@ -161,7 +161,7 @@ const languages = localeOptions();
           )
         }
         <h1 class="page-title">{title}</h1>
-        {lede && <p class="muted page-lede">{lede}</p>}
+        {lede && <p class="muted page-lede" data-testid="page-lede">{lede}</p>}
       </div>
       <slot />
     </main>

@@ -230,9 +230,19 @@ export default function Quiz({
    * the cap while a slow one ran the full window. That is exactly the comparison a sprint exists
    * to make, so the count must not participate in it.
    */
+  /*
+   * A test defaults to one item per format, not two.
+   *
+   * Items are dealt round-robin — `types[index % types.length]` — so any length that is not a
+   * multiple of the registry covers some formats more than others, and any length *below* it covers
+   * a prefix and leaves the tail out entirely. One item each is the shortest length that reaches
+   * every format, which is what the mode is for: the per-format row from two items is 0, 50 or 100%
+   * and barely better evidence than from one, while the domain figures — which pool several formats
+   * apiece — are what the run actually produces.
+   */
   const total = isSprint
     ? Number.POSITIVE_INFINITY
-    : (overrides.length ?? length ?? (mode === 'test' ? types.length * 2 : (settings.practiceLength ?? 10)));
+    : (overrides.length ?? length ?? (mode === 'test' ? types.length : (settings.practiceLength ?? 10)));
 
   /**
    * The level a sprint runs at, chosen once and held.

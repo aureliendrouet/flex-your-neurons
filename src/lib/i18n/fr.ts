@@ -1055,15 +1055,16 @@ const fr: Dict = {
 
     test: {
       title: 'Test complet',
-      description:
-        'Une série mixte sur les vingt-quatre formats, deux items chacun, sans retour avant la fin.',
-      lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
+      description: (items: number) =>
+        `Une série mixte sur les ${items} formats, un item chacun, sans retour avant la fin.`,
+      lede: (items: number) =>
+        `${items} items — un par format, dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.`,
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
-      differs: [
+      differs: (items: number) => [
         'Une vraie batterie est administrée en tête-à-tête par un examinateur formé, avec des consignes, un chronométrage et des règles d’arrêt fixés. Ici, c’est vous, seul, dans un onglet.',
         'Une vraie batterie convertit votre score brut par comparaison à un échantillon d’étalonnage apparié en âge. Il n’y a pas d’échantillon ici : donc pas de centile et pas de QI — seulement vos propres chiffres.',
         'Une vraie batterie comporte de la compréhension verbale, qui ne peut pas être générée par procédure avec des réponses vérifiables. Rien ici ne la mesure.',
-        'Vingt-six items, c’est bien trop peu pour estimer quoi que ce soit de stable. Ce n’est pas pour rien que les batteries publiées comptent dix à quinze subtests.',
+        `Un item par format, c’est une seule observation par format : assez pour savoir si vous avez rencontré un format, pas pour dire ce que vous y valez. Les chiffres par domaine regroupent plusieurs formats chacun et sont la seule partie qui mérite d’être lue — et ${items} items restent de toute façon bien trop peu pour estimer quoi que ce soit de stable. Ce n’est pas pour rien que les batteries publiées comptent dix à quinze subtests.`,
       ],
     },
 

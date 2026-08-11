@@ -70,6 +70,29 @@ test.describe('full test mode', () => {
    * raising again. The pinned difficulty is level 1 for the same reason, and that is where most of the
    * saving came from.
    */
+  /**
+   * The page's own default has to reach every format, and this is checked without walking it.
+   *
+   * The test below walks a run whose length comes from the *URL*, so it proves the rotation is in
+   * registry order and proves nothing about how long the page makes a run when nobody says. That
+   * gap is where a real defect lived: the route hard-coded twenty items while the registry grew to
+   * twenty-four, and since items are dealt round-robin the run covered a prefix and never reached
+   * the last four formats — silently, with the page still calling itself a full test.
+   *
+   * Reading the count off the first item's progress label costs one page load instead of a
+   * twenty-four-item walk, and it fails the moment the length stops matching the registry.
+   */
+  test('offers every format when nobody says how long it should be', async ({ page }) => {
+    await page.goto('en/test/');
+    await waitForQuiz(page);
+
+    await expect(page.getByTestId('progress-label')).toHaveText(
+      dict('en').quiz.progress(1, ITEM_TYPE_IDS.length),
+    );
+    // And the page says the same number out loud, so the copy cannot drift from the run again.
+    await expect(page.getByTestId('page-lede')).toContainText(String(ITEM_TYPE_IDS.length));
+  });
+
   test('rotates through every item type', async ({ page }) => {
     test.setTimeout(600_000);
     await page.goto(testUrl());
@@ -156,7 +179,7 @@ test.describe('full test mode', () => {
     await page.goto('en/test/');
     const { differsHeading, differs } = dict('en').pages.test;
     await expect(page.getByText(differsHeading, { exact: false })).toBeVisible();
-    for (const caveat of differs) {
+    for (const caveat of differs(ITEM_TYPE_IDS.length)) {
       await expect(page.getByText(caveat, { exact: false })).toBeVisible();
     }
   });

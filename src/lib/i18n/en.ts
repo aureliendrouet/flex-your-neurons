@@ -1121,17 +1121,27 @@ const en = {
         'The headline is how many you got right inside the window, with the rate per minute beside it so that runs stay comparable. Accuracy is shown too, as a check rather than as the score: output bought entirely by guessing is not output. The difficulty is pinned for the whole block, and sprint results are kept apart from your practice statistics — the two are different measurements and pooling them would move your practice medians without saying so.',
     },
 
+    /**
+     * Every count here is a function of the registry, and that is not tidiness.
+     *
+     * These strings used to state the length as a word — "twenty-six items, two from each format" —
+     * beside a route that hard-coded twenty. The two had already drifted apart, and when the
+     * registry grew past twenty formats the drift turned into a defect: the run covered the first
+     * twenty formats in registry order and silently never reached the last four. A number that is
+     * derived cannot go stale, and a length that is derived cannot leave a format out.
+     */
     test: {
       title: 'Full test',
-      description:
-        'A mixed run across all twenty-four reasoning-test formats, two items each, with no feedback until the end.',
-      lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
+      description: (items: number) =>
+        `A mixed run across all ${items} reasoning-test formats, one item each, with no feedback until the end.`,
+      lede: (items: number) =>
+        `${items} items — one from every format, in a fixed rotation, with no feedback until you finish. Closer to how a real battery feels than the practice drills are.`,
       differsHeading: 'How this differs from a real battery',
-      differs: [
+      differs: (items: number) => [
         'A real battery is administered one-to-one by a trained examiner with fixed instructions, timing and stop rules. This is you, alone, in a browser tab.',
         'A real battery converts your raw score against an age-matched standardisation sample. There is no sample here, so there is no percentile and no IQ — only your own numbers.',
         'A real battery includes verbal comprehension, which cannot be procedurally generated with verifiable answers. Nothing here measures it.',
-        'Twenty-six items is far too few for a stable estimate of anything. Published batteries use ten to fifteen subtests for a reason.',
+        `One item per format is a single observation per format: enough to say whether you have met a format, not enough to say how good you are at it. The domain figures pool several formats each and are the only part of this worth reading — and ${items} items is still far too few for a stable estimate of anything. Published batteries use ten to fifteen subtests for a reason.`,
       ],
     },
 
