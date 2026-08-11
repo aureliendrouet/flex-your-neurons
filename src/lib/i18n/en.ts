@@ -223,6 +223,12 @@ const en = {
     copyShort: 'Copy link',
     copied: 'Link copied',
     copyFailed: 'Could not copy — select the seed and copy it by hand.',
+    /**
+     * Shown in place of the seed, and as the copy control's name, while an answer is being
+     * collected. It says *why*, because a row of dots where a value used to be otherwise reads as
+     * something broken.
+     */
+    concealed: 'Hidden while you answer — the seed regenerates the item. It comes back on the reveal.',
     explain:
       'This eight-character seed is the whole run. Anyone opening the copied link gets exactly these items, in whichever language they read — nothing is stored on a server, because the seed regenerates the items on their own machine.',
   },

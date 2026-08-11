@@ -97,12 +97,36 @@ test.describe('you can see the format before choosing it', () => {
 test.describe('the seed is a designed object', () => {
   const OPTS: DrillOptions = { seed: 'SEEDCHIP', difficulty: 2, length: 2 };
 
-  test('the running item shows the seed that reproduces it', async ({ page }) => {
+  /**
+   * The seed is the item. `(type, seed, difficulty)` regenerates it exactly, so a seed on screen
+   * during the response window is the answer on screen during the response window — cheapest of all
+   * on the memory formats, where the sequence has just been taken away on purpose and comes back out
+   * of eight characters beside the input.
+   */
+  test('the seed is not readable while the answer is being collected', async ({ page }) => {
     await page.goto(practiceUrl('matrix', OPTS));
     await waitForQuiz(page);
 
     await expect(page.getByTestId('seed-chip')).toBeVisible();
+    await expect(page.getByTestId('seed-chip')).toHaveAttribute('data-concealed', 'true');
+    // Not merely restyled: the characters are not in the page at all.
+    await expect(page.getByTestId('seed-value')).not.toContainText(OPTS.seed);
+    // Nowhere else on the page either, which is the claim that actually matters.
+    expect(await page.locator('body').innerText()).not.toContain(OPTS.seed);
+    // Nor handed over by the control that would otherwise put it on the clipboard.
+    await expect(page.getByTestId('seed-copy')).toBeDisabled();
+    // And the absence explains itself rather than reading as a fault.
+    await expect(page.getByTestId('seed-value')).toContainText(dict('en').seed.concealed);
+  });
+
+  test('the seed comes back the moment the answer is out', async ({ page }) => {
+    await page.goto(practiceUrl('matrix', OPTS));
+    await waitForQuiz(page);
+    await page.getByTestId('option-0').click();
+
+    await expect(page.getByTestId('seed-chip')).not.toHaveAttribute('data-concealed', 'true');
     await expect(page.getByTestId('seed-value')).toHaveText(OPTS.seed);
+    await expect(page.getByTestId('seed-copy')).toBeEnabled();
   });
 
   test('copying yields a link that replays the same run', async ({ page, context }) => {
@@ -112,6 +136,8 @@ test.describe('the seed is a designed object', () => {
 
     const before = await page.locator('[data-stimulus="matrix"]').innerHTML();
 
+    // Sharing is offered on the reveal, which is where a reader has any reason to reach for it.
+    await page.getByTestId('option-0').click();
     await page.getByTestId('seed-copy').click();
     await expect(page.getByTestId('seed-chip')).toHaveAttribute('data-status', 'copied');
     await expect(page.getByTestId('seed-status')).toHaveText(dict('en').seed.copied);

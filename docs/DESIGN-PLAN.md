@@ -107,6 +107,17 @@ decorative colour next to the correct/wrong channel would be read as an answer s
 - Same treatment on the practice index and as the per-format identity everywhere.
 - Promote the **seed to a designed object**: a monospace chip with a copy affordance, on both the
   item and result screens, with a one-line explanation of what sharing it does.
+
+  Shipped, then narrowed: the chip is **masked while an answer is being collected** and returns on
+  the reveal. The seed is not a label for the item, it *is* the item — `(type, seed, difficulty)`
+  regenerates it exactly, in a few lines, on any machine. On a reasoning format that is a laborious
+  way to cheat at a drill nobody is grading. On the memory formats it is not laborious: the sequence
+  the item has just deliberately taken off the screen comes back out of eight characters sitting
+  beside the input. An instrument that displays its own answer key during the interval it measures
+  is not measuring what it claims to. The mask cannot be airtight — a pinned run carries its seed in
+  the address bar — so the point is only to stop the passive leak: nobody accidentally reads what is
+  not on screen. Sharing is offered at the reveal, which is when a reader has a reason to reach for
+  it anyway.
 - Build-time OG images per format, then per seed, so a shared `?seed=` link previews the actual
   item. Pure build script emitting SVG — no runtime cost.
 

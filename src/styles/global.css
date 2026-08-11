@@ -1611,6 +1611,27 @@ kbd {
   color: var(--text);
 }
 
+/*
+ * Masked while the answer is being collected. Held at the same size and weight as the value it
+ * stands in for, so the header keeps its shape across the reveal — and drawn in the subtle ink,
+ * because a row of marks in full contrast reads as content rather than as an absence.
+ */
+.seed-chip[data-concealed] .seed-chip-value {
+  color: var(--text-subtle);
+}
+
+.seed-chip-copy:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* The disabled control keeps its tooltip, so hovering it explains itself; it just does not offer. */
+.seed-chip-copy:disabled:hover {
+  color: var(--text-muted);
+  border-color: transparent;
+  background: none;
+}
+
 .seed-chip--full .seed-chip-value {
   font-size: 1.05rem;
   padding: 0.25rem 0.55rem;

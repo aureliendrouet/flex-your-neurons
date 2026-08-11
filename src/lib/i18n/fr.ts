@@ -194,6 +194,8 @@ const fr: Dict = {
     copyShort: 'Copier le lien',
     copied: 'Lien copié',
     copyFailed: 'Copie impossible — sélectionnez la graine et copiez-la à la main.',
+    concealed:
+      'Masquée pendant la réponse — la graine régénère l’item. Elle revient à la correction.',
     explain:
       'Cette graine de huit caractères contient toute la série. Qui ouvre le lien copié obtient exactement ces items, dans la langue qu’il lit — rien n’est stocké sur un serveur, puisque la graine régénère les items sur sa propre machine.',
   },

@@ -10,6 +10,20 @@
  * knowing which page to paste it into, and the whole point is that the recipient just
  * opens it. The seed itself stays visible because it is short enough to read out loud,
  * which is the other way people share these.
+ *
+ * Except while an answer is being collected, where it is exactly as short to read out loud and
+ * that is the problem. The seed *is* the item: `(type, seed, difficulty)` regenerates it exactly,
+ * on any machine, in a few lines. On a reasoning format that is a laborious way to cheat at a
+ * drill nobody is grading; on the memory formats it is not laborious at all, because the sequence
+ * you are being asked to hold — and which has already been taken off the screen on purpose — comes
+ * straight back out of a string sitting beside the input. A measurement that displays its own
+ * answer key during the interval it measures is not measuring what it claims to.
+ *
+ * So the value is masked for the duration and returns on the reveal, where sharing a run is
+ * something a reader might actually want to do. This cannot be airtight — a pinned run carries its
+ * seed in the address bar, and the copy control would hand it over — so the mask is paired with
+ * disabling that control, and the whole thing stops the *passive* leak rather than pretending to
+ * defeat a determined reader. Nobody accidentally reads what is not on screen.
  */
 import { useCallback, useState } from 'preact/hooks';
 import { dict, type Locale } from '../lib/i18n';
@@ -20,6 +34,13 @@ interface Props {
   locale: Locale;
   /** `compact` sits in the quiz header; `full` is the results-screen treatment. */
   variant?: 'compact' | 'full';
+  /**
+   * Mask the value and disable copying, for as long as an answer is being collected.
+   *
+   * Passed rather than derived, because this component has no idea what phase anything is in — and
+   * the rule belongs to the measurement, not to the chip.
+   */
+  concealed?: boolean;
 }
 
 type Status = 'idle' | 'copied' | 'failed';
@@ -40,11 +61,17 @@ function shareLink(seed: string): string {
   return url.toString();
 }
 
-export default function SeedChip({ seed, locale, variant = 'compact' }: Props) {
+export default function SeedChip({
+  seed,
+  locale,
+  variant = 'compact',
+  concealed = false,
+}: Props) {
   const t = dict(locale).seed;
   const [status, setStatus] = useState<Status>('idle');
 
   const copy = useCallback(async () => {
+    if (concealed) return; // the button is disabled; this is the belt to that pair of braces
     try {
       // Requires a secure context. On an insecure origin — someone serving the built
       // files over plain http on a LAN — this throws, and saying so beats a button that
@@ -54,21 +81,39 @@ export default function SeedChip({ seed, locale, variant = 'compact' }: Props) {
     } catch {
       setStatus('failed');
     }
-  }, [seed]);
+  }, [seed, concealed]);
 
   return (
-    <span class={`seed-chip seed-chip--${variant}`} data-testid="seed-chip" data-status={status}>
+    <span
+      class={`seed-chip seed-chip--${variant}`}
+      data-testid="seed-chip"
+      data-status={status}
+      data-concealed={concealed ? 'true' : undefined}
+    >
       <span class="seed-chip-label subtle">{t.label}</span>
       <code class="seed-chip-value" data-testid="seed-value">
-        {seed}
+        {/*
+         * One mark per character, so the chip keeps its width and the header does not reflow on
+         * the reveal — and so nothing about the run's identity is inferable from how wide the
+         * blank is. The marks are decorative; the reason they are there is what gets announced.
+         */}
+        {concealed ? (
+          <>
+            <span aria-hidden="true">{'•'.repeat(seed.length)}</span>
+            <span class="sr-only">{t.concealed}</span>
+          </>
+        ) : (
+          seed
+        )}
       </code>
       <button
         type="button"
         class="seed-chip-copy"
         data-testid="seed-copy"
         onClick={copy}
-        title={t.copy}
-        aria-label={t.copy}
+        disabled={concealed}
+        title={concealed ? t.concealed : t.copy}
+        aria-label={concealed ? t.concealed : t.copy}
       >
         <span aria-hidden="true">⧉</span>
         {variant === 'full' && <span class="seed-chip-copy-text">{t.copyShort}</span>}

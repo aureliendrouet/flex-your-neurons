@@ -695,7 +695,18 @@ export default function Quiz({
               {t.quiz.progress(Math.min(answered + (revealed ? 0 : 1), total), total)}
             </span>
           )}
-          <SeedChip seed={session.seed} locale={locale} />
+          {/*
+            * Masked for exactly as long as `data-focus` is set, and for the same reason: while an
+            * answer is being collected, nothing on screen may make the item easier than the item.
+            * The seed regenerates it — most cheaply of all on the memory formats, where the
+            * sequence has just been deliberately taken away.
+            *
+            * Concealed on every phase except the reveal, rather than only while answering: `ready`
+            * is the moment before an item appears, and a seed read there buys the same regeneration
+            * a moment earlier. (`finished` never reaches this header — the results screen returns
+            * before it, and shows the seed in full.)
+            */}
+          <SeedChip seed={session.seed} locale={locale} concealed={!revealed} />
         </div>
       </header>
 
