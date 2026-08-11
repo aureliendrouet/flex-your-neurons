@@ -722,6 +722,8 @@ const fr: Dict = {
         `Le plateau à égaler contient ${group}, soit ${weight} unités de la forme la plus légère.`,
       ruleCount:
         'C’est le poids qui équilibre, non le nombre d’objets : un groupe comptant le bon nombre de pièces pour un total erroné ne s’équilibrera pas.',
+      ruleShapes:
+        'Ce ne sont pas non plus les formes : contenir ce que contient l’autre plateau n’équilibre que si l’on en contient autant.',
       quantity: (n: number, shape: string) => `${n} ${plural(shape, n)}`,
       join: (parts: string[]) =>
         parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} et ${parts.at(-1)}`,

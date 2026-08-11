@@ -3,7 +3,7 @@ import { generateItem } from '@/lib/generators';
 import { NODE_RADIUS } from '@/lib/generators/trail-making';
 import { BLOCKS, BLOCK_RADIUS, encodeTaps, hasStraightRun } from '@/lib/generators/block-span';
 import { diagnoseTaps, isCorrect } from '@/lib/scoring';
-import { DIFFICULTIES, type Difficulty } from '@/lib/types';
+import { DIFFICULTIES, type Difficulty, type Figure } from '@/lib/types';
 import { isUnambiguous, solveSeries } from '@/lib/solvers/series';
 import { predict, solveAttribute, type Rule } from '@/lib/rules';
 import { createRng, deriveSeed, hashSeed, normaliseSeed } from '@/lib/rng';
@@ -387,6 +387,68 @@ describe('figure weights are solvable from the premises alone', () => {
         const balancing = options.filter((o) => weigh(o) === goal);
         expect(balancing, `${where}: ${balancing.length} options balance, expected 1`).toHaveLength(1);
         expect(weigh(options[item.answerIndex]!), `${where}: keyed answer does not balance`).toBe(goal);
+      }
+    }
+  });
+
+  /**
+   * The diagnosis has to be true of the option it is attached to.
+   *
+   * `wrong-attribute` on this format claims something specific: that the reader matched the target
+   * pan's *shapes* instead of its weight. Three things have to hold for that claim to be honest, and
+   * none of them is checkable from the option alone — this is the one diagnosis here that depends on
+   * the stimulus, which is exactly why it is worth a test of its own.
+   */
+  it('only names the shape misread where following the shapes really goes wrong', () => {
+    const kinds = (group: Map<string, number>) => [...group.keys()].sort().join(',');
+
+    for (const difficulty of DIFFICULTIES) {
+      for (let i = 0; i < 120; i++) {
+        const seed = `FWD${i}`;
+        const item = generateItem('figure-weights', seed, difficulty);
+        const where = `figure-weights ${seed} d${difficulty}`;
+        if (item.stimulus.kind !== 'figure-weights') throw new Error('unexpected stimulus');
+
+        const index = item.errorTypes.indexOf('wrong-attribute');
+        if (index < 0) continue; // not every weight system admits one
+
+        const option = item.options[index]!;
+        const answer = item.options[item.answerIndex]!;
+        if (option.kind !== 'figure' || answer.kind !== 'figure') throw new Error('expected figures');
+        const target = kinds(census(item.stimulus.target));
+
+        // 1. It really does mirror the target's shapes, or there is nothing tempting about it.
+        expect(kinds(census(option.figure)), `${where}: labelled option does not mirror the target`)
+          .toBe(target);
+        // 2. And the answer does not, or the reader who followed the shapes was right after all.
+        expect(kinds(census(answer.figure)), `${where}: the answer mirrors the target too`)
+          .not.toBe(target);
+        // 3. It is not also a unit out, which would make the diagnosis a guess between two readings.
+        const premises = item.stimulus.premises.map((p) => ({
+          left: census(p.left),
+          right: census(p.right),
+        }));
+        const used = new Set<string>();
+        for (const group of [
+          census(item.stimulus.target),
+          ...item.options.map((o) => census((o as { figure: Figure }).figure)),
+          ...premises.flatMap((p) => [p.left, p.right]),
+        ]) {
+          for (const type of group.keys()) used.add(type);
+        }
+        /*
+         * Rescaled so the lightest shape weighs 1, which is the unit "off by one" is counted in.
+         * `solveWeights` anchors whichever shape it meets first, so its scale is arbitrary — fine
+         * for the equality checks above, and silently wrong here: on the first seed this caught, a
+         * gap of two units in the item's own scale read as a gap of one in the solver's.
+         */
+        const solved = solveWeights(premises, [...used])!;
+        const lightest = Math.min(...solved.values());
+        const weigh = (group: Map<string, number>) =>
+          [...group].reduce((sum, [type, n]) => sum + (solved.get(type)! / lightest) * n, 0);
+        const off = Math.abs(weigh(census(option.figure)) - weigh(census(item.stimulus.target)));
+        expect(off, `${where}: the shape misread is also a unit out, so the label is a guess`)
+          .not.toBe(1);
       }
     }
   });

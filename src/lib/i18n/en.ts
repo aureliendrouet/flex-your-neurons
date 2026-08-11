@@ -772,6 +772,9 @@ const en = {
         `The pan to match holds ${group}, which comes to ${weight} units of the lightest shape.`,
       ruleCount:
         'Weight is what balances, not the number of objects: a group with the right number of pieces and the wrong total will not balance.',
+      /** The misreading one distractor is built to embody: the target's shapes, not its weight. */
+      ruleShapes:
+        'Nor is it the shapes: holding what the other pan holds is only balanced if it holds as many of them.',
       quantity: (n: number, shape: string) => `${n} ${shape}${n === 1 ? '' : 's'}`,
       join: (parts: string[]) =>
         parts.length <= 1 ? (parts[0] ?? '') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`,

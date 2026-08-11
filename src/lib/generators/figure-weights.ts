@@ -22,10 +22,10 @@
  *   one unit, and each later one is defined as a multiple of a shape already established. A
  *   shape whose weight the premises never pin down would make the item unanswerable however
  *   well-formed it looked.
- * - **The scales must be read as weights, not as counts.** One distractor always has the
- *   same *number* of objects as the answer and a different weight, so "I matched the piece
- *   count" is diagnosed as `wrong-attribute` rather than disappearing into `plausible`. It is
- *   the single commonest way to misread a balance.
+ * - **The scales must be read as weights, and neither as counts nor as pictures.** Every option
+ *   holds the same number of objects, so counting cannot separate them at all — and one of them
+ *   holds the *target pan's own shapes* in the wrong quantity, so the other way of reading a
+ *   balance as a picture is a diagnosis (`wrong-attribute`) rather than an unexplained miss.
  */
 import { createRng, type Rng } from '../rng';
 import { dict, type Locale } from '../i18n';
@@ -267,45 +267,84 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
      * Matching all four is better than balancing them two-and-two, and not only because it is
      * simpler: with every pan holding the same number of objects, counting cannot even begin to
      * separate the options, so the only way through the item is to weigh them — which is the thing
-     * the format exists to measure. What it costs is the `wrong-attribute` label, which no longer
-     * describes anything: a reader who counted has not been misled towards one option, they have
-     * been given no option at all.
+     * the format exists to measure.
+     *
+     * That took the `wrong-attribute` label with it, and it is back below by a different route. The
+     * count was never the only wrong attribute available; it was just the obvious one. With the
+     * counts levelled, what still varies between the options is *which* shapes each pan holds — so
+     * the misread left standing is matching the target pan's shapes instead of its weight, which is
+     * "you answered about a real property of the stimulus, just not the one the question asked
+     * about" exactly as the diagnosis describes it.
+     *
+     * It has a property the counting version did not, and it is worth naming: the resemblance is to
+     * the *target*, not to the other options. A strategy that never looks at the stimulus therefore
+     * cannot see it at all — the leak that forced the count-matching out cannot come back through
+     * this door, because the thing that makes this distractor tempting is not in the option set.
      */
-    const distractors: Group[] = [];
+    const targetKinds = new Set(target.flatMap((n, i) => (n > 0 ? [i] : [])));
+    const kindsMatchTarget = (g: Group) => {
+      const kinds = new Set(g.flatMap((n, i) => (n > 0 ? [i] : [])));
+      return kinds.size === targetKinds.size && [...kinds].every((i) => targetKinds.has(i));
+    };
+
+    const distractors: { group: Group; errorType: ErrorType }[] = [];
     const taken = new Set<string>();
     const matched = sameCount.filter((g) => sizeOf(g) === answerSize);
+    const offBy = (g: Group) => Math.abs(weightOf(g, units) - goal) === 1;
+    /*
+     * One of each diagnosis at most, and the shape-identity one is required *not* to be a unit out
+     * as well. A pan that both mirrors the target's shapes and misses by one supports either
+     * reading, so labelling it either way would be a guess about the reader dressed as a finding.
+     */
+    /*
+     * And only when following the shapes actually leads somewhere wrong. On a few percent of items
+     * at the top levels the answer itself is built from the target's shapes, and there the misread
+     * is not a misread: a reader who matched shapes would land on the right pan. Labelling a
+     * distractor for it would be naming a mistake the item does not punish, which is worse than
+     * leaving the option unexplained — the review screen would be telling the reader something
+     * untrue about their own answer.
+     */
+    const answerMirrorsTarget = kindsMatchTarget(answer);
+
     for (const pool of [
-      matched.filter((g) => Math.abs(weightOf(g, units) - goal) === 1),
-      matched,
+      {
+        limit: answerMirrorsTarget ? 0 : 1,
+        type: 'wrong-attribute' as ErrorType,
+        groups: matched.filter((g) => kindsMatchTarget(g) && !offBy(g)),
+      },
+      { limit: 1, type: 'off-by-one' as ErrorType, groups: matched.filter(offBy) },
+      { limit: OPTION_COUNT - 1, type: 'plausible' as ErrorType, groups: matched },
     ]) {
-      for (const g of pool) {
-        if (distractors.length >= OPTION_COUNT - 1) break;
+      let used = 0;
+      for (const g of pool.groups) {
+        if (distractors.length >= OPTION_COUNT - 1 || used >= pool.limit) break;
         if (taken.has(groupKey(g))) continue;
         taken.add(groupKey(g));
-        distractors.push(g);
+        distractors.push({ group: g, errorType: pool.type });
+        used++;
       }
     }
     if (distractors.length < OPTION_COUNT - 1) continue;
 
-    const picks = rng.shuffle([answer, ...distractors]);
-    const answerIndex = picks.findIndex((g) => groupKey(g) === groupKey(answer));
+    const picks = rng.shuffle([{ group: answer, errorType: 'correct' as ErrorType }, ...distractors]);
+    const answerIndex = picks.findIndex((p) => groupKey(p.group) === groupKey(answer));
 
     /*
      * The independent check. Every option is weighed, and the item is thrown away unless
      * exactly one of them balances. This is what makes the format decidable rather than
      * merely carefully built — see the module comment.
      */
-    const balanced = picks.filter((g) => weightOf(g, units) === goal);
+    const balanced = picks.filter((p) => weightOf(p.group, units) === goal);
     if (balanced.length !== 1) continue;
-    if (groupKey(balanced[0]!) !== groupKey(answer)) continue;
+    if (groupKey(balanced[0]!.group) !== groupKey(answer)) continue;
 
-    const errorTypes: ErrorType[] = picks.map((g) => {
-      if (groupKey(g) === groupKey(answer)) return 'correct';
-      // Every option now holds the same number of objects, so weight is the only thing to be wrong
-      // about: one unit out is a miscount of the chain, anything further is a different reading.
-      if (Math.abs(weightOf(g, units) - goal) === 1) return 'off-by-one';
-      return 'plausible';
-    });
+    /*
+     * Read off the selection rather than re-derived from the weights, which is a change of kind and
+     * not of convenience: `wrong-attribute` now depends on the *target*, so a function of the option
+     * alone can no longer recover it. Every distractor is built to embody one misreading and carries
+     * the name of the one it embodies.
+     */
+    const errorTypes: ErrorType[] = picks.map((p) => p.errorType);
 
     const name = (i: number) => dict(locale).quiz.shapeNames[shapes[i]!];
 
@@ -323,7 +362,7 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
         target: toFigure(target, shapes),
       },
       responseMode: 'choice',
-      options: picks.map<Option>((g) => ({ kind: 'figure', figure: toFigure(g, shapes) })),
+      options: picks.map<Option>((p) => ({ kind: 'figure', figure: toFigure(p.group, shapes) })),
       answerIndex,
       errorTypes,
       explanation: {
@@ -334,6 +373,7 @@ function generate(seed: string, difficulty: Difficulty, locale: Locale): Item {
           ),
           t.ruleTarget(describe(target, shapes, locale), goal),
           t.ruleCount,
+          t.ruleShapes,
         ],
       },
       suggestedSeconds: 20 + plan.shapes * 8,
