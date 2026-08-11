@@ -12,6 +12,27 @@
  */
 import type { ChcDomain, ErrorType, ItemTypeId } from '../types';
 
+/**
+ * "1st", "2nd", "23rd" — English ordinals, including the three teens that break the rule.
+ *
+ * Here rather than at the call site because the rule is a fact about English: French writes the
+ * same dates as bare numerals with one exception, and its dictionary says so in its own terms.
+ */
+function ordinal(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
+}
+
 const en = {
   locale: {
     /** BCP 47 tag for the <html lang> attribute. */
@@ -61,6 +82,17 @@ const en = {
    * would be two different claims about one item. The hour is padded so every option string is the
    * same length — see the note in `tests/leakage.test.ts` on what the blind solver reads.
    */
+  /**
+   * Weekday names, in the order the calendar format counts them.
+   *
+   * Index 0 is Monday rather than Sunday, and that is a decision rather than a locale default: the
+   * generator counts modulo seven from whatever the anchor is, so the order only has to be *an*
+   * order both dictionaries agree on. Starting on Monday matches how both locales print a calendar.
+   */
+  calendar: {
+    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+  },
+
   clock: {
     time: (hour: number, minute: number) =>
       `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
@@ -452,7 +484,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than twenty-four lines on one axis — twenty-four colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than twenty-five lines on one axis — twenty-five colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -686,6 +718,13 @@ const en = {
       description:
         'A clock face is drawn rotated, numerals and all, and you say what time it shows. Reading a dial is completely bound to its orientation — twelve is up, three is right — so turning the face breaks the habit and leaves you to rotate it back mentally. The numerals stay on the face: without them the rotation would be unknowable and every reading would be as good as any other. Some turns are right angles, which carry every hour mark onto another one and leave the face looking like a perfectly ordinary clock — with the 12 where the 3 belongs, which is the trap. The others leave the marks visibly off-grid, so the turn announces itself.',
       seenIn: 'Brain Age 2 Clock Spin, mental-rotation paradigms, clock-drawing and clock-reading tasks',
+    },
+    'calendar-count': {
+      name: 'Counting the days',
+      blurb: 'An anchor day is given. What day is that date?',
+      description:
+        'You are given one day to work from — "in a month of 31 days, the 3rd is a Tuesday" — and you say what day another date falls on. The arithmetic is modulo seven, a base almost nothing else uses, over a structure everybody already carries: a week that repeats, a month that does not divide by it. The item states its own anchor and names no real date, so everything needed is on screen, nothing depends on today, and the seed reproduces it exactly forever. Levels add counting backwards, then crossing into the next month — where you have to know when this month ends before you can count at all.',
+      seenIn: 'Brain Age 2 Calendar Count, calendar items in aptitude and numeracy batteries',
     },
   } as Record<ItemTypeId, { name: string; blurb: string; description: string; seenIn: string }>,
 
@@ -1036,6 +1075,22 @@ const en = {
       ruleTicks:
         'Both hands sit on printed marks, so nothing here turns on reading a dial to the nearest minute. The options are five apart for the same reason: a minute either way is not a reading anybody arrives at.',
     },
+    calendarCount: {
+      prompt: 'What day of the week is that?',
+      anchorLine: (monthLength: number, date: number, day: string) =>
+        `In a month of ${monthLength} days, the ${ordinal(date)} is a ${day}.`,
+      questionLine: (date: number) => `What day is the ${ordinal(date)} of the same month?`,
+      questionLineNextMonth: (date: number) => `What day is the ${ordinal(date)} of the next month?`,
+      summary: (date: number, day: string) => `The ${ordinal(date)} is a ${day}.`,
+      ruleGap: (days: number, forwards: boolean) =>
+        `The two dates are ${days} days apart, counting ${forwards ? 'forwards' : 'backwards'} from the one you were given.`,
+      ruleCrossing: (monthLength: number, anchor: number, days: number) =>
+        `The month has ${monthLength} days, so there are ${monthLength - anchor} left in it after the ${ordinal(anchor)}, and the rest of the ${days} run into the next one. Where the next month starts is not a fact about weeks — it is a fact about how long this month is.`,
+      ruleModulus: (days: number, weeks: number, remainder: number) =>
+        `${days} days is ${weeks} whole week${weeks === 1 ? '' : 's'} and ${remainder} more. The weeks change nothing — only the ${remainder} do.`,
+      ruleDistractors:
+        'The wrong days are the three ways this count goes wrong: run the other way, out by a single day, or landing back on the day you started from, which is what treating the gap as whole weeks gives you.',
+    },
     clockSpin: {
       prompt: 'What time does this show?',
       summary: (time: string, rotation: number) => `${time}, on a face turned ${rotation}°.`,
@@ -1053,7 +1108,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Twenty-four item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Twenty-five item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -1295,7 +1350,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these twenty-four formats is evidence about these twenty-four formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these twenty-five formats is evidence about these twenty-five formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',

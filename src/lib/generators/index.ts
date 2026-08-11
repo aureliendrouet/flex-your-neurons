@@ -29,6 +29,7 @@ import { mathRecallGenerator } from './math-recall';
 import { timeLapseGenerator } from './time-lapse';
 import { clockSpinGenerator } from './clock-spin';
 import { handGameGenerator } from './hand-game';
+import { calendarCountGenerator } from './calendar-count';
 
 /**
  * Presentation order: reasoning first, then spatial, then memory, then speed, with the
@@ -60,6 +61,7 @@ export const GENERATORS: Generator[] = [
   arithmeticGenerator,
   serialSubtractionGenerator,
   timeLapseGenerator,
+  calendarCountGenerator,
 ];
 
 /**

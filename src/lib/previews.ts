@@ -95,6 +95,9 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   'time-lapse': { seed: 'PRVLAPSE', difficulty: 2 },
   // Level 3, where the rotation is large enough to be unmistakable at card size.
   'clock-spin': { seed: 'PRVSPINC', difficulty: 3 },
+  // Level 2: forwards, inside one month. The card has to fit two short lines, and the crossing
+  // variant needs a third clause that pushes the second line past what the miniature can show.
+  'calendar-count': { seed: 'PRVCALND', difficulty: 2 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */

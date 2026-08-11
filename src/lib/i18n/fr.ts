@@ -60,6 +60,10 @@ const fr: Dict = {
     Gq: 'Raisonnement quantitatif',
   },
 
+  calendar: {
+    days: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'],
+  },
+
   clock: {
     /** L’usage français écrit « 3 h 40 » ; le zéro initial garde toutes les réponses de même longueur. */
     time: (hour: number, minute: number) =>
@@ -379,7 +383,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que vingt-quatre courbes sur un même axe : vingt-quatre couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que vingt-cinq courbes sur un même axe : vingt-cinq couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -614,6 +618,13 @@ const fr: Dict = {
       description:
         'Un cadran est dessiné tourné, chiffres compris, et vous dites l’heure qu’il indique. Lire un cadran est entièrement lié à son orientation — midi en haut, trois à droite — si bien que tourner la face casse l’habitude et vous laisse la remettre d’aplomb mentalement. Les chiffres restent sur le cadran : sans eux la rotation serait indevinable et toutes les lectures se vaudraient. Certaines rotations sont des angles droits : elles amènent chaque repère d’heure sur un autre et laissent la face ressembler à une horloge parfaitement ordinaire — avec le 12 là où va le 3, et c’est tout le piège. Les autres laissent les repères visiblement décalés, si bien que la rotation s’annonce d’elle-même.',
       seenIn: 'Clock Spin de Brain Age 2, paradigmes de rotation mentale, épreuves de lecture et de dessin d’horloge',
+    },
+    'calendar-count': {
+      name: 'Compte des jours',
+      blurb: 'Un repère est donné. Quel jour tombe cette date ?',
+      description:
+        'Un jour de référence est fourni — « dans un mois de 31 jours, le 3 est un mardi » — et vous dites quel jour tombe une autre date. Le calcul se fait modulo sept, une base que presque rien d’autre n’utilise, sur une structure que tout le monde a déjà en tête : une semaine qui se répète, un mois qui ne se divise pas par elle. L’item porte son propre repère et ne nomme aucune date réelle : tout ce qu’il faut est à l’écran, rien ne dépend de la date du jour, et la graine le reproduit à l’identique pour toujours. Les niveaux ajoutent le comptage à rebours, puis le passage au mois suivant — où il faut savoir où finit le mois avant même de pouvoir compter.',
+      seenIn: 'Calendar Count de Brain Age 2, items de calendrier des batteries d’aptitude et de numératie',
     },
   },
 
@@ -966,6 +977,23 @@ const fr: Dict = {
       ruleTicks:
         'Les deux aiguilles se posent sur des repères imprimés : rien ici ne dépend d’une lecture à la minute près. Les réponses sont espacées de cinq pour la même raison — une minute d’écart n’est une lecture à laquelle personne n’aboutit.',
     },
+    calendarCount: {
+      prompt: 'Quel jour de la semaine est-ce ?',
+      anchorLine: (monthLength: number, date: number, day: string) =>
+        `Dans un mois de ${monthLength} jours, le ${date === 1 ? '1er' : date} est un ${day}.`,
+      questionLine: (date: number) => `Quel jour tombe le ${date === 1 ? '1er' : date} du même mois ?`,
+      questionLineNextMonth: (date: number) =>
+        `Quel jour tombe le ${date === 1 ? '1er' : date} du mois suivant ?`,
+      summary: (date: number, day: string) => `Le ${date === 1 ? '1er' : date} est un ${day}.`,
+      ruleGap: (days: number, forwards: boolean) =>
+        `Les deux dates sont séparées de ${days} jours, comptés ${forwards ? 'en avant' : 'à rebours'} depuis celle qui vous était donnée.`,
+      ruleCrossing: (monthLength: number, anchor: number, days: number) =>
+        `Le mois compte ${monthLength} jours : il en reste donc ${monthLength - anchor} après le ${anchor === 1 ? '1er' : anchor}, et le reste des ${days} déborde sur le suivant. Où commence le mois suivant n’est pas un fait sur les semaines, mais sur la longueur de celui-ci.`,
+      ruleModulus: (days: number, weeks: number, remainder: number) =>
+        `${days} jours, c’est ${weeks} semaine${weeks === 1 ? '' : 's'} entière${weeks === 1 ? '' : 's'} et ${remainder} de plus. Les semaines ne changent rien : seuls les ${remainder} comptent.`,
+      ruleDistractors:
+        'Les mauvais jours sont les trois façons de rater ce comptage : compté dans l’autre sens, décalé d’un seul jour, ou revenu sur le jour de départ — ce que donne le fait de traiter l’écart comme un nombre entier de semaines.',
+    },
     clockSpin: {
       prompt: 'Quelle heure ce cadran indique-t-il ?',
       summary: (time: string, rotation: number) => `${time}, sur un cadran tourné de ${rotation}°.`,
@@ -983,7 +1011,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Vingt-quatre formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Vingt-cinq formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -1212,7 +1240,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces vingt-quatre formats est une information sur ces vingt-quatre formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces vingt-cinq formats est une information sur ces vingt-cinq formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

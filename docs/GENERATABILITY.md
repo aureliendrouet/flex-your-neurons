@@ -92,7 +92,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Twenty-four generators across five CHC domains:
+Twenty-five generators across five CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -120,6 +120,7 @@ Twenty-four generators across five CHC domains:
 | `math-recall` | numbers shown one at a time, then added, 4 options | # terms; magnitude; step rate |
 | `time-lapse` | two clock faces, how many minutes between them | whether the interval crosses the hour |
 | `clock-spin` | read a clock face that has been turned | rotation; how late the minute hand sits |
+| `calendar-count` | given one day, name the day another date falls on | direction of the count; crossing into the next month |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. In

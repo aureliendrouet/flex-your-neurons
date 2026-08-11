@@ -5,6 +5,7 @@ import { BLOCKS, BLOCK_RADIUS, encodeTaps, hasStraightRun } from '@/lib/generato
 import { diagnoseTaps, isCorrect } from '@/lib/scoring';
 import { isSizeCongruent } from '@/lib/generators/high-number';
 import { elapsedMinutes } from '@/lib/generators/time-lapse';
+import { weekdayAfter } from '@/lib/generators/calendar-count';
 import { handAngles, twelveHour } from '@/lib/clock';
 import { dict } from '@/lib/i18n';
 import { DIFFICULTIES, HANDS, type Difficulty, type Figure, type Hand } from '@/lib/types';
@@ -1470,5 +1471,97 @@ describe('the hand game answers the instruction it was given', () => {
     });
     expect(seen.size, `only ${seen.size} of the six items ever appear`).toBe(6);
     expect(loseShare[4]!, `d5 ${loseShare[4]} vs d1 ${loseShare[0]}`).toBeGreaterThan(loseShare[0]!);
+  });
+});
+
+/**
+ * Calendar count: the day is decidable from the two lines on screen, and from nothing else.
+ *
+ * The check parses the English stimulus rather than reading the generator's own numbers back. That
+ * is the property that matters for this format above all others: everything needed has to be *in
+ * the item*, because an item that leaned on a real date — today's, or a year's — would be
+ * unanswerable to a reader who does not share it and irreproducible from its seed a month later.
+ * If the printed lines determine the keyed day, they are self-contained by construction.
+ */
+describe('calendar count is decidable from the lines on screen', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `CC${i}`);
+  const DAYS = dict('en').calendar.days;
+
+  it('keys the day the printed anchor and gap give', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('calendar-count', seed, difficulty);
+        if (item.stimulus.kind !== 'text') throw new Error('unexpected stimulus');
+        const where = `calendar-count ${seed} d${difficulty}`;
+        const [anchorLine, questionLine] = item.stimulus.lines;
+
+        const anchor = /month of (\d+) days, the (\d+)\w\w is a (\w+)/.exec(anchorLine ?? '');
+        const question = /the (\d+)\w\w of the (same|next) month/.exec(questionLine ?? '');
+        expect(anchor, `${where}: unreadable anchor "${anchorLine}"`).not.toBeNull();
+        expect(question, `${where}: unreadable question "${questionLine}"`).not.toBeNull();
+
+        const monthLength = Number(anchor![1]);
+        const anchorDate = Number(anchor![2]);
+        const anchorDay = DAYS.indexOf(anchor![3]!);
+        const targetDate = Number(question![1]);
+        const nextMonth = question![2] === 'next';
+
+        expect(anchorDay, `${where}: "${anchor![3]}" is not a weekday`).toBeGreaterThanOrEqual(0);
+        // Every date named has to exist in the month it is named in.
+        expect(anchorDate, `${where}: anchor outside the month`).toBeLessThanOrEqual(monthLength);
+        expect(targetDate, `${where}: target outside the month`).toBeLessThanOrEqual(31);
+        expect(targetDate, `${where}: target below the first`).toBeGreaterThanOrEqual(1);
+
+        const offset = nextMonth
+          ? monthLength - anchorDate + targetDate
+          : targetDate - anchorDate;
+        // A gap of a whole number of weeks makes the anchor's own day the answer.
+        expect(offset % 7, `${where}: the gap is a whole number of weeks`).not.toBe(0);
+
+        expect(
+          (item.options[item.answerIndex] as { text: string }).text,
+          `${where}: the keyed day is not what the lines give`,
+        ).toBe(DAYS[weekdayAfter(anchorDay, offset)]);
+      }
+    }
+  });
+
+  it('offers four distinct weekdays and names the three ways the count goes wrong', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('calendar-count', seed, difficulty);
+        const where = `calendar-count ${seed} d${difficulty}`;
+        const texts = item.options.map((o) => (o as { text: string }).text);
+
+        expect(new Set(texts).size, `${where}: a day is offered twice`).toBe(texts.length);
+        for (const text of texts) expect(DAYS, `${where}: "${text}" is not a weekday`).toContain(text);
+        expect(
+          item.errorTypes.filter((e) => e !== 'correct' && e !== 'plausible').length,
+          `${where}: no named mistake among the distractors`,
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('counts backwards and crosses the month only where the level says it may', () => {
+    const crossing = (difficulty: Difficulty) =>
+      SEEDS.filter((seed) => {
+        const item = generateItem('calendar-count', seed, difficulty);
+        if (item.stimulus.kind !== 'text') throw new Error('unexpected stimulus');
+        return item.stimulus.lines[1]!.includes('next month');
+      }).length;
+    const backwards = (difficulty: Difficulty) =>
+      SEEDS.filter((seed) => {
+        const item = generateItem('calendar-count', seed, difficulty);
+        if (item.stimulus.kind !== 'text') throw new Error('unexpected stimulus');
+        const anchor = /the (\d+)\w\w is a/.exec(item.stimulus.lines[0]!)![1];
+        const target = /the (\d+)\w\w of the same/.exec(item.stimulus.lines[1]!)?.[1];
+        return target !== undefined && Number(target) < Number(anchor);
+      }).length;
+
+    expect(crossing(1), 'd1 crosses the month').toBe(0);
+    expect(backwards(1), 'd1 counts backwards').toBe(0);
+    expect(crossing(5), 'd5 never crosses the month').toBeGreaterThan(0);
+    expect(backwards(3), 'd3 never counts backwards').toBeGreaterThan(0);
   });
 });
