@@ -18,7 +18,7 @@ It deliberately reports **no IQ score**. See [Why there is no score](#why-there-
 npm install
 npm run dev            # http://localhost:4321/flex-your-neurons/ — redirects to /flex-your-neurons/en/ or /flex-your-neurons/fr/
 
-npm test               # unit tests (generators, solvers, rng, geometry)
+npm test               # unit tests (generators, solvers, rng, geometry, the leakage harness)
 npm run build          # static output in dist/
 npm run test:e2e       # Playwright, against the built site
 npm run test:all       # everything, in the order CI runs it
@@ -33,13 +33,12 @@ Node 22.12+ is required (Astro 7).
 | `docs/IQ-TESTS.md` | Research notes: test families, CHC theory, item formats, the automatic-item-generation literature, which tests can be machine-scored at all, high-range tests and the ceiling problem, the IP boundary, and the limits of online testing |
 | `docs/GENERATABILITY.md` | Which formats can be generated *and* verified by a program, which cannot, and why |
 | `docs/LIBRARIES.md` | Every dependency, verified against the npm registry, plus what was rejected |
-| `docs/PLAN-2026-08.md` | Open work: a terms-of-use page, two chronometry defects, and the content the research now supports |
+| `docs/PLAN-2026-08.md` | A work plan this repository has since executed, with its outcome recorded at the top |
 | `src/lib/generators/` | One generator per item format |
 | `src/lib/solvers/` | Independent solvers used to prove items unambiguous |
 | `src/lib/rules.ts` | The RAVEN rule algebra (Constant, Progression, Arithmetic, Distribute-Three) |
 | `src/lib/i18n/` | Locale plumbing and the English/French dictionaries |
 | `src/lib/charts.ts` | Data shaping for the progress charts, kept separate so it is testable without a browser |
-| `docs/PLAN-2026-08.md` | The work plan this repository last executed, with its outcome recorded at the top |
 | `tests/` | Property-style unit tests, swept over hundreds of seeds |
 | `e2e/` | Playwright tests against the built static site |
 
@@ -75,12 +74,42 @@ Node 22.12+ is required (Astro 7).
 | Making change | Gq | The coins are re-totalled from the printed amounts, and minimality proved by exhaustive search |
 | Number pyramid | Gq | Every cell re-derived from the base; the blanks are compared one by one, not as one string |
 
+Five CHC domains: **Gf 7, Gv 3, Gwm 5, Gs 6, Gq 6** — and no Gc at all, which is a limit of
+generation rather than an oversight and is the reason no Full Scale figure is even approximable.
+Nine of these formats come from *Brain Age* / *Dr Kawashima's Brain Training*, several of which are
+lab tasks in game clothing; what made them worth taking is that they were built for a small screen,
+a few seconds an item, and no examiner. `docs/GENERATABILITY.md` §3 records which of the game's
+exercises could not be taken, and why.
+
+## The five ways to answer
+
+Most formats offer options and take one click. Four do not, and each is a mode rather than a special
+case, because how an answer is *collected* decides how it can be graded and explained.
+
+| `responseMode` | How it is answered | Graded on | Used by |
+|----------------|--------------------|-----------|---------|
+| `choice` | pick one option | the keyed index | 23 formats |
+| `text` | type it | exact match, whitespace-insensitive | digit span |
+| `trail` | join the targets in order | finishing without a misclick — the *time* is the measurement | trail making |
+| `tap` | tap the sequence back | the whole sequence, in order | block span |
+| `fill` | fill every blank | every blank, compared one by one | number pyramid |
+
+`trail`, `tap` and `fill` are also the three formats whose response *surface* is part of the task,
+so their boards live in the answer tray rather than in `StimulusView`: the blanks have to sit in the
+pyramid, above the numbers they are sums of.
+
+`tap` and `fill` grade all-or-nothing, and `fill` has the strongest reason to: every cell above a
+mistake inherits it, so counting the inherited cells separately would count one mistake several
+times. Both also *compute* their diagnosis from the response rather than keying it to a distractor,
+which is the only way a format with no distractors can say more than "wrong" — a pyramid built by
+subtracting throughout is one wrong idea, not five careless slips.
+
 ## The three modes
 
 | Mode | Ends when | Scored on | Difficulty |
 |------|-----------|-----------|------------|
 | Practice | a set number of items | accuracy, with an explanation after each answer | adapts as you go |
-| Full test | every format has been seen twice | accuracy by format, no feedback until the end | adapts as you go |
+| Full test | every format has been seen once | accuracy by format, no feedback until the end | adapts as you go |
 | Sprint | the clock runs out | correct answers per minute | pinned for the whole block |
 
 A sprint is the continuous timed block: one format, a fixed window, items back to back with no
@@ -114,6 +143,19 @@ Three guards, described in full in [`docs/GENERATABILITY.md`](docs/GENERATABILIT
    A test plays that exact shortcut and asserts it scores at chance.
 3. **Wrong answers must be wrong for a nameable reason** (rule applied down the columns,
    off by one step, a cell copied), so the explanation can diagnose the mistake.
+
+Guard 2 is enforced centrally rather than per format, by a stimulus-blind solver that tries ~50
+strategies over the option set and is held to a baseline measured on invented answers — because a
+hand-written leakage guard only ever tests the attack its author had in mind. When that harness was
+first run, twelve of the fifteen multiple-choice formats were leaking, several at four to five times
+chance. The allowance table is empty; four of the nine newest formats leaked on the first attempt and
+each repair is recorded, with its numbers, in `docs/GENERATABILITY.md` §4.
+
+The four formats that collect an answer instead of offering one — digit span, block span, the trail,
+the pyramid — have no option set for Guard 2 to examine; the structural invariants still apply. Guard
+3 is where they pay for it instead: a tapped sequence and a filled pyramid compute their diagnosis
+from the response, and a typed span and a trail record none at all rather than filing every mistake
+under "plausible", because an absence is not a finding.
 
 ## Why there is no score
 
@@ -185,8 +227,14 @@ discrimination. Size levels follow a geometric ramp with a per-layout floor, so 
 ever drawn too small to judge. The densest layout drops the size rule entirely rather than
 asking readers to compare shapes a few pixels apart.
 
+Verdicts do not depend on hue either: a blank you filled in wrong is struck through and outlined as
+well as recoloured, and the right number appears beside it — so the review reads on a monochrome
+screen and for a reader who cannot separate the two.
+
 Everything is operable from the keyboard, every option carries a text label, and both
-themes are covered by tests.
+themes are covered by tests. The boards that collect an answer are part of that: each pyramid cell
+carries a screen-reader label saying which blank it is and how many there are, since "an input" in a
+diagram is otherwise unlocatable by ear.
 
 ## Data
 

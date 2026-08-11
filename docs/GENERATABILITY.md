@@ -64,6 +64,24 @@ Legend: ✅ pass · ⚠️ passes with engineering · ❌ fails
 | 26 | **Reading comprehension** | Grw | ❌ | ❌ | ❌ | **REJECT** |
 | 27 | **Auditory / phonetic processing** | Ga | ⚠️ | ✅ | ✅ | **REJECT** — scope |
 | 28 | **Block design** (physical manipulation) | Gv | ✅ | ✅ | ✅ | **REJECT** — needs physical blocks |
+| 29 | **Size-congruity comparison** (which is worth more) | Gs | ✅ | ✅ | ⚠️ | **SHIP** |
+| 30 | **Rock–paper–scissors** (play the winner or the loser) | Gs | ✅ | ✅ | ✅ | **SHIP** |
+| 31 | **Serial subtraction** (counting down) | Gq | ✅ | ✅ | ⚠️ | **SHIP** |
+| 32 | **Sum of a presented stream** (add what you saw) | Gwm | ✅ | ✅ | ⚠️ | **SHIP** |
+| 33 | **Elapsed time between two clock faces** | Gq | ✅ | ✅ | ⚠️ | **SHIP** |
+| 34 | **Reading a rotated clock face** | Gv | ✅ | ✅ | ⚠️ | **SHIP** |
+| 35 | **Weekday arithmetic** (counting the days) | Gq | ✅ | ✅ | ⚠️ | **SHIP** |
+| 36 | **Minimal change-making** | Gq | ✅ | ✅ | ⚠️ | **SHIP** — minimality decidable by search |
+| 37 | **Number pyramid** (fill the sums) | Gq | ✅ | ✅ | ✅ | **SHIP** — open response, no options |
+
+Rows 29–37 are the batch drawn from *Brain Age* / *Dr Kawashima's Brain Training* (see the note in
+§3). Their ⚠️s are all the same ⚠️ and all in **U**, never in G or V: a numeric answer with a small
+neighbourhood invites distractors built by perturbing it, which is the RAVEN flaw in arithmetic
+clothing. Four of the nine leaked on the first attempt and were measured, not argued, back into
+range — §4 names each one. Row 29 is the exception worth reading: the source task compares two
+numerals of *different digit counts*, which makes the answer the longer string and so leaks by
+construction rather than by accident. It ships redesigned — both numerals always share a digit
+count — because the size–value conflict is the construct and the digit count is not.
 
 ### Why the Gc items are rejected
 
@@ -124,6 +142,27 @@ Twenty-seven generators across five CHC domains:
 | `change-maker` | pick the fewest coins that make the change | coins in the answer; whether the amount reaches the 1s and 2s |
 | `triangle-math` | fill a pyramid where each cell sums the two below | width of the given row (three or six blanks); magnitude |
 
+> **On the batch drawn from *Brain Age*.** Nine formats — rows 29–37 — come from Nintendo's *Brain
+> Age* / *Dr Kawashima's Brain Training*, and the reason to mine a game rather than a battery is that
+> its exercises were built for exactly the constraints this site has: a small screen, a few seconds
+> per item, no examiner, and machine scoring. Several are lab tasks in game clothing and can be
+> traced back through the literature (the size-congruity effect, a go/no-go conflict task, serial
+> subtraction from the MMSE, a supra-span sum).
+>
+> The selection criterion was **not** "is it a good game". It was the one this document already
+> applies: a rule the generator can state, an answer it derives rather than looks up, and a
+> defensible unique answer. Two of the game's staples fail it and are absent — reading
+> aloud, which needs a human listener, and the syllable-counting drills, which are facts about a
+> language and so fail V for the same reason §2 rejects the Gc items.
+>
+> One thing the batch changed about the site rather than adding to it: it moved Gq from a single
+> format to six, which was the largest hole in the domain coverage. That was a reason to prefer these
+> nine over further Gf formats, not a lucky by-product.
+>
+> Where a source exercise conflicts with a guard, the guard wins and the format ships altered: row 29
+> is redesigned, and `hand-game` is exempted from the variety property instead of being widened (see
+> the conflict-format note below).
+
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. In
 > practice and test mode this site enforces no limit on any item and records response latency
@@ -177,7 +216,7 @@ Twenty-seven generators across five CHC domains:
 > so nothing about it is a compression of a longer block — which is why it could ship ahead of the
 > block mode rather than waiting on it.
 
-> **On the fourth response mode.** `fill` ships with `triangle-math`, and it is the first format
+> **On the fifth response mode.** `fill` ships with `triangle-math`, and it is the first format
 > whose item genuinely has more than one answer. Two alternatives were available and both were
 > worse. One item per cell would create items whose answers are *not independent* — a cell you got
 > wrong is added into the two above it — and then pool them into per-format accuracy as though they
@@ -355,6 +394,29 @@ interface Item {
 }
 ```
 
+### The five response modes
+
+`Item` carries a `responseMode`, and the five values are not interchangeable ways of typing the same
+answer — each one exists because a *grading* rule and a *diagnosis* rule follow from how the answer
+was collected. Each has a note of its own further down; this is the summary.
+
+| Mode | Answer | Correct means | Diagnosis | Formats |
+|------|--------|---------------|-----------|---------|
+| `choice` | an index into `options` | the index is the keyed one | **keyed** — the chosen distractor carries its own error type | 23 |
+| `text` | `chosenText`, exact-matched | the string matches, whitespace-insensitively | **none** — a wrong string has nothing to attribute it to, and an absence is not a `plausible` | `span` |
+| `trail` | a path over the targets | the run finished without a misclick | none; misclicks are counted and the *time* is the measurement | `trail-making` |
+| `tap` | a sequence, in `chosenText` | the whole sequence matches, in order | **computed** from the response | `block-span` |
+| `fill` | every blank, in `chosenText` | every blank matches, compared one by one | computed, and able to name a wrong *idea* | `triangle-math` |
+
+Two consequences are load-bearing. **A mode without distractors has no Guard 2 to satisfy** — the
+answer cannot leak from an option set that does not exist — which is why four of the five formats
+`tests/leakage.test.ts` does not sweep are exactly the four non-`choice` modes. (The fifth is
+`odd-one-out`, where the options *are* the stimulus, so a stimulus-blind solver has done the item
+rather than bypassed it; the test says so at length.) And **`tap` and `fill` compute their diagnosis
+rather than keying it**, which is the only way a format with no distractors can say more than
+"wrong" — while `text` and `trail` record no diagnosis at all, and `tallyErrorTypes` drops them
+instead of bucketing them as `plausible`, since an absence is not a finding.
+
 `locale` is passed in but **must never be read before or between RNG draws**. It selects the
 words, never the item: the same seed produces the same figures, the same option order and the
 same `answerIndex` in every language, so a shared seed is the same test for an English and a
@@ -445,6 +507,27 @@ wrong value also has, on every attribute that varies. A set that cannot be arran
 discarded rather than shown. **The allowance table is now empty, and the useful discipline is that an
 allowance is a debt with a number on it rather than a permanent exemption.**
 
+### The four leaks in the arithmetic batch, and the one repair they share
+
+Every format in rows 29–37 was run through the harness before it shipped, and four of them failed.
+They are worth recording together, because the four failures look unrelated and are not: in each one
+**the answer was the sole member of a class the blind solver could see**, and in each one the repair
+was to give some wrong value the same class size.
+
+| Format | Measured | Baseline | What the blind solver found | Repair |
+|--------|----------|----------|------------------------------|--------|
+| `time-lapse` | 36.2% | 28.0% | "smallest of the set", at level 1 | A ten-minute answer could not offer three shorter intervals — five minutes is the floor — so it sat at a restricted rank. The answer now starts at four ticks, which is three steps of headroom. |
+| `calendar-count` | 35.4% | 26.2% | "second largest" | Offering *both* ±1 weekdays put the answer in the middle of a run of three. One neighbour now, on a drawn side, and the filler is a uniformly drawn unused weekday. |
+| `change-maker` | 39.6% | 26.0% | attribute-wise mode | Three handfuls each perturbing the answer left the answer as the mode of its own perturbations. Rebuilt as two *pairs*. |
+| `change-maker` | 33.3% | 26.0% | nearest to the centroid | The residual, after the pairs: a swap touching the largest coin changed the option string's first character, re-singling the answer out. No swap touches the leading coin, and every option shares it. |
+
+`high-number` never reached the harness with the flaw it would have failed on, because the flaw was
+visible in the design: see row 29.
+
+The general shape is the one I-RAVEN named, and it does not care whether the attributes are figural
+or numeric. **Class-size balance** is the invariant — the answer must not be the unique member of any
+class the option set exposes — and satellites orbiting an answer are the reliable way to violate it.
+
 ---
 
 ## 5. Consequences for the product
@@ -498,8 +581,11 @@ responses instead of multiple choice — see `IQ-TESTS.md` §3.9. Two of those p
 genuinely attractive here:
 
 - **Open response removes guessing entirely**, which makes Guard 2 (distractor leakage)
-  unnecessary rather than merely satisfied. The site already does this where the answer space is
-  a canonical string: digit/letter span is free-text, exact-match scored.
+  unnecessary rather than merely satisfied. The site already does this wherever the answer space is
+  canonically representable: digit span is free-text and exact-match scored, block span is a tapped
+  sequence, and the number pyramid is several numbers written into a diagram. Those three and the
+  trail are the formats Guard 2 has nothing to say about, which is a property of the response mode
+  and not a concession — see §3.
 - **Compound rules** (several simultaneous transformations, boolean shape algebra) are exactly
   what the difficulty-5 band is already reaching for.
 
