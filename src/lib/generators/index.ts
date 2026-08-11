@@ -30,6 +30,7 @@ import { timeLapseGenerator } from './time-lapse';
 import { clockSpinGenerator } from './clock-spin';
 import { handGameGenerator } from './hand-game';
 import { calendarCountGenerator } from './calendar-count';
+import { changeMakerGenerator } from './change-maker';
 
 /**
  * Presentation order: reasoning first, then spatial, then memory, then speed, with the
@@ -62,6 +63,7 @@ export const GENERATORS: Generator[] = [
   serialSubtractionGenerator,
   timeLapseGenerator,
   calendarCountGenerator,
+  changeMakerGenerator,
 ];
 
 /**

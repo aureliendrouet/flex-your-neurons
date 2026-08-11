@@ -43,7 +43,7 @@ Node 22.12+ is required (Astro 7).
 | `tests/` | Property-style unit tests, swept over hundreds of seeds |
 | `e2e/` | Playwright tests against the built static site |
 
-## The twenty-five formats
+## The twenty-six formats
 
 | Format | CHC | Verification |
 |--------|-----|--------------|
@@ -72,6 +72,7 @@ Node 22.12+ is required (Astro 7).
 | Counting down | Gq | The printed chain is re-walked; two options share the answer's units digit |
 | Time passed | Gq | The interval is re-derived from the two faces, in minutes past midday |
 | Counting the days | Gq | The day is re-derived by parsing the printed lines; the item names no real date |
+| Making change | Gq | The coins are re-totalled from the printed amounts, and minimality proved by exhaustive search |
 
 ## The three modes
 

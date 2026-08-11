@@ -6,6 +6,7 @@ import { diagnoseTaps, isCorrect } from '@/lib/scoring';
 import { isSizeCongruent } from '@/lib/generators/high-number';
 import { elapsedMinutes } from '@/lib/generators/time-lapse';
 import { weekdayAfter } from '@/lib/generators/calendar-count';
+import { DENOMINATIONS, totalOf } from '@/lib/generators/change-maker';
 import { handAngles, twelveHour } from '@/lib/clock';
 import { dict } from '@/lib/i18n';
 import { DIFFICULTIES, HANDS, type Difficulty, type Figure, type Hand } from '@/lib/types';
@@ -1563,5 +1564,95 @@ describe('calendar count is decidable from the lines on screen', () => {
     expect(backwards(1), 'd1 counts backwards').toBe(0);
     expect(crossing(5), 'd5 never crosses the month').toBeGreaterThan(0);
     expect(backwards(3), 'd3 never counts backwards').toBeGreaterThan(0);
+  });
+});
+
+/**
+ * Change maker: the coins named add up to the change the printed lines imply, and no shorter
+ * handful would do.
+ *
+ * Both halves are re-derived from the item rather than from the generator. The amounts are parsed
+ * back out of the English lines, so an item that printed a price it did not use would fail here; and
+ * minimality is checked against an independent search rather than against the greedy run the
+ * generator used, because "fewest coins" is the claim the format makes and greedy is only *usually*
+ * the way to satisfy it — for these denominations it always is, and this is what says so.
+ */
+describe('change maker names the fewest coins that make the change', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `CM${i}`);
+
+  /** "£3.45" / "45p" back to pence. */
+  function parseMoney(text: string): number {
+    const pence = /^(\d+)p$/.exec(text);
+    if (pence) return Number(pence[1]);
+    const pounds = /^£(\d+)(?:\.(\d\d))?$/.exec(text);
+    if (!pounds) throw new Error(`unparseable amount: ${text}`);
+    return Number(pounds[1]) * 100 + Number(pounds[2] ?? 0);
+  }
+
+  const parseCoins = (text: string): number[] => text.split(' + ').map(parseMoney);
+
+  /** The true minimum coin count, by exhaustive search over the denominations. */
+  function fewestCoins(amount: number): number {
+    const best = new Array<number>(amount + 1).fill(Infinity);
+    best[0] = 0;
+    for (let value = 1; value <= amount; value++) {
+      for (const coin of DENOMINATIONS) {
+        if (coin <= value) best[value] = Math.min(best[value]!, best[value - coin]! + 1);
+      }
+    }
+    return best[amount]!;
+  }
+
+  it('keys a handful that totals the change and uses as few coins as possible', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('change-maker', seed, difficulty);
+        if (item.stimulus.kind !== 'text') throw new Error('unexpected stimulus');
+        const where = `change-maker ${seed} d${difficulty}`;
+
+        const price = parseMoney(/comes to (.+)\./.exec(item.stimulus.lines[0]!)![1]!);
+        const tendered = parseMoney(/hand over (.+)\./.exec(item.stimulus.lines[1]!)![1]!);
+        expect(tendered, `${where}: nothing to make change from`).toBeGreaterThan(price);
+
+        const change = tendered - price;
+        const answer = parseCoins((item.options[item.answerIndex] as { text: string }).text);
+        expect(totalOf(answer), `${where}: the keyed coins do not make the change`).toBe(change);
+        expect(answer.length, `${where}: a shorter handful exists`).toBe(fewestCoins(change));
+        // Largest first, so two identical handfuls can never be written two ways.
+        expect(answer, `${where}: coins out of order`).toEqual([...answer].sort((a, b) => b - a));
+      }
+    }
+  });
+
+  /**
+   * The count must say nothing. If the right answer were the shortest list, the item would be
+   * answerable without adding anything up — and it would still pass every other test here.
+   */
+  it('gives every option the same number of coins, and no other option the right total', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('change-maker', seed, difficulty);
+        const where = `change-maker ${seed} d${difficulty}`;
+        const handfuls = item.options.map((o) => parseCoins((o as { text: string }).text));
+        const answerTotal = totalOf(handfuls[item.answerIndex]!);
+
+        expect(new Set(handfuls.map((h) => h.length)).size, `${where}: uneven coin counts`).toBe(1);
+        for (const [i, handful] of handfuls.entries()) {
+          if (i === item.answerIndex) continue;
+          expect(totalOf(handful), `${where}: a distractor also makes the change`).not.toBe(answerTotal);
+        }
+        // Every option starts with the same coin, so the leading denomination identifies nothing.
+        expect(new Set(handfuls.map((h) => h[0])).size, `${where}: uneven leading coins`).toBe(1);
+      }
+    }
+  });
+
+  it('asks for more coins as difficulty rises', () => {
+    const mean = (difficulty: Difficulty) =>
+      SEEDS.reduce((sum, seed) => {
+        const item = generateItem('change-maker', seed, difficulty);
+        return sum + (item.options[item.answerIndex] as { text: string }).text.split(' + ').length;
+      }, 0) / SEEDS.length;
+    expect(mean(5), `d5 ${mean(5)} coins vs d1 ${mean(1)}`).toBeGreaterThan(mean(1));
   });
 });

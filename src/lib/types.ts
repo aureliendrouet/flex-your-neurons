@@ -37,7 +37,8 @@ export type ItemTypeId =
   | 'time-lapse'
   | 'clock-spin'
   | 'hand-game'
-  | 'calendar-count';
+  | 'calendar-count'
+  | 'change-maker';
 
 /**
  * CHC broad ability. See docs/IQ-TESTS.md §2.

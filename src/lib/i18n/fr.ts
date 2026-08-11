@@ -60,6 +60,22 @@ const fr: Dict = {
     Gq: 'Raisonnement quantitatif',
   },
 
+  /**
+   * Les espaces avant le symbole sont insécables : sans cela, une poignée de pièces se coupe entre
+   * le nombre et son unité en fin de ligne, et « 1 » se retrouve seul au-dessus de « c ».
+   */
+  money: {
+    amount: (units: number) =>
+      units % 100 === 0
+        ? `${units / 100}\u00a0€`
+        : units < 100
+          ? `${units}\u00a0c`
+          : `${(units / 100).toFixed(2).replace('.', ',')}\u00a0€`,
+    coin: (units: number) => (units >= 100 ? `${units / 100}\u00a0€` : `${units}\u00a0c`),
+    coins: (units: number[]) =>
+      units.map((c) => (c >= 100 ? `${c / 100}\u00a0€` : `${c}\u00a0c`)).join(' + '),
+  },
+
   calendar: {
     days: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'],
   },
@@ -383,7 +399,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que vingt-cinq courbes sur un même axe : vingt-cinq couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que vingt-six courbes sur un même axe : vingt-six couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -618,6 +634,13 @@ const fr: Dict = {
       description:
         'Un cadran est dessiné tourné, chiffres compris, et vous dites l’heure qu’il indique. Lire un cadran est entièrement lié à son orientation — midi en haut, trois à droite — si bien que tourner la face casse l’habitude et vous laisse la remettre d’aplomb mentalement. Les chiffres restent sur le cadran : sans eux la rotation serait indevinable et toutes les lectures se vaudraient. Certaines rotations sont des angles droits : elles amènent chaque repère d’heure sur un autre et laissent la face ressembler à une horloge parfaitement ordinaire — avec le 12 là où va le 3, et c’est tout le piège. Les autres laissent les repères visiblement décalés, si bien que la rotation s’annonce d’elle-même.',
       seenIn: 'Clock Spin de Brain Age 2, paradigmes de rotation mentale, épreuves de lecture et de dessin d’horloge',
+    },
+    'change-maker': {
+      name: 'Rendre la monnaie',
+      blurb: 'Quelles pièces font la monnaie ?',
+      description:
+        'Un prix, une somme donnée, et quatre poignées de pièces : choisissez celle qui fait la monnaie. La soustraction est la partie facile et n’est pas ce qui est mesuré ici ; l’intéressant est la décomposition — trouver le plus petit nombre de pièces qui fait une somme, c’est-à-dire l’algorithme glouton que tout le monde exécute à la caisse sans l’avoir jamais appris. Toutes les réponses proposées comptent le même nombre de pièces que la bonne : les compter n’apprend donc rien, et il faut faire les totaux. L’euro et la livre ont la même structure de coupures, si bien qu’une graine donne le même item dans les deux langues, aux symboles près.',
+      seenIn: 'Change Maker de Brain Age 2, items de monnaie des batteries de numératie et de compétences de base',
     },
     'calendar-count': {
       name: 'Compte des jours',
@@ -977,6 +1000,18 @@ const fr: Dict = {
       ruleTicks:
         'Les deux aiguilles se posent sur des repères imprimés : rien ici ne dépend d’une lecture à la minute près. Les réponses sont espacées de cinq pour la même raison — une minute d’écart n’est une lecture à laquelle personne n’aboutit.',
     },
+    changeMaker: {
+      prompt: 'Quelles pièces font la monnaie ?',
+      priceLine: (price: string) => `L’addition est de ${price}.`,
+      tenderedLine: (tendered: string) => `Vous donnez ${tendered}.`,
+      summary: (change: string, coins: string) => `La monnaie est de ${change} : ${coins}.`,
+      ruleSubtract: (tendered: string, price: string, change: string) =>
+        `${tendered} moins ${price} laisse ${change}. Cette partie-là est de l’arithmétique ; ce qui suit est le format.`,
+      ruleGreedy: (coins: string) =>
+        `Prenez la plus grosse pièce qui tient encore, puis recommencez : ${coins}. Procéder ainsi à chaque étape donne le plus petit nombre de pièces — ce qui est vrai de ces coupures, mais ne l’est pas de toutes les monnaies jamais frappées.`,
+      ruleSameCount: (count: number) =>
+        `Chaque réponse compte ${count} pièces, délibérément. Si la bonne était la liste la plus courte, on pourrait la désigner sans rien additionner.`,
+    },
     calendarCount: {
       prompt: 'Quel jour de la semaine est-ce ?',
       anchorLine: (monthLength: number, date: number, day: string) =>
@@ -1011,7 +1046,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Vingt-cinq formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Vingt-six formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -1240,7 +1275,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces vingt-cinq formats est une information sur ces vingt-cinq formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces vingt-six formats est une information sur ces vingt-six formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

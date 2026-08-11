@@ -89,6 +89,23 @@ const en = {
    * generator counts modulo seven from whatever the anchor is, so the order only has to be *an*
    * order both dictionaries agree on. Starting on Monday matches how both locales print a calendar.
    */
+/**
+   * Money, in the smallest unit throughout.
+   *
+   * Amounts are held as integers — pence, cents — and only ever formatted here, because a decimal
+   * that exists anywhere in the generator is a rounding error waiting for a seed. The euro and the
+   * pound share a denomination structure (1, 2, 5, 10, 20, 50, 100, 200), so the same item decomposes
+   * identically in both languages and only the symbols move.
+   */
+  money: {
+    amount: (units: number) =>
+      units % 100 === 0 ? `£${units / 100}` : units < 100 ? `${units}p` : `£${(units / 100).toFixed(2)}`,
+    coin: (units: number) => (units >= 100 ? `£${units / 100}` : `${units}p`),
+    /** A handful, largest first: "£1 + 20p + 5p". */
+    coins: (units: number[]) =>
+      units.map((c) => (c >= 100 ? `£${c / 100}` : `${c}p`)).join(' + '),
+  },
+
   calendar: {
     days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
   },
@@ -484,7 +501,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than twenty-five lines on one axis — twenty-five colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than twenty-six lines on one axis — twenty-six colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -718,6 +735,13 @@ const en = {
       description:
         'A clock face is drawn rotated, numerals and all, and you say what time it shows. Reading a dial is completely bound to its orientation — twelve is up, three is right — so turning the face breaks the habit and leaves you to rotate it back mentally. The numerals stay on the face: without them the rotation would be unknowable and every reading would be as good as any other. Some turns are right angles, which carry every hour mark onto another one and leave the face looking like a perfectly ordinary clock — with the 12 where the 3 belongs, which is the trap. The others leave the marks visibly off-grid, so the turn announces itself.',
       seenIn: 'Brain Age 2 Clock Spin, mental-rotation paradigms, clock-drawing and clock-reading tasks',
+    },
+    'change-maker': {
+      name: 'Making change',
+      blurb: 'Which coins add up to the change?',
+      description:
+        'A price, an amount handed over, and four handfuls of coins — pick the one that makes the change. The subtraction is the easy half and is not what this measures: the interesting part is the decomposition, finding the fewest coins that make an amount, which is the greedy run everybody performs at a till without having been taught it. Every option holds the same number of coins as the answer, so counting them tells you nothing and the totals have to be worked out. The euro and the pound share a denomination structure, so a seed gives the same item in both languages with only the symbols changed.',
+      seenIn: 'Brain Age 2 Change Maker, money items in numeracy and functional-skills batteries',
     },
     'calendar-count': {
       name: 'Counting the days',
@@ -1075,6 +1099,18 @@ const en = {
       ruleTicks:
         'Both hands sit on printed marks, so nothing here turns on reading a dial to the nearest minute. The options are five apart for the same reason: a minute either way is not a reading anybody arrives at.',
     },
+    changeMaker: {
+      prompt: 'Which coins make the change?',
+      priceLine: (price: string) => `The bill comes to ${price}.`,
+      tenderedLine: (tendered: string) => `You hand over ${tendered}.`,
+      summary: (change: string, coins: string) => `The change is ${change}: ${coins}.`,
+      ruleSubtract: (tendered: string, price: string, change: string) =>
+        `${tendered} less ${price} leaves ${change}. That part is arithmetic; what follows is the format.`,
+      ruleGreedy: (coins: string) =>
+        `Take the largest coin that still fits, then repeat: ${coins}. Doing that at every step gives the fewest coins — which is true of these denominations, but is not true of every currency ever minted.`,
+      ruleSameCount: (count: number) =>
+        `Every option holds ${count} coins, deliberately. If the right answer were the shortest list, you could pick it without adding anything up.`,
+    },
     calendarCount: {
       prompt: 'What day of the week is that?',
       anchorLine: (monthLength: number, date: number, day: string) =>
@@ -1108,7 +1144,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Twenty-five item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Twenty-six item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -1350,7 +1386,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these twenty-five formats is evidence about these twenty-five formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these twenty-six formats is evidence about these twenty-six formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',
