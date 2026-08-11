@@ -104,18 +104,25 @@ export function windowOptions(
   total: number,
   diagnose: (value: number) => ErrorType,
   floor = -Infinity,
+  /**
+   * The spacing of the run. One for a count, where the neighbouring value is the neighbouring
+   * answer; five for a clock, where it is not — a minute hand sits on a tick, so the option one
+   * *minute* away is not a reading anybody arrives at, and offering it would mark the run as
+   * decoration around a single credible value.
+   */
+  step = 1,
 ): OptionSet | null {
   const need = total - 1;
   const ranks: number[] = [];
   for (let r = 0; r <= need; r++) {
-    if (answer - r >= floor) ranks.push(r);
+    if (answer - r * step >= floor) ranks.push(r);
   }
   if (ranks.length === 0) return null;
 
   const rank = rng.pick(ranks);
-  const start = answer - rank;
+  const start = answer - rank * step;
   const values: number[] = [];
-  for (let i = 0; i < total; i++) values.push(start + i);
+  for (let i = 0; i < total; i++) values.push(start + i * step);
 
   const errors = new Map<number, ErrorType>([[answer, 'correct']]);
   for (const v of values) {
@@ -123,6 +130,66 @@ export function windowOptions(
     errors.set(v, diagnose(v));
   }
   return { values: [answer, ...values.filter((v) => v !== answer)], errors };
+}
+
+/**
+ * Four values arranged as a rectangle: `{v, v+d, v+j, v+j+d}` for a large step `d` and a small one
+ * `j`, each drawn with either sign.
+ *
+ * The construction is what makes the set uninformative. Every value has exactly one partner `d`
+ * away and exactly one `j` away, so no option is distinguished by its neighbours, its rank, or its
+ * distance from the others' mean — the three things the blind solver in `tests/leakage.test.ts`
+ * actually looks at. What decides where the answer sorts is the pair of signs, and those are drawn
+ * by *rank* rather than by picking a rectangle, because the constraints below are not symmetric: a
+ * small answer loses its downward steps and would otherwise sit at the bottom of the set far too
+ * often. Which of the two steps is the larger does not matter: whichever it is, the four sign
+ * combinations map one-to-one onto the four ranks, so drawing a combination uniformly draws a rank
+ * uniformly.
+ *
+ * Both steps are the caller's diagnostic slips — a dropped carry, one subtraction too many — so the
+ * set names a real mistake on both axes while it closes the shortcut.
+ *
+ * `arithmetic.ts` grew this same construction inline before it was worth sharing, and is
+ * deliberately left as it is: rewriting it in terms of this helper would change what every
+ * `(seed, difficulty)` produces there, which costs an `ITEM_VERSION` bump and buys nothing.
+ */
+export function rectangleOptions(
+  rng: Rng,
+  answer: number,
+  /** Candidates for one axis of the rectangle, unsigned. Both signs of each are tried. */
+  steps: number[],
+  /** Candidates for the other axis, unsigned. Both signs of each are tried. */
+  offsets: number[],
+  diagnose: (value: number, offsets: { d: number; j: number }) => ErrorType,
+  /** How far from the answer an option may sit before it can be dismissed on sight. */
+  band: number,
+  floor = 0,
+): OptionSet | null {
+  const byRank = new Map<number, { d: number; j: number }[]>();
+  for (const magnitude of steps) {
+    for (const d of [magnitude, -magnitude]) {
+      for (const small of offsets) {
+        for (const j of [small, -small]) {
+          const others = [answer + d, answer + j, answer + j + d];
+          if (others.some((v) => v < floor)) continue;
+          if (others.some((v) => Math.abs(v - answer) > band)) continue;
+          if (new Set([answer, ...others]).size !== 4) continue;
+          const rank = (d < 0 ? 2 : 0) + (j < 0 ? 1 : 0);
+          const bucket = byRank.get(rank);
+          if (bucket) bucket.push({ d, j });
+          else byRank.set(rank, [{ d, j }]);
+        }
+      }
+    }
+  }
+  // Every rank must be reachable, or the drawn rank is not uniform over the set the reader sees.
+  if (byRank.size !== 4) return null;
+
+  const { d, j } = rng.pick(byRank.get(rng.int(0, 3))!);
+  const values = [answer, answer + d, answer + j, answer + j + d];
+  const errors = new Map<number, ErrorType>([[answer, 'correct']]);
+  for (const value of values.slice(1)) errors.set(value, diagnose(value, { d, j }));
+  return { values, errors };
 }
 
 /** Filler near-misses at ±1, ±2, … — used when the keyed mistakes cannot fill a side. */

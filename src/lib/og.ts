@@ -28,7 +28,9 @@ import {
   type PatternName,
 } from './geometry';
 import { TYPE_CHROMA, TYPE_LIGHTNESS } from './identity';
-import type { CellGrid, Figure, Item, Shape } from './types';
+import { handAngles, pointAt, tickAngles } from './clock';
+import { HAND_DRAWINGS } from './hands';
+import type { CellGrid, ClockFace, Figure, Hand, Item, Shape } from './types';
 
 export const OG_WIDTH = 1200;
 export const OG_HEIGHT = 630;
@@ -165,6 +167,57 @@ export function gridTile(
 
   // `meet` keeps the aspect ratio: a 2x4 sheet must not be squared up into a 4x4 one.
   return `<svg x="${x}" y="${y}" width="${box}" height="${box}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" data-grid="" data-rows="${grid.rows}" data-cols="${grid.cols}">${parts.join('')}</svg>`;
+}
+
+/**
+ * One clock face, in its own nested viewport.
+ *
+ * The geometry comes from `lib/clock.ts`, which is also what `ClockFaceView` draws from — so this is
+ * a second serialiser over one set of maths rather than a second clock. Only the quarters are
+ * numbered, as on the page, and for the same reason.
+ */
+export function clockTile(face: ClockFace, x: number, y: number, box: number): string {
+  const angles = handAngles(face);
+  const R = 46;
+  const C = 50;
+  const hour = pointAt(C, C, angles.hour, R * 0.52);
+  const minute = pointAt(C, C, angles.minute, R * 0.78);
+
+  const ticks = tickAngles(face.rotation)
+    .map((angle, i) => {
+      const quarter = i % 3 === 0;
+      const from = pointAt(C, C, angle, R - (quarter ? 9 : 5));
+      const to = pointAt(C, C, angle, R - 2);
+      const line = `<line x1="${round(from.x)}" y1="${round(from.y)}" x2="${round(to.x)}" y2="${round(to.y)}" stroke="${INK}" stroke-width="${quarter ? 2.6 : 1.4}" stroke-opacity="${quarter ? 0.85 : 0.45}" stroke-linecap="round"/>`;
+      if (!quarter) return line;
+      const numeral = pointAt(C, C, angle, R - 17);
+      return (
+        line +
+        `<text x="${round(numeral.x)}" y="${round(numeral.y)}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="13" font-weight="650" fill="${INK}">${i === 0 ? 12 : i}</text>`
+      );
+    })
+    .join('');
+
+  return (
+    `<svg x="${round(x)}" y="${round(y)}" width="${round(box)}" height="${round(box)}" viewBox="0 0 100 100" data-clock-face="" data-rotation="${face.rotation}">` +
+    `<circle cx="${C}" cy="${C}" r="${R}" fill="${RAISED}" stroke="${INK}" stroke-width="2" stroke-opacity="0.55"/>` +
+    ticks +
+    `<line x1="${C}" y1="${C}" x2="${round(hour.x)}" y2="${round(hour.y)}" stroke="${INK}" stroke-width="4.5" stroke-linecap="round" data-clock-hand="hour"/>` +
+    `<line x1="${C}" y1="${C}" x2="${round(minute.x)}" y2="${round(minute.y)}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round" data-clock-hand="minute"/>` +
+    `<circle cx="${C}" cy="${C}" r="3" fill="${INK}"/>` +
+    `</svg>`
+  );
+}
+
+/** One hand, from the outlines `HandView` draws — same paths, second serialiser. */
+export function handTile(hand: Hand, x: number, y: number, box: number): string {
+  const drawing = HAND_DRAWINGS[hand];
+  return (
+    `<svg x="${round(x)}" y="${round(y)}" width="${round(box)}" height="${round(box)}" viewBox="0 0 100 100" data-hand="${hand}">` +
+    `<path d="${drawing.body}" fill="${INK}" fill-opacity="0.14" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>` +
+    `<path d="${drawing.detail}" fill="none" stroke="${INK}" stroke-width="3" stroke-linecap="round" stroke-opacity="0.75"/>` +
+    `</svg>`
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -364,6 +417,78 @@ function stage(item: Item): string {
             `<text x="${startX + i * (w + gap) + w / 2}" y="${y}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="86" font-weight="700" fill="${INK}">${esc(glyph)}</text>`,
         )
         .join('');
+    }
+
+    /*
+     * The two numerals at the sizes they were drawn at, and nothing else. The card has to carry the
+     * conflict itself — a big 3 beside a small 8 — because that relation *is* the format, and no
+     * label or caption could stand in for seeing it.
+     */
+    case 'high-number': {
+      const box = STAGE.w / 2;
+      const y = STAGE.y + STAGE.h / 2;
+      return s.candidates
+        .map((candidate, i) => {
+          // The five drawing sizes, mapped onto a range that is legible at both ends of the card.
+          const size = 48 + candidate.scale * 34;
+          return `<text x="${STAGE.x + box * (i + 0.5)}" y="${y}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="${size}" font-weight="700" fill="${INK}">${candidate.value}</text>`;
+        })
+        .join('');
+    }
+
+    /* The dial, or both of them side by side. Nothing about a clock face needs abbreviating. */
+    case 'clock': {
+      const box = Math.min(STAGE.h, STAGE.w / s.faces.length) - 24;
+      const gap = 24;
+      const total = s.faces.length * box + (s.faces.length - 1) * gap;
+      const startX = STAGE.x + (STAGE.w - total) / 2;
+      const top = STAGE.y + (STAGE.h - box) / 2;
+      return s.faces
+        .map((face, i) => clockTile(face, startX + i * (box + gap), top, box))
+        .join('');
+    }
+
+    /*
+     * The hand, and the blank that says one is expected back. A fist on its own is a picture; the
+     * arrow and the blank are what make it an item.
+     */
+    case 'hands': {
+      const box = 210;
+      const y = STAGE.y + (STAGE.h - box) / 2;
+      const x = STAGE.x + (STAGE.w - box * 2 - 40) / 2;
+      return (
+        handTile(s.hand, x, y, box) +
+        `<text x="${x + box + 20}" y="${y + box / 2}" text-anchor="middle" dominant-baseline="central" font-size="46" fill="${SUBTLE}">→</text>` +
+        blankChip('?', x + box + 40, y + box / 2 - 45, 120, 90)
+      );
+    }
+
+    /*
+     * The terms as chips with a sum sign between them, and a blank for the total. Drawn as a sum
+     * rather than as a row, because a row of numbers is what the span card looks like — what makes
+     * this format itself is that they have to be added once they are gone.
+     */
+    case 'math-recall': {
+      const w = 78;
+      const h = 74;
+      const gap = 34;
+      const chips = s.terms.length + 1;
+      const total = chips * w + (chips - 1) * gap;
+      const startX = STAGE.x + (STAGE.w - total) / 2;
+      const y = STAGE.y + (STAGE.h - h) / 2;
+      const at = (i: number) => startX + i * (w + gap);
+      return (
+        s.terms.map((term, i) => chip(String(term), at(i), y, w, h)).join('') +
+        s.terms
+          .slice(1)
+          .map(
+            (_, i) =>
+              `<text x="${at(i) + w + gap / 2}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="34" fill="${SUBTLE}">+</text>`,
+          )
+          .join('') +
+        `<text x="${at(s.terms.length - 1) + w + gap / 2}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace, monospace" font-size="34" fill="${SUBTLE}">=</text>` +
+        blankChip('?', at(s.terms.length), y, w, h)
+      );
     }
 
     /*

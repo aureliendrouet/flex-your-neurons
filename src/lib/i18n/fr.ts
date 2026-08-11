@@ -60,6 +60,17 @@ const fr: Dict = {
     Gq: 'Raisonnement quantitatif',
   },
 
+  clock: {
+    /** L’usage français écrit « 3 h 40 » ; le zéro initial garde toutes les réponses de même longueur. */
+    time: (hour: number, minute: number) =>
+      `${String(hour).padStart(2, '0')} h ${String(minute).padStart(2, '0')}`,
+    faceLabel: (time: string) => `Une horloge indiquant ${time}`,
+    turnedFaceLabel: (rotation: number, hourAngle: number, minuteAngle: number) =>
+      `Un cadran tourné de ${rotation} degrés dans le sens horaire, chiffres compris. Mesurée depuis le haut de l’écran, la petite aiguille pointe à ${hourAngle} degrés dans le sens horaire, et la grande à ${minuteAngle} degrés.`,
+    firstFace: 'Le cadran le plus tôt',
+    secondFace: 'Le cadran le plus tard',
+  },
+
   quiz: {
     preparing: 'Préparation des items…',
     level: (n: number) => `Niveau ${n}`,
@@ -92,6 +103,20 @@ const fr: Dict = {
     headCountReady: (events: number) =>
       `${events} mouvements, un à la fois. Des personnages entrent, d’autres sortent — gardez le compte de ceux qui sont dans la salle.`,
     headCountDone: 'Combien en restait-il ?',
+    mathRecallReady: (terms: number) =>
+      `${terms} nombres, un à la fois. Chacun disparaît avant l’arrivée du suivant — ensuite vous donnez leur total.`,
+    mathRecallDone: 'Donnez le total.',
+    highNumber: {
+      candidateLabel: (side: string, value: number) => `${side} : ${value}`,
+      left: 'Gauche',
+      right: 'Droite',
+    },
+    hands: {
+      shownLabel: (hand: string) => `La main montrée : ${hand}`,
+      rock: 'pierre',
+      paper: 'feuille',
+      scissors: 'ciseaux',
+    },
     sprint: {
       ready: (seconds: number) =>
         `${seconds} secondes, autant d’items que possible. Le chronomètre part quand vous partez.`,
@@ -354,7 +379,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que dix-huit courbes sur un même axe : dix-huit couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que vingt-quatre courbes sur un même axe : vingt-quatre couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -547,6 +572,48 @@ const fr: Dict = {
       description:
         'Une légende associe à chaque chiffre un symbole abstrait. Un chiffre est désigné : trouvez son symbole dans la légende. Toutes les réponses proposées figurent dans la légende, si bien qu’on ne peut pas trouver la bonne par élimination — il faut vraiment lire l’association. Dans la batterie d’origine, il s’agit d’une épreuve écrite de deux minutes évaluée au nombre de substitutions accomplies ; ce qui est mesuré ici est donc la vitesse d’une substitution, et non l’endurance.',
       seenIn: 'Code de la WAIS et de la WISC, Symboles-chiffres de Wechsler, Symbol Digit Modalities Test',
+    },
+    'high-number': {
+      name: 'Lequel vaut le plus',
+      blurb: 'Deux nombres, dessinés à des tailles trompeuses.',
+      description:
+        'Deux nombres apparaissent côte à côte, dessinés à des tailles sans rapport avec leur valeur, et vous désignez celui qui vaut le plus. La valeur d’un chiffre se lit qu’on l’ait demandé ou non : un 8 minuscule à côté d’un 3 énorme fait donc arriver deux réponses à la fois, dont une seule répond à la question. C’est l’effet de congruence de taille, cousin numérique du Stroop, et il se mesure de la même façon : votre précision doit rester haute, et le résultat est l’écart entre vos temps selon que les deux lectures s’accordent ou non. Les deux nombres ont toujours le même nombre de chiffres, pour que le dessin reste le seul canal de taille en jeu.',
+      seenIn: 'Congruence de taille (Henik et Tzelgov, 1982), batteries de cognition numérique, test High Number de Brain Age 2',
+    },
+    'hand-game': {
+      name: 'Pierre, feuille, ciseaux',
+      blurb: 'Jouez le coup gagnant — ou le coup perdant.',
+      description:
+        'Une main est montrée et vous jouez celle qui la bat, ou celle qui perd contre elle, selon ce que l’item demande. La battre est une réponse que vous avez déjà : le jeu est surappris et le coup gagnant arrive sans être calculé. Devoir perdre exécute la même recherche contre cette habitude, et c’est bien l’objet de l’épreuve — mesurer ce que coûte de retenir une réponse qu’on n’a pas eu à réfléchir. Les niveaux élevés demandent de perdre plus souvent. Six items existent en tout, et c’est délibéré : une tâche de conflit exige un petit ensemble répété, puisqu’il faut que l’habitude soit là pour qu’on puisse y résister.',
+      seenIn: 'Test de Brain Age 2, paradigmes go/no-go et d’inhibition de la réponse',
+    },
+    'serial-subtraction': {
+      name: 'Décompte',
+      blurb: 'Retranchez le même nombre, encore et encore.',
+      description:
+        'Partez d’un nombre et retranchez-en plusieurs fois le même — les fameux « sept en sept ». Aucune étape n’est difficile : la difficulté est la chaîne, puisque chaque résultat devient le problème suivant et qu’il n’y a nulle part où noter quoi que ce soit. Perdre le fil une fois fait perdre l’item. Le pas n’est jamais 5 ni 10, les deux qui permettent de descendre une colonne au lieu de calculer, et chaque chaîne franchit au moins une dizaine pour que la retenue ait vraiment lieu. Les niveaux diffèrent par la longueur de la chaîne, pas par la difficulté d’un pas.',
+      seenIn: 'Examen de l’état mental (sept en sept), dépistages de l’attention et de la confusion, Brain Age 2',
+    },
+    'math-recall': {
+      name: 'Additionnez ce que vous avez vu',
+      blurb: 'Des nombres défilent. Additionnez-les une fois disparus.',
+      description:
+        'De deux à quatre nombres apparaissent un à un, chacun remplacé par le suivant, et vous donnez leur somme après le dernier. Rien n’est jamais à l’écran pour être additionné — le premier nombre doit survivre à l’arrivée du deuxième — donc l’épreuve retient du matériel et le manipule en même temps, ce qui distingue la mémoire de travail du simple rappel. Additionner au fil de l’eau est une voie légitime et charge la même chose ; la voie qui n’existe pas est celle qui consisterait à regarder la somme entière. Il n’y a pas de rediffusion.',
+      seenIn: 'Math Recall de Brain Age 2, empans complexes et empan opératoire, Arithmétique de la WAIS',
+    },
+    'time-lapse': {
+      name: 'Temps écoulé',
+      blurb: 'Deux horloges. Combien de temps entre elles ?',
+      description:
+        'Deux cadrans à aiguilles, et le nombre de minutes qui les sépare. Le calcul se fait en base soixante, donc la retenue tombe sur une frontière que l’arithmétique ordinaire n’utilise jamais — c’est pourquoi ce qui rend un item difficile est le franchissement de l’heure, et non la taille de l’intervalle. Tous les écarts restent inférieurs à une heure pour que la réponse soit un nombre unique plutôt que deux, et les deux aiguilles se posent sur des repères imprimés pour qu’aucune partie de l’item ne consiste à lire un cadran à la minute près.',
+      seenIn: 'Time Lapse de Brain Age, items de lecture de l’heure des batteries de numératie, Arithmétique de la WISC',
+    },
+    'clock-spin': {
+      name: 'Horloge tournée',
+      blurb: 'Lisez une horloge qui n’est pas droite.',
+      description:
+        'Un cadran est dessiné tourné, chiffres compris, et vous dites l’heure qu’il indique. Lire un cadran est entièrement lié à son orientation — midi en haut, trois à droite — si bien que tourner la face casse l’habitude et vous laisse la remettre d’aplomb mentalement. Les chiffres restent sur le cadran : sans eux la rotation serait indevinable et toutes les lectures se vaudraient. Certaines rotations sont des angles droits : elles amènent chaque repère d’heure sur un autre et laissent la face ressembler à une horloge parfaitement ordinaire — avec le 12 là où va le 3, et c’est tout le piège. Les autres laissent les repères visiblement décalés, si bien que la rotation s’annonce d’elle-même.',
+      seenIn: 'Clock Spin de Brain Age 2, paradigmes de rotation mentale, épreuves de lecture et de dessin d’horloge',
     },
   },
 
@@ -837,6 +904,78 @@ const fr: Dict = {
       ruleSpeed:
         'Ce type est évalué sur la vitesse : votre temps de réponse médian compte davantage que votre précision, qui devrait rester proche du plafond.',
     },
+    highNumber: {
+      prompt: 'Lequel vaut le plus ?',
+      left: 'Celui de gauche',
+      right: 'Celui de droite',
+      sides: { left: 'la gauche', right: 'la droite' },
+      summary: (value: number, side: string) => `${value}, à ${side}.`,
+      ruleCongruent:
+        'Ici le plus grand nombre est aussi le plus grand dessin : les deux lectures s’accordent et il n’y avait rien à retenir. Ces essais-là sont la référence à laquelle l’interférence est comparée.',
+      ruleIncongruent: (smaller: number, drawnLarger: string) =>
+        `${smaller} est dessiné plus grand — il est à ${drawnLarger} — et vaut moins. La taille se lit qu’on l’ait demandé ou non : le plus grand dessin est donc la réponse qui arrive en premier, et il faut la refuser.`,
+      ruleDistance: (gap: number) =>
+        `Les deux valeurs sont séparées de ${gap}. Plus elles sont proches, plus la comparaison est longue — et plus elle est longue, plus le dessin a le temps d’interférer.`,
+      ruleScoring:
+        'La vraie mesure est l’écart entre vos temps selon que les deux lectures s’accordent ou non, et non votre précision, qui devrait rester haute.',
+    },
+    handGame: {
+      promptWin: 'Jouez la main qui gagne.',
+      promptLose: 'Jouez la main qui perd.',
+      hands: { rock: 'Pierre', paper: 'Feuille', scissors: 'Ciseaux' },
+      summary: (answer: string, shown: string, win: boolean) =>
+        win
+          ? `${answer} bat ${shown.toLowerCase()}.`
+          : `${answer} perd contre ${shown.toLowerCase()}.`,
+      ruleWin:
+        'Celui-ci demandait de gagner, c’est-à-dire le coup que vous avez déjà : la réponse arrive sans être calculée.',
+      ruleLose:
+        'Celui-ci demandait de perdre. C’est la même recherche menée contre une habitude, et c’est l’habitude qui la ralentit : la main gagnante est celle que la main veut jouer.',
+      ruleCycle: (rock: string, paper: string, scissors: string) =>
+        `${rock} émousse ${scissors.toLowerCase()}, ${scissors.toLowerCase()} coupe ${paper.toLowerCase()}, ${paper.toLowerCase()} enveloppe ${rock.toLowerCase()}.`,
+      ruleInhibition:
+        'Les deux mauvaises mains veulent chacune dire quelque chose : la main montrée, c’est la transformation qui n’a pas eu lieu ; la troisième main, c’est l’autre consigne — gagner quand on demandait de perdre, autrement dit la réponse automatique qui est passée.',
+    },
+    serialSubtraction: {
+      prompt: 'Où cela retombe-t-il ?',
+      summary: (chain: string, value: number) => `${chain} retombe sur ${value}.`,
+      ruleSteps: (steps: string) => `Pas à pas : ${steps}.`,
+      ruleOneStepOut: (step: number) =>
+        `Deux mauvaises réponses sont exactement à ${step} : une soustraction de trop, une de moins. C’est ce que donne la perte du compte, et c’est l’erreur que ce format est fait pour attraper.`,
+      ruleCarry:
+        'Les deux autres sont à dix : le chiffre des unités juste et un rang supérieur faux, c’est-à-dire la retenue oubliée. Deux réponses se terminent toujours par le même chiffre que la bonne, pour qu’on ne puisse pas trancher sur la seule colonne des unités.',
+    },
+    mathRecall: {
+      prompt: 'Combien cela faisait-il ?',
+      summary: (sum: string, value: number) => `${sum} font ${value}.`,
+      ruleHold:
+        'Rien n’était jamais à l’écran pour être additionné. Chaque nombre devait survivre à l’arrivée du suivant, ce qui revient à retenir du matériel et à le manipuler en même temps — additionner au fil de l’eau était une façon légitime de le faire, et charge la même chose.',
+      ruleCarry: (digit: number) =>
+        `La bonne réponse se termine par ${digit}, et une mauvaise aussi — délibérément. Sans cela, la somme se retrouverait à partir des seuls chiffres des unités, c’est-à-dire d’un fragment de ce qui vous a été montré.`,
+      ruleNoReplay:
+        'Il n’y a pas de rediffusion, et c’est le format plutôt qu’une limite : un item qu’on peut revoir mesure le soin apporté à la deuxième vision.',
+    },
+    timeLapse: {
+      prompt: 'Combien de minutes se sont écoulées ?',
+      summary: (from: string, to: string, minutes: number) =>
+        `De ${from} à ${to}, il s’écoule ${minutes} minutes.`,
+      ruleCrossing: (toTheHour: number, after: number) =>
+        `Celui-ci franchit l’heure : ${toTheHour} minutes pour l’atteindre, puis ${after} après. Soustraire les seules grandes aiguilles donne ici une fausse réponse, et c’est précisément l’une des réponses proposées.`,
+      ruleWithinHour: (from: number, to: number) =>
+        `Les deux cadrans sont dans la même heure : les grandes aiguilles suffisent, ${to} moins ${from}. Les petites aiguilles le confirment sans y contribuer.`,
+      ruleTicks:
+        'Les deux aiguilles se posent sur des repères imprimés : rien ici ne dépend d’une lecture à la minute près. Les réponses sont espacées de cinq pour la même raison — une minute d’écart n’est une lecture à laquelle personne n’aboutit.',
+    },
+    clockSpin: {
+      prompt: 'Quelle heure ce cadran indique-t-il ?',
+      summary: (time: string, rotation: number) => `${time}, sur un cadran tourné de ${rotation}°.`,
+      ruleTurnBack: (rotation: number) =>
+        `Tout le cadran est tourné de ${rotation}° dans le sens horaire, chiffres compris. Trouvez le 12 et la lecture suit : tout le reste est là où il a toujours été, relativement à lui.`,
+      ruleHourHand: (hour: number, minute: number) =>
+        `La petite aiguille a dépassé ${hour} et se dirige vers la suivante, aux ${minute} minutes du trajet. Elle ne pointe franchement sur un chiffre qu’à l’heure pile, d’où la lecture fausse la plus fréquente : l’heure vers laquelle elle va.`,
+      ruleMisreadings:
+        'Les autres réponses sont les façons dont un cadran se lit de travers : l’heure suivante au lieu de celle-ci, les deux aiguilles prises l’une pour l’autre, ou la face lue comme un reflet plutôt que comme une rotation.',
+    },
   },
 
   pages: {
@@ -844,7 +983,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Dix-sept formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Vingt-quatre formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -917,7 +1056,7 @@ const fr: Dict = {
     test: {
       title: 'Test complet',
       description:
-        'Une série mixte sur les dix-huit formats, deux items chacun, sans retour avant la fin.',
+        'Une série mixte sur les vingt-quatre formats, deux items chacun, sans retour avant la fin.',
       lede: 'Vingt-six items, deux par format, présentés dans un ordre fixe et sans aucun retour avant la fin. Plus proche du ressenti d’une vraie batterie que les séries d’entraînement.',
       differsHeading: 'En quoi cela diffère d’une vraie batterie',
       differs: [
@@ -1072,7 +1211,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces dix-huit formats est une information sur ces dix-huit formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces vingt-quatre formats est une information sur ces vingt-quatre formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

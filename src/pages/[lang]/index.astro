@@ -91,7 +91,7 @@ const heroCells = hero.stimulus.kind === 'matrix' ? hero.stimulus.cells : [];
                    * generator the drill uses. It replaces an emoji that told you nothing
                    * about what you were choosing.
                    */}
-                  <ItemThumb item={previewItem(meta.id, locale)} />
+                  <ItemThumb item={previewItem(meta.id, locale)} locale={locale} />
                   <strong class="type-card-name">{meta.name}</strong>
                   <span class="muted type-card-blurb">{meta.blurb}</span>
                   <span class="subtle type-card-seen">{p.seenIn(meta.seenIn)}</span>

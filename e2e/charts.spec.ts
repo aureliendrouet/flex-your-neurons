@@ -26,10 +26,14 @@ async function seedHistory(
         const startedAt = now - (count - 1 - i) * daysApart * DAY_MS;
         const skill = improving ? 0.4 + i * 0.04 : 0.6;
         const responses = [];
-        for (let j = 0; j < 10; j++) {
-          out.length; // keep the closure simple
+        /*
+         * One response per format per session, so every format has a point in every session — a
+         * sparkline needs at least two, and a fixed response count that no longer covers the
+         * registry leaves the formats at the end of it with none at all.
+         */
+        for (let j = 0; j < types.length; j++) {
           responses.push({
-            type: types[(i + j) % types.length],
+            type: types[j],
             seed: `S${i}-${j}`,
             difficulty: 3,
             chosenIndex: 0,

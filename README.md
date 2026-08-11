@@ -43,7 +43,7 @@ Node 22.12+ is required (Astro 7).
 | `tests/` | Property-style unit tests, swept over hundreds of seeds |
 | `e2e/` | Playwright tests against the built static site |
 
-## The eighteen formats
+## The twenty-four formats
 
 | Format | CHC | Verification |
 |--------|-----|--------------|
@@ -55,16 +55,22 @@ Node 22.12+ is required (Astro 7).
 | Syllogisms | Gf | Exhaustive model checking over all 256 models — provable |
 | Mental rotation | Gv | Chirality proved; exactly one option is a rotation |
 | Paper folding | Gv | The unfolding is simulated, not asserted |
+| Turned clock | Gv | The time is recovered by undoing the rotation on the drawn hand angles |
 | Figure weights | Gf | Every candidate group weighed; exactly one may balance — decidable |
 | Digit span | Gwm | Exact string match, whitespace-insensitive |
 | Block span | Gwm | The tapped sequence must match the one shown, exactly and in order |
 | N-back | Gwm | Match count re-derived from the finished stream |
 | Head count | Gwm | Total re-accumulated from the script; the room may never empty |
+| Add what you saw | Gwm | The sum is re-added from the stream; no term repeats and some pair must carry |
 | Symbol search | Gs | Membership re-checked after shuffling |
 | Digit–symbol coding | Gs | Every option is a key entry; the pairing is re-looked-up |
 | Trail making | Gs | Targets proved non-overlapping and inside the board; the order is printed on them |
 | Count, don’t read (Stroop) | Gs | The keyed answer is the array length the renderer draws; both congruency conditions occur |
+| Which is worth more | Gs | The keyed side holds the larger value; both congruency conditions occur at every level |
+| Rock, paper, scissors | Gs | The keyed hand is re-derived from the cycle; all six items occur |
 | Mental arithmetic | Gq | The displayed expression is re-evaluated; two options share the answer's units digit |
+| Counting down | Gq | The printed chain is re-walked; two options share the answer's units digit |
+| Time passed | Gq | The interval is re-derived from the two faces, in minutes past midday |
 
 ## The three modes
 

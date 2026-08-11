@@ -27,8 +27,16 @@ async function seedHistory(
     types,
     startedAt: Date.now() - (count - s) * 86_400_000,
     finishedAt: Date.now() - (count - s) * 86_400_000 + 60_000,
-    responses: Array.from({ length: 12 }, (_, i) => {
-      const type = types[(s * 5 + i) % types.length]!;
+    /*
+     * Two responses per format per session, rather than a fixed twelve.
+     *
+     * A fixed count silently starves the charts as formats are added: at eighteen formats twelve
+     * responses gave each of them enough attempts to be plotted, and at twenty-four it gave them
+     * three — below `SPEED_MIN_ATTEMPTS`, so the scatter came out empty and the failure read as a
+     * regression in the chart rather than as a fixture that had stopped covering the registry.
+     */
+    responses: Array.from({ length: types.length * 2 }, (_, i) => {
+      const type = types[i % types.length]!;
       const correct = (s + i) % 3 !== 0;
       return {
         type,

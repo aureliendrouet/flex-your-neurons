@@ -92,7 +92,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Eighteen generators across five CHC domains:
+Twenty-four generators across five CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -114,6 +114,12 @@ Eighteen generators across five CHC domains:
 | `arithmetic` | evaluate a short expression, 4 options | operators available; operand size; chaining |
 | `interference` | count the glyphs, ignore what they say | share of incongruent trials (see the note below) |
 | `trail-making` | join the targets in order, timed as one run | number of targets |
+| `high-number` | two numerals at conflicting sizes, pick the larger value | share of incongruent trials; numerical distance |
+| `hand-game` | rock-paper-scissors, play the winner or the loser | share of "lose" trials (see the note below) |
+| `serial-subtraction` | take the same number away repeatedly, 4 options | chain length; awkwardness of the step |
+| `math-recall` | numbers shown one at a time, then added, 4 options | # terms; magnitude; step rate |
+| `time-lapse` | two clock faces, how many minutes between them | whether the interval crosses the hour |
+| `clock-spin` | read a clock face that has been turned | rotation; how late the minute hand sits |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. In
@@ -167,6 +173,24 @@ Eighteen generators across five CHC domains:
 > `head-count` was never in that list. Its source task is already one short episode answered once,
 > so nothing about it is a compression of a longer block — which is why it could ship ahead of the
 > block mode rather than waiting on it.
+
+> **On conflict formats and the variety property.** `interference`, `high-number` and `hand-game`
+> are all conflict tasks, and all three break the rule that a format must not repeat itself.
+> `hand-game` breaks it completely: three hands against two instructions is six items in total, and
+> no seed will ever produce a seventh.
+>
+> That is the paradigm rather than a shortcut. What these formats measure is the cost of holding
+> back an automatic response — and the response has to *become* automatic before there is anything
+> to hold back. A novel stimulus every time is precisely what would remove the effect, which is why
+> the lab versions run a small set for dozens of trials and read the *latency difference* between
+> conditions rather than the accuracy. `tests/generators.test.ts` exempts `interference` and
+> `hand-game` from the variety property and states this; what it checks instead is that both
+> conditions occur at every level and that the harder instruction gets commoner as difficulty rises,
+> which is the only dial any of the three has.
+>
+> `high-number` needs no exemption — two values and two drawing sizes leave plenty of room — but it
+> is built to the same rule: the dial is how often the conflict fires, plus the numerical distance
+> that decides how long the comparison stays open for the drawing to interfere with.
 
 > **On sameness being a question about ink, not about records.** Three formats shipped items whose
 > correct answer was scored wrong, and all three had the same cause. `rotation` is a free number in

@@ -3,7 +3,11 @@ import { generateItem } from '@/lib/generators';
 import { NODE_RADIUS } from '@/lib/generators/trail-making';
 import { BLOCKS, BLOCK_RADIUS, encodeTaps, hasStraightRun } from '@/lib/generators/block-span';
 import { diagnoseTaps, isCorrect } from '@/lib/scoring';
-import { DIFFICULTIES, type Difficulty, type Figure } from '@/lib/types';
+import { isSizeCongruent } from '@/lib/generators/high-number';
+import { elapsedMinutes } from '@/lib/generators/time-lapse';
+import { handAngles, twelveHour } from '@/lib/clock';
+import { dict } from '@/lib/i18n';
+import { DIFFICULTIES, HANDS, type Difficulty, type Figure, type Hand } from '@/lib/types';
 import { isUnambiguous, solveSeries } from '@/lib/solvers/series';
 import { predict, solveAttribute, type Rule } from '@/lib/rules';
 import { createRng, deriveSeed, hashSeed, normaliseSeed } from '@/lib/rng';
@@ -1114,5 +1118,357 @@ describe('tapped-sequence diagnosis', () => {
     expect(diagnoseTaps('4821', '4823')).toBe('plausible');
     // Same block tapped twice — a repeat is never in the answer, so it cannot be a transposition.
     expect(diagnoseTaps('4821', '4822')).toBe('plausible');
+  });
+});
+
+/**
+ * The size-conflict format: both readings have to be real, and only one of them is the answer.
+ *
+ * What could silently go wrong here is not the arithmetic — comparing two integers is not where a
+ * bug hides — but the *manipulation*. A generator that drifted towards drawing the larger number
+ * larger would still produce valid items, still pass every contract test, and would no longer be
+ * measuring anything: with nothing to inhibit there is no interference to time.
+ */
+describe('high number sets the drawing against the value', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `HN${i}`);
+
+  function candidatesOf(seed: string, difficulty: Difficulty) {
+    const item = generateItem('high-number', seed, difficulty);
+    if (item.stimulus.kind !== 'high-number') throw new Error('unexpected stimulus');
+    return { item, candidates: item.stimulus.candidates };
+  }
+
+  it('keys the side holding the larger value, and offers both sides every time', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const { item, candidates } = candidatesOf(seed, difficulty);
+        const where = `high-number ${seed} d${difficulty}`;
+
+        expect(candidates, where).toHaveLength(2);
+        expect(item.options, where).toHaveLength(2);
+        const larger = candidates[0]!.value > candidates[1]!.value ? 0 : 1;
+        expect(item.answerIndex, `${where}: keyed side is not the larger value`).toBe(larger);
+        // Equal values would make the item undecidable; equal sizes would make it uninteresting.
+        expect(candidates[0]!.value, `${where}: the two values tie`).not.toBe(candidates[1]!.value);
+        expect(candidates[0]!.scale, `${where}: the two drawings tie`).not.toBe(candidates[1]!.scale);
+        // Same digit count, or the drawing is not the only size channel in play.
+        expect(
+          String(candidates[0]!.value).length,
+          `${where}: mixed digit counts`,
+        ).toBe(String(candidates[1]!.value).length);
+      }
+    }
+  });
+
+  it('diagnoses the bigger drawing as the lure whenever it is not the answer', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const { item, candidates } = candidatesOf(seed, difficulty);
+        if (isSizeCongruent(candidates)) continue;
+        const drawnLarger = candidates[0]!.scale > candidates[1]!.scale ? 0 : 1;
+        expect(
+          item.errorTypes[drawnLarger],
+          `high-number ${seed} d${difficulty}: the larger drawing is not named as the lure`,
+        ).toBe('wrong-attribute');
+      }
+    }
+  });
+
+  it('produces both congruent and incongruent trials, and more conflict as difficulty rises', () => {
+    const shares = DIFFICULTIES.map((difficulty) => {
+      const incongruent = SEEDS.filter(
+        (seed) => !isSizeCongruent(candidatesOf(seed, difficulty).candidates),
+      ).length;
+      expect(incongruent, `high-number d${difficulty}: no incongruent trials`).toBeGreaterThan(0);
+      expect(
+        SEEDS.length - incongruent,
+        `high-number d${difficulty}: no congruent trials`,
+      ).toBeGreaterThan(0);
+      return incongruent / SEEDS.length;
+    });
+    expect(shares[4]!, `d5 ${shares[4]} vs d1 ${shares[0]}`).toBeGreaterThan(shares[0]!);
+  });
+
+  /**
+   * The distance effect is the second dial, so it has to actually move. Measured as the mean gap
+   * rather than the range, because a plan can narrow its range and still draw from the top of it.
+   */
+  it('narrows the gap between the two values as difficulty rises', () => {
+    const mean = (difficulty: Difficulty) =>
+      SEEDS.reduce((sum, seed) => {
+        const { candidates } = candidatesOf(seed, difficulty);
+        return sum + Math.abs(candidates[0]!.value - candidates[1]!.value);
+      }, 0) / SEEDS.length;
+    expect(mean(5), `d5 gap ${mean(5)} vs d1 ${mean(1)}`).toBeLessThan(mean(1));
+  });
+});
+
+/**
+ * Serial subtraction: the chain on screen is the chain that was keyed.
+ *
+ * The independent check that matters here is the *reading* one — the answer is recomputed by parsing
+ * the string the reader will see, not by trusting the numbers the generator drew. A chain that
+ * printed one step fewer than it keyed would be an item with no defensible answer, and nothing in
+ * the contract tests could see it.
+ */
+describe('serial subtraction is decidable from the chain on screen', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `SS${i}`);
+
+  it('lands where the printed chain lands', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('serial-subtraction', seed, difficulty);
+        if (item.stimulus.kind !== 'expression') throw new Error('unexpected stimulus');
+        const where = `serial-subtraction ${seed} d${difficulty}`;
+
+        const terms = item.stimulus.expression.split(' − ');
+        const start = Number(terms[0]);
+        const steps = terms.slice(1).map(Number);
+        expect(steps.length, `${where}: no chain`).toBeGreaterThanOrEqual(3);
+        expect(new Set(steps).size, `${where}: the step changes mid-chain`).toBe(1);
+        expect(steps[0], `${where}: the step is 5 or 10`).not.toBe(5);
+        expect(steps[0], `${where}: the step is 5 or 10`).not.toBe(10);
+
+        const landed = steps.reduce((total, step) => total - step, start);
+        expect(landed, `${where}: the chain does not reach the keyed answer`).toBe(
+          Number((item.options[item.answerIndex] as { text: string }).text),
+        );
+        expect(landed, `${where}: lands too low for a full option set`).toBeGreaterThanOrEqual(12);
+        // The chain has to cross a ten, or it is one subtraction on a single column.
+        expect(Math.floor(start / 10), `${where}: never leaves its ten`).not.toBe(
+          Math.floor(landed / 10),
+        );
+      }
+    }
+  });
+
+  it('offers one step out on each side, and a carry slip that shares the answer’s units digit', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('serial-subtraction', seed, difficulty);
+        const where = `serial-subtraction ${seed} d${difficulty}`;
+        const values = item.options.map((o) => Number((o as { text: string }).text));
+        const answer = values[item.answerIndex]!;
+
+        const named = values.filter((v, i) => item.errorTypes[i] === 'off-by-one');
+        expect(named.length, `${where}: no one-step-out distractor`).toBeGreaterThan(0);
+        // At least two options end in the answer's digit, so a units-digit shortcut cannot decide it.
+        expect(
+          values.filter((v) => v % 10 === answer % 10).length,
+          `${where}: only the answer ends in ${answer % 10}`,
+        ).toBeGreaterThanOrEqual(2);
+      }
+    }
+  });
+
+  it('lengthens the chain rather than hardening any one step', () => {
+    const lengthAt = (difficulty: Difficulty) => {
+      const item = generateItem('serial-subtraction', 'CHAIN', difficulty);
+      if (item.stimulus.kind !== 'expression') throw new Error('unexpected stimulus');
+      return item.stimulus.expression.split(' − ').length - 1;
+    };
+    expect(lengthAt(5), `d5 ${lengthAt(5)} vs d1 ${lengthAt(1)}`).toBeGreaterThan(lengthAt(1));
+  });
+});
+
+/**
+ * Math recall: the sum is of the numbers that were actually shown.
+ *
+ * A memory format is the easiest place for the stimulus and the answer key to come apart, because
+ * nothing is on screen at the moment of answering to contradict it. So the sum is recomputed from
+ * the stream, and the stream is checked for the two properties that would quietly reduce the load:
+ * a repeated term, which need only be held once, and a sum with no carry, which can be assembled a
+ * digit at a time.
+ */
+describe('math recall adds the stream it showed', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `MR${i}`);
+
+  it('keys the sum of the terms, and never shows the same term twice', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('math-recall', seed, difficulty);
+        if (item.stimulus.kind !== 'math-recall') throw new Error('unexpected stimulus');
+        const where = `math-recall ${seed} d${difficulty}`;
+        const terms = item.stimulus.terms;
+
+        expect(terms.length, where).toBeGreaterThanOrEqual(2);
+        expect(new Set(terms).size, `${where}: a term repeats`).toBe(terms.length);
+        expect(
+          Number((item.options[item.answerIndex] as { text: string }).text),
+          `${where}: the keyed answer is not the sum`,
+        ).toBe(terms.reduce((a, b) => a + b, 0));
+        // Some pair must carry, or the sum comes out a column at a time.
+        expect(
+          terms.some((a, i) => terms.some((b, j) => j > i && (a % 10) + (b % 10) >= 10)),
+          `${where}: no carry anywhere in ${terms.join(' + ')}`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  /** A transient format that could be answered before it played would measure nothing. */
+  it('always plays before it can be answered, and plays faster as difficulty rises', () => {
+    const steps = DIFFICULTIES.map((difficulty) => {
+      const item = generateItem('math-recall', 'STREAM', difficulty);
+      expect(item.presentation, `math-recall d${difficulty}: no presentation`).toBeDefined();
+      return item.presentation!.stepMs;
+    });
+    expect(steps[4]!, `d5 ${steps[4]}ms vs d1 ${steps[0]}ms`).toBeLessThan(steps[0]!);
+  });
+});
+
+/**
+ * The two clock formats, checked against the faces they draw.
+ *
+ * Both are re-derived from the stimulus rather than from the draw: the interval is recomputed from
+ * the two faces, and the rotated reading is recovered by turning the hand angles back. That second
+ * one is the real check — it is the only thing that proves the drawing and the answer key agree
+ * about which numeral is twelve.
+ */
+describe('clocks are readable from the faces they draw', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `CL${i}`);
+
+  it('time lapse keys the interval between the two faces, and keeps it inside an hour', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('time-lapse', seed, difficulty);
+        if (item.stimulus.kind !== 'clock') throw new Error('unexpected stimulus');
+        const where = `time-lapse ${seed} d${difficulty}`;
+        const [from, to] = item.stimulus.faces;
+
+        expect(item.stimulus.faces, where).toHaveLength(2);
+        const elapsed = elapsedMinutes(from!, to!);
+        expect(
+          Number((item.options[item.answerIndex] as { text: string }).text),
+          `${where}: the keyed answer is not the interval`,
+        ).toBe(elapsed);
+        expect(elapsed, `${where}: interval runs past an hour`).toBeLessThan(60);
+        expect(elapsed, `${where}: interval too short to place in a window`).toBeGreaterThanOrEqual(20);
+        // Both hands on printed marks, and neither face turned.
+        for (const face of item.stimulus.faces) {
+          expect(face!.minute % 5, `${where}: a minute hand sits between marks`).toBe(0);
+          expect(face!.rotation, `${where}: a lapse face is turned`).toBe(0);
+        }
+      }
+    }
+  });
+
+  it('time lapse crosses the hour at the top level and never at the bottom', () => {
+    const crossings = (difficulty: Difficulty) =>
+      SEEDS.filter((seed) => {
+        const item = generateItem('time-lapse', seed, difficulty);
+        if (item.stimulus.kind !== 'clock') throw new Error('unexpected stimulus');
+        const [from] = item.stimulus.faces;
+        return from!.minute + elapsedMinutes(from!, item.stimulus.faces[1]!) >= 60;
+      }).length;
+    expect(crossings(1), 'd1 crosses the hour').toBe(0);
+    expect(crossings(5), 'd5 never crosses the hour').toBe(SEEDS.length);
+  });
+
+  /**
+   * The rotated face is read back by undoing the rotation on the *drawn* hand angles.
+   *
+   * This is the one check that could fail in a way nothing else would catch: if the generator and
+   * the renderer disagreed about the direction of the turn, every item would still look like a
+   * clock, and every answer would be wrong by however far it had been turned.
+   */
+  it('clock spin keys the time recoverable from the drawn hands', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('clock-spin', seed, difficulty);
+        if (item.stimulus.kind !== 'clock') throw new Error('unexpected stimulus');
+        const where = `clock-spin ${seed} d${difficulty}`;
+        const face = item.stimulus.faces[0]!;
+
+        expect(item.stimulus.faces, where).toHaveLength(1);
+        // Always turned, and always by a multiple of forty-five.
+        expect(face.rotation, `${where}: an upright face in a rotation format`).not.toBe(0);
+        expect(face.rotation % 45, `${where}: rotation ${face.rotation} is off the 45° grid`).toBe(0);
+
+        const angles = handAngles(face);
+        const upright = { hour: angles.hour - face.rotation, minute: angles.minute - face.rotation };
+        const minute = Math.round((((upright.minute % 360) + 360) % 360) / 6);
+        const hour = twelveHour(Math.floor((((upright.hour % 360) + 360) % 360) / 30));
+        expect(
+          (item.options[item.answerIndex] as { text: string }).text,
+          `${where}: the keyed time is not what the hands draw`,
+        ).toBe(dict('en').clock.time(hour, minute % 60));
+      }
+    }
+  });
+
+  it('clock spin offers only times, all distinct, and names the readings that produce them', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('clock-spin', seed, difficulty);
+        const where = `clock-spin ${seed} d${difficulty}`;
+        const texts = item.options.map((o) => (o as { text: string }).text);
+
+        expect(new Set(texts).size, `${where}: duplicate times offered`).toBe(texts.length);
+        for (const text of texts) {
+          expect(text, `${where}: "${text}" is not a time`).toMatch(/^(0[1-9]|1[0-2])[:h ]+[0-5]\d$/);
+        }
+        // All four options are the same length, so no option is identifiable by its shape alone.
+        expect(new Set(texts.map((t) => t.length)).size, `${where}: uneven option lengths`).toBe(1);
+        expect(
+          item.errorTypes.filter((e) => e !== 'correct' && e !== 'plausible').length,
+          `${where}: no named misreading`,
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+/**
+ * The hand game: the cycle, and the instruction that inverts it.
+ *
+ * Six items exist in total, so this is one of the few formats that can be checked exhaustively
+ * rather than sampled — every hand against every instruction, with the answer derived from the rules
+ * of the game rather than from the generator's own table.
+ */
+describe('the hand game answers the instruction it was given', () => {
+  const SEEDS = Array.from({ length: 200 }, (_, i) => `HG${i}`);
+  /** What beats what, written independently of the generator's own copy. */
+  const WINS_AGAINST: Record<Hand, Hand> = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+
+  it('keys the hand that satisfies the instruction, and names both wrong hands', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS.slice(0, 60)) {
+        const item = generateItem('hand-game', seed, difficulty);
+        if (item.stimulus.kind !== 'hands') throw new Error('unexpected stimulus');
+        const where = `hand-game ${seed} d${difficulty}`;
+        const { hand, want } = item.stimulus;
+
+        const answer = HANDS[item.answerIndex]!;
+        if (want === 'win') {
+          expect(WINS_AGAINST[answer], `${where}: the keyed hand does not beat ${hand}`).toBe(hand);
+        } else {
+          expect(WINS_AGAINST[hand], `${where}: the keyed hand does not lose to ${hand}`).toBe(answer);
+        }
+
+        // The shown hand is the transformation never happening; the third is the other instruction.
+        expect(item.errorTypes[HANDS.indexOf(hand)], `${where}: shown hand undiagnosed`).toBe('copy');
+        const third = HANDS.find((h) => h !== answer && h !== hand)!;
+        expect(item.errorTypes[HANDS.indexOf(third)], `${where}: third hand undiagnosed`).toBe(
+          'wrong-direction',
+        );
+      }
+    }
+  });
+
+  it('covers all six items, and asks for the harder instruction more often as difficulty rises', () => {
+    const seen = new Set<string>();
+    const loseShare = DIFFICULTIES.map((difficulty) => {
+      let lose = 0;
+      for (const seed of SEEDS) {
+        const item = generateItem('hand-game', seed, difficulty);
+        if (item.stimulus.kind !== 'hands') throw new Error('unexpected stimulus');
+        seen.add(`${item.stimulus.hand}:${item.stimulus.want}`);
+        if (item.stimulus.want === 'lose') lose++;
+      }
+      return lose / SEEDS.length;
+    });
+    expect(seen.size, `only ${seen.size} of the six items ever appear`).toBe(6);
+    expect(loseShare[4]!, `d5 ${loseShare[4]} vs d1 ${loseShare[0]}`).toBeGreaterThan(loseShare[0]!);
   });
 });

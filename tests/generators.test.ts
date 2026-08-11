@@ -15,7 +15,7 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
 /** How many formats ship. See the registry test below before changing this. */
-const EXPECTED_TYPES = 18;
+const EXPECTED_TYPES = 24;
 
 function optionKey(o: Option): string {
   switch (o.kind) {
@@ -208,8 +208,14 @@ describe.each(ITEM_TYPE_IDS)('generator: %s', (id) => {
      * stimulus each time means the automatic response never becomes automatic, and there is then
      * nothing to inhibit. What matters here is that both congruency conditions occur, which
      * `tests/solvers.test.ts` checks directly.
+     *
+     * `hand-game` is exempt for exactly the same reason, and more starkly: three hands against two
+     * instructions is six items in total, and no seed will ever produce a seventh. A conflict task
+     * needs the response to *become* automatic before there is anything to inhibit, so a novel
+     * stimulus each time would remove the thing being measured. What matters there is that both
+     * instructions occur and that all three hands are answered, which the solver suite checks.
      */
-    if (id === 'interference') return;
+    if (id === 'interference' || id === 'hand-game') return;
 
     const items = DIFFICULTIES.flatMap((d) =>
       SEEDS.map((s) => {

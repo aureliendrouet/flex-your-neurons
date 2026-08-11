@@ -23,6 +23,12 @@ import { arithmeticGenerator } from './arithmetic';
 import { interferenceGenerator } from './interference';
 import { trailMakingGenerator } from './trail-making';
 import { blockSpanGenerator } from './block-span';
+import { highNumberGenerator } from './high-number';
+import { serialSubtractionGenerator } from './serial-subtraction';
+import { mathRecallGenerator } from './math-recall';
+import { timeLapseGenerator } from './time-lapse';
+import { clockSpinGenerator } from './clock-spin';
+import { handGameGenerator } from './hand-game';
 
 /**
  * Presentation order: reasoning first, then spatial, then memory, then speed, with the
@@ -38,16 +44,22 @@ export const GENERATORS: Generator[] = [
   syllogismGenerator,
   rotationGenerator,
   paperFoldingGenerator,
+  clockSpinGenerator,
   spanGenerator,
   blockSpanGenerator,
+  mathRecallGenerator,
   symbolSearchGenerator,
   figureWeightsGenerator,
   nBackGenerator,
   headCountGenerator,
   codingGenerator,
   interferenceGenerator,
+  highNumberGenerator,
+  handGameGenerator,
   trailMakingGenerator,
   arithmeticGenerator,
+  serialSubtractionGenerator,
+  timeLapseGenerator,
 ];
 
 /**

@@ -3376,6 +3376,18 @@ table.data th.num {
   color: var(--text);
 }
 
+/*
+ * A long chain wraps instead of overflowing. See the note on the `data-long` attribute: the no-wrap
+ * rule above exists to keep a *speeded* stimulus from jittering between trials, and a chain of seven
+ * subtractions belongs to a format with half a minute on the clock.
+ */
+.expression-stage[data-long='true'] .expression-text {
+  font-size: clamp(1.15rem, 5vw, 2.1rem);
+  white-space: normal;
+  text-align: center;
+  text-wrap: balance;
+}
+
 .expression-blank {
   font: 700 var(--step-1) / 1 var(--font-code);
   color: var(--text-subtle);
@@ -3431,6 +3443,123 @@ table.data th.num {
 .thumb-glyph {
   font: 700 1.35rem/1 var(--font-code);
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * The size-conflict stage: two numerals, and the size difference between them *is* the item.
+ *
+ * The five drawing sizes are a ramp of `em` on one font size rather than five hand-set values, so
+ * the ratio between any two of them is fixed and does not drift with the viewport — which matters,
+ * because the manipulation is the ratio. The two numerals share a baseline: aligning them by centre
+ * would give the smaller one an apparent lift, which is a second, unintended size cue.
+ */
+.numeral-stage {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: clamp(2rem, 12vw, 6rem);
+  min-height: 9rem;
+  min-width: min(100%, 26rem);
+  padding: 1.5rem 2rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+}
+
+.numeral {
+  font: 700 clamp(1.75rem, 7vw, 3rem) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.numeral[data-scale='1'] { font-size: clamp(1.1rem, 4.4vw, 1.85rem); }
+.numeral[data-scale='2'] { font-size: clamp(1.4rem, 5.6vw, 2.4rem); }
+.numeral[data-scale='3'] { font-size: clamp(1.8rem, 7.2vw, 3.1rem); }
+.numeral[data-scale='4'] { font-size: clamp(2.3rem, 9.2vw, 4rem); }
+.numeral[data-scale='5'] { font-size: clamp(2.9rem, 11.6vw, 5.1rem); }
+
+.thumb-numerals {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.thumb-numeral {
+  font: 700 1rem/1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb-numeral[data-scale='1'] { font-size: 0.75rem; }
+.thumb-numeral[data-scale='2'] { font-size: 1rem; }
+.thumb-numeral[data-scale='3'] { font-size: 1.3rem; }
+.thumb-numeral[data-scale='4'] { font-size: 1.7rem; }
+.thumb-numeral[data-scale='5'] { font-size: 2.2rem; }
+
+/* --- Clocks: two formats, one dial ---------------------------------------- */
+
+.clock-stage {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: clamp(1rem, 6vw, 3rem);
+  flex-wrap: wrap;
+}
+
+.clock-figure {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+/*
+ * Sized against the viewport with a ceiling, like every other stimulus here. The dial is square by
+ * construction (a 100x100 viewBox), so only one dimension is set and the other follows — a clock
+ * that came out elliptical would misstate every angle on it, which for `clock-spin` is the item.
+ */
+.clock-face {
+  width: clamp(8rem, 34vw, 13rem);
+  height: auto;
+  color: var(--text);
+}
+
+.clock-stage[data-clock-count='2'] .clock-face {
+  width: clamp(6.5rem, 26vw, 10.5rem);
+}
+
+.clock-caption {
+  font-size: var(--step--1);
+}
+
+.thumb-clocks {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.thumb-clocks .clock-face {
+  width: 3.75rem;
+}
+
+/* --- The hand game -------------------------------------------------------- */
+
+.hand-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 9rem;
+}
+
+.hand-figure {
+  width: clamp(7rem, 30vw, 11rem);
+  height: auto;
+  color: var(--text);
+}
+
+.thumb .hand-figure {
+  width: 3.25rem;
 }
 
 /* --- Trail making: the one item answered by a path ------------------------- */

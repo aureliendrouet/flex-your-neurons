@@ -29,7 +29,7 @@ const types = allItemTypes(locale);
           data-testid={`practice-card-${meta.id}`}
           style={`--type-hue: ${typeHue(meta.id)}`}
         >
-          <ItemThumb item={previewItem(meta.id, locale)} />
+          <ItemThumb item={previewItem(meta.id, locale)} locale={locale} />
           <div class="cluster practice-card-head" style="--cluster-gap: 0.6rem">
             <strong class="practice-card-name">{meta.name}</strong>
             <span class="pill practice-card-domain">{t.domains[meta.domain]}</span>

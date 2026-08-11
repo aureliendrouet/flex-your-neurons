@@ -6,6 +6,8 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import FigureView, { describeFigure } from './FigureView';
 import GridView from './GridView';
+import ClockFaceView from './ClockFaceView';
+import HandView from './HandView';
 import { dict, type Locale } from '../lib/i18n';
 import type { Figure, Fold, Presentation, Stimulus } from '../lib/types';
 
@@ -260,7 +262,18 @@ export default function StimulusView({
      */
     case 'expression':
       return (
-        <div data-stimulus="expression" class="expression-stage">
+        <div
+          data-stimulus="expression"
+          class="expression-stage"
+          /*
+           * A serial-subtraction chain is two or three times the length of an arithmetic expression
+           * — "250 − 17 − 17 − 17 − 17 − 17 − 17 − 17" against "34 + 26" — and the rule that keeps
+           * the arithmetic stimulus on one line would push it off the side of a phone. Long chains
+           * wrap and shrink instead, which costs nothing here: this is not the speeded format, so a
+           * stimulus that changes shape between items is not a cost being added to a stopwatch.
+           */
+          data-long={String(stimulus.expression.length > 20)}
+        >
           <span class="expression-text" data-expression={stimulus.expression}>
             {stimulus.expression}
           </span>
@@ -268,6 +281,75 @@ export default function StimulusView({
             = ?
           </span>
         </div>
+      );
+
+    /*
+     * The two numerals, and nothing between them. No divider, no labels, no "vs" — the comparison is
+     * the item, and any mark in the middle is one more thing to look past in a task measured in a
+     * few hundred milliseconds. The size is the whole manipulation, so it is carried by a data
+     * attribute and set in one place in the stylesheet.
+     */
+    case 'high-number':
+      return (
+        <div data-stimulus="high-number" class="numeral-stage">
+          {stimulus.candidates.map((candidate, i) => (
+            <span
+              key={i}
+              class="numeral"
+              data-scale={String(candidate.scale)}
+              data-side={i === 0 ? 'left' : 'right'}
+            >
+              <span aria-hidden="true">{candidate.value}</span>
+              <span class="sr-only">
+                {t.highNumber.candidateLabel(
+                  i === 0 ? t.highNumber.left : t.highNumber.right,
+                  candidate.value,
+                )}
+              </span>
+            </span>
+          ))}
+        </div>
+      );
+
+    case 'clock':
+      return (
+        <div data-stimulus="clock" class="clock-stage" data-clock-count={stimulus.faces.length}>
+          {stimulus.faces.map((face, i) => (
+            <ClockFaceView
+              key={i}
+              face={face}
+              locale={locale}
+              caption={
+                stimulus.faces.length > 1
+                  ? i === 0
+                    ? dict(locale).clock.firstFace
+                    : dict(locale).clock.secondFace
+                  : null
+              }
+            />
+          ))}
+        </div>
+      );
+
+    case 'hands':
+      return (
+        <div data-stimulus="hands" class="hand-stage">
+          <HandView hand={stimulus.hand} locale={locale} />
+        </div>
+      );
+
+    case 'math-recall':
+      return (
+        <StreamPlayer<number>
+          kind="math-recall"
+          sequence={stimulus.terms}
+          presentation={presentation}
+          reducedMotion={reducedMotion}
+          onDone={onPresentationDone}
+          locale={locale}
+          readyText={t.mathRecallReady(stimulus.terms.length)}
+          doneText={t.mathRecallDone}
+        />
       );
 
     case 'head-count':
@@ -795,7 +877,7 @@ function StreamPlayer<T>({
   onDone?: () => void;
   locale: Locale;
   /** Drives `data-stimulus`, so the e2e suite can tell the formats apart. */
-  kind: 'span' | 'n-back' | 'head-count';
+  kind: 'span' | 'n-back' | 'head-count' | 'math-recall';
   /** Shown on the gate, above the start button: what is about to happen. */
   readyText: string;
   /** Shown once playback has finished: what to do now. */

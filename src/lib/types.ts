@@ -30,7 +30,13 @@ export type ItemTypeId =
   | 'arithmetic'
   | 'interference'
   | 'trail-making'
-  | 'block-span';
+  | 'block-span'
+  | 'high-number'
+  | 'serial-subtraction'
+  | 'math-recall'
+  | 'time-lapse'
+  | 'clock-spin'
+  | 'hand-game';
 
 /**
  * CHC broad ability. See docs/IQ-TESTS.md §2.
@@ -175,7 +181,45 @@ export type Stimulus =
       kind: 'figure-weights';
       premises: { left: Figure; right: Figure }[];
       target: Figure;
-    };
+    }
+  /**
+   * Two numbers printed at deliberately unrelated sizes, of which the reader picks the one worth
+   * more. The conflict is the format: `scale` is how large the numeral is *drawn*, and it is
+   * independent of what the numeral says.
+   *
+   * The candidates live on the stimulus rather than in the options, because "pick the larger" is
+   * answerable from an option set that contains both of them — an answer recoverable without the
+   * stimulus, which is exactly what Guard 2 forbids. The options name a side instead.
+   */
+  | { kind: 'high-number'; candidates: { value: number; scale: SizeLevel }[] }
+  /**
+   * Numbers arriving one at a time, to be added once they are gone. Transient, like `span`: the
+   * response controls stay locked until the last term has been and left.
+   */
+  | { kind: 'math-recall'; terms: number[] }
+  /**
+   * One or more analogue clock faces. `rotation` is how far the whole face is turned clockwise,
+   * which is a property of the drawing rather than of the time: a face at 90° shows the same time
+   * it always did, to a reader willing to turn it back.
+   */
+  | { kind: 'clock'; faces: ClockFace[] }
+  /**
+   * A hand of rock-paper-scissors, and which way the reader has to answer it. `want` is carried on
+   * the stimulus rather than only in the prompt because it changes from item to item — it is the
+   * variable half of the task, not a standing instruction.
+   */
+  | { kind: 'hands'; hand: Hand; want: 'win' | 'lose' };
+
+/** One analogue clock face. `hour` is 1–12 and `minute` is 0–59; `rotation` is degrees clockwise. */
+export interface ClockFace {
+  hour: number;
+  minute: number;
+  rotation: number;
+}
+
+export const HANDS = ['rock', 'paper', 'scissors'] as const;
+
+export type Hand = (typeof HANDS)[number];
 
 /** One target on a trail-making board. Centre position in the unit box, both in [0, 1]. */
 export interface TrailNode {

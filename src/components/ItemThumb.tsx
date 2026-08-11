@@ -20,6 +20,9 @@
  */
 import FigureView from './FigureView';
 import GridView from './GridView';
+import ClockFaceView from './ClockFaceView';
+import HandView from './HandView';
+import { DEFAULT_LOCALE, type Locale } from '../lib/i18n';
 import type { CellGrid, Figure, Item } from '../lib/types';
 
 interface Props {
@@ -29,6 +32,13 @@ interface Props {
    * format in text — a second reading of "Matrix reasoning" is noise, not access.
    */
   label?: string;
+  /**
+   * Only reaches the few miniatures built from a component that names itself — the clock and the
+   * hand. Nothing announces those names (the miniature as a whole is `aria-hidden` or carries its
+   * own), but they are still text in the page, and shipping English inside a French card is the
+   * kind of small wrongness nobody ever goes back and fixes.
+   */
+  locale?: Locale;
 }
 
 /** Enough terms to show the pattern turning over, few enough to stay readable. */
@@ -36,7 +46,7 @@ const SEQUENCE_TAIL = 3;
 /** Figural options shown side by side before the row gets too dense to read. */
 const SET_LIMIT = 4;
 
-export default function ItemThumb({ item, label }: Props) {
+export default function ItemThumb({ item, label, locale = DEFAULT_LOCALE }: Props) {
   return (
     <div
       class="thumb"
@@ -45,12 +55,12 @@ export default function ItemThumb({ item, label }: Props) {
       aria-label={label}
       aria-hidden={label ? undefined : 'true'}
     >
-      <ThumbBody item={item} />
+      <ThumbBody item={item} locale={locale} />
     </div>
   );
 }
 
-function ThumbBody({ item }: { item: Item }) {
+function ThumbBody({ item, locale }: { item: Item; locale: Locale }) {
   const s = item.stimulus;
 
   switch (s.kind) {
@@ -413,6 +423,84 @@ function ThumbBody({ item }: { item: Item }) {
               <span class="thumb-heads-total">{total}</span>
             </div>
           ))}
+        </div>
+      );
+    }
+
+    /*
+     * The two numerals at the sizes they were drawn at. That is the entire item, and the miniature
+     * can show it whole — the conflict is legible at any size, because it is a *relation* between
+     * the two rather than a property of either.
+     */
+    case 'high-number':
+      return (
+        <div class="thumb-numerals">
+          {s.candidates.map((candidate, i) => (
+            <span class="thumb-numeral" key={i} data-scale={String(candidate.scale)}>
+              {candidate.value}
+            </span>
+          ))}
+        </div>
+      );
+
+    /*
+     * The dial, or both dials. Nothing is reduced: a clock face is already the smallest complete
+     * statement of what these two formats ask, and shrinking one only shrinks it.
+     */
+    case 'clock':
+      return (
+        <div class="thumb-clocks">
+          {s.faces.map((face, i) => (
+            <ClockFaceView key={i} face={face} locale={locale} className="thumb-svg" />
+          ))}
+        </div>
+      );
+
+    /*
+     * The hand, and the blank that says a hand is expected back. Without the blank the card is a
+     * picture of a fist, which advertises nothing.
+     */
+    case 'hands':
+      return (
+        <div class="thumb-row">
+          <div class="thumb-slot thumb-slot--wide">
+            <HandView hand={s.hand} locale={locale} className="thumb-svg" />
+          </div>
+          <span class="thumb-op" aria-hidden="true">
+            →
+          </span>
+          <div class="thumb-slot" data-blank="true">
+            <span class="thumb-blank">?</span>
+          </div>
+        </div>
+      );
+
+    /*
+     * The terms with a sum sign where the answer goes. Drawn as a sum rather than as a row of
+     * numbers, because a row of numbers is what `span` looks like — what makes this format itself is
+     * that they have to be added, and the miniature has to say so.
+     */
+    case 'math-recall': {
+      const parts = s.terms.flatMap((term, i) => (i === 0 ? [String(term)] : ['+', String(term)]));
+      return (
+        <div class="thumb-seq">
+          {parts.map((part, i) =>
+            part === '+' ? (
+              <span class="thumb-op" key={i} aria-hidden="true">
+                +
+              </span>
+            ) : (
+              <span class="thumb-term" key={i}>
+                {part}
+              </span>
+            ),
+          )}
+          <span class="thumb-op" aria-hidden="true">
+            =
+          </span>
+          <span class="thumb-term" data-blank="true">
+            ?
+          </span>
         </div>
       );
     }

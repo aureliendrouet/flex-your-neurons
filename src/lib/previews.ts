@@ -80,6 +80,21 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
    * blank, which is what says the board is bigger than the sequence.
    */
   'block-span': { seed: 'PRVBLOCK', difficulty: 2 },
+  /*
+   * Level 3, where most trials are incongruent — the same call as the interference pin. A congruent
+   * card shows the big number winning, which advertises the format as "pick the bigger one": the
+   * one reading the task exists to defeat.
+   */
+  'high-number': { seed: 'PRVHIGHN', difficulty: 3 },
+  'hand-game': { seed: 'PRVHANDS', difficulty: 3 },
+  // Level 2: a four-step chain. Long enough to read as a chain, short enough to fit the card.
+  'serial-subtraction': { seed: 'PRVSERIA', difficulty: 2 },
+  // Level 1: two terms. Three chips and a blank is the whole idea; a four-term card is the same
+  // picture with less room in it.
+  'math-recall': { seed: 'PRVRECAL', difficulty: 1 },
+  'time-lapse': { seed: 'PRVLAPSE', difficulty: 2 },
+  // Level 3, where the rotation is large enough to be unmistakable at card size.
+  'clock-spin': { seed: 'PRVSPINC', difficulty: 3 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */

@@ -53,6 +53,35 @@ const en = {
     Gq: 'Quantitative reasoning',
   } as Record<ChcDomain | 'Gc', string>,
 
+  /**
+   * How a time is written, and how a face is described.
+   *
+   * Its own section rather than part of `gen`, because two formats and three renderers all have to
+   * agree: an option that reads "03:40" beside a face whose accessible name says something else
+   * would be two different claims about one item. The hour is padded so every option string is the
+   * same length — see the note in `tests/leakage.test.ts` on what the blind solver reads.
+   */
+  clock: {
+    time: (hour: number, minute: number) =>
+      `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+    /**
+     * An upright face is named by the time it shows, exactly as a figure is named by its shapes:
+     * the reading is immediate for anyone looking at it, so withholding it from a screen reader
+     * would make the format sighted-only rather than hard.
+     */
+    faceLabel: (time: string) => `A clock showing ${time}`,
+    /**
+     * A turned face is named by its geometry instead, and that is not a lesser description — it is
+     * the same information the picture carries. Naming the time here would hand over the answer,
+     * since undoing the rotation *is* the item; naming the hand angles leaves exactly the work the
+     * format asks for, done in whichever way the reader prefers.
+     */
+    turnedFaceLabel: (rotation: number, hourAngle: number, minuteAngle: number) =>
+      `A clock face turned ${rotation} degrees clockwise, numerals and all. Measured from the top of the screen, the hour hand points ${hourAngle} degrees clockwise and the minute hand ${minuteAngle} degrees.`,
+    firstFace: 'The earlier clock',
+    secondFace: 'The later clock',
+  },
+
   quiz: {
     preparing: 'Preparing items…',
     level: (n: number) => `Level ${n}`,
@@ -85,6 +114,22 @@ const en = {
     headCountReady: (events: number) =>
       `${events} moves, one at a time. Some figures arrive, some leave — keep count of how many are in the room.`,
     headCountDone: 'How many were left?',
+    mathRecallReady: (terms: number) =>
+      `${terms} numbers, one at a time. Each is gone before the next arrives — then you give their total.`,
+    mathRecallDone: 'Now give the total.',
+    /** Labels for the two-numeral comparison. View strings, so they live here, not in `gen`. */
+    highNumber: {
+      candidateLabel: (side: string, value: number) => `${side}: ${value}`,
+      left: 'Left',
+      right: 'Right',
+    },
+    /** Labels for the rock-paper-scissors hand. */
+    hands: {
+      shownLabel: (hand: string) => `The hand shown: ${hand}`,
+      rock: 'rock',
+      paper: 'paper',
+      scissors: 'scissors',
+    },
     /**
      * The continuous timed block. Copy is kept literal about what a sprint measures: sustained
      * output inside a window, which is a different claim from "how good are you at this".
@@ -407,7 +452,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than eighteen lines on one axis — eighteen colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than twenty-four lines on one axis — twenty-four colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -599,6 +644,48 @@ const en = {
       description:
         'A key pairs each digit with an abstract symbol. One digit is named; find its symbol in the key. Every option is a symbol that appears in the key, so the answer cannot be reached by elimination — the pairing has to be read. On the real battery this is a two-minute written sprint scored on how many substitutions you complete, so what is measured here is the speed of one substitution rather than sustained output.',
       seenIn: 'WAIS Coding, WISC Coding, Wechsler Digit Symbol, the Symbol Digit Modalities Test',
+    },
+    'high-number': {
+      name: 'Which is worth more',
+      blurb: 'Two numbers, drawn at misleading sizes.',
+      description:
+        'Two numerals appear side by side at unrelated sizes, and you name the one worth more. A numeral’s value is read whether or not you asked for it, so a small 8 beside a large 3 makes two answers arrive at once and only one of them is the question. This is the size-congruity effect, the numerical cousin of the Stroop task, and it is measured the same way: your accuracy should stay high, and the gap between your times on agreeing and disagreeing trials is the result. The two numbers always have the same number of digits, so the drawing is the only size channel in play.',
+      seenIn: 'Henik & Tzelgov (1982) size congruity, numerical-cognition batteries, Brain Age 2’s High Number check',
+    },
+    'hand-game': {
+      name: 'Rock, paper, scissors',
+      blurb: 'Play the hand that wins — or the one that loses.',
+      description:
+        'A hand is shown and you play the one that beats it, or the one that loses to it, depending on what the item asks. Beating it is a response you already have: the game is over-learned and the winning move arrives without being worked out. Being asked to lose runs the same lookup against that habit, which is the point — this measures the cost of holding back a response you did not have to think about. Harder levels ask you to lose more often. Six items exist in total and that is deliberate: a conflict task needs a small set shown many times, because the habit has to be there before it can be resisted.',
+      seenIn: 'Brain Age 2 brain-age check, go/no-go and response-inhibition paradigms',
+    },
+    'serial-subtraction': {
+      name: 'Counting down',
+      blurb: 'Take the same number away, again and again.',
+      description:
+        'Start at a number and subtract the same amount several times over — the classic “serial sevens”. No single step is hard; the difficulty is the chain, because each answer becomes the next problem and there is nowhere to write anything down. Losing the thread once loses the item. The steps are never five or ten, which are the two that let you walk a column instead of calculating, and every chain crosses at least one ten so the borrowing actually happens. Levels differ in how long the chain is, not in how hard a step is.',
+      seenIn: 'The mental-status examination (serial sevens), delirium and attention screens, Brain Age 2 Serial Subtraction',
+    },
+    'math-recall': {
+      name: 'Add what you saw',
+      blurb: 'Numbers go past. Add them once they are gone.',
+      description:
+        'Two to four numbers appear one at a time, each replaced by the next, and you give their sum after the last has gone. Nothing is ever on screen to add — the first number has to survive the arrival of the second — so this holds material and operates on it at the same time, which is what separates working memory from simple recall. Adding as you go is a legitimate route and loads the same thing; watching the whole sum is the route that does not exist. There is no replay.',
+      seenIn: 'Brain Age 2 Math Recall, operation-span and complex-span tasks, WAIS Arithmetic',
+    },
+    'time-lapse': {
+      name: 'Time passed',
+      blurb: 'Two clocks. How long between them?',
+      description:
+        'Two analogue faces, and the number of minutes between them. The arithmetic runs in base sixty, so the borrow happens at a boundary ordinary calculation never uses — which is why the interval crossing the hour is what makes an item hard, not the interval being large. Every gap stays under an hour so the answer is a single number rather than two, and both hands sit on printed marks so that no part of the item is about reading a dial to the nearest minute.',
+      seenIn: 'Brain Age Time Lapse, clock-reading items in numeracy batteries, WISC Arithmetic',
+    },
+    'clock-spin': {
+      name: 'Turned clock',
+      blurb: 'Read a clock that is not upright.',
+      description:
+        'A clock face is drawn rotated, numerals and all, and you say what time it shows. Reading a dial is completely bound to its orientation — twelve is up, three is right — so turning the face breaks the habit and leaves you to rotate it back mentally. The numerals stay on the face: without them the rotation would be unknowable and every reading would be as good as any other. Some turns are right angles, which carry every hour mark onto another one and leave the face looking like a perfectly ordinary clock — with the 12 where the 3 belongs, which is the trap. The others leave the marks visibly off-grid, so the turn announces itself.',
+      seenIn: 'Brain Age 2 Clock Spin, mental-rotation paradigms, clock-drawing and clock-reading tasks',
     },
   } as Record<ItemTypeId, { name: string; blurb: string; description: string; seenIn: string }>,
 
@@ -887,6 +974,78 @@ const en = {
       ruleSpeed:
         'This type is scored on speed: your median response time matters more than your accuracy, which should stay near ceiling.',
     },
+    highNumber: {
+      prompt: 'Which is worth more?',
+      /** The two sides, which are also the two options. Order is fixed on every item. */
+      left: 'The left one',
+      right: 'The right one',
+      /** The same two sides, in the middle of a sentence rather than on a button. */
+      sides: { left: 'the left', right: 'the right' },
+      summary: (value: number, side: string) => `${value}, on ${side}.`,
+      ruleCongruent:
+        'On this one the larger number is also the larger drawing, so both readings agree and nothing had to be held back. Trials like these are the baseline the interference is measured against.',
+      ruleIncongruent: (smaller: number, drawnLarger: string) =>
+        `${smaller} is drawn larger — it is on ${drawnLarger} — and is worth less. Size is read whether or not you asked for it, so the bigger drawing is the answer that arrives first and has to be refused.`,
+      ruleDistance: (gap: number) =>
+        `The two values are ${gap} apart. The closer they are, the longer the comparison takes — and the longer it takes, the more the drawing has time to interfere with it.`,
+      ruleScoring:
+        'The real measure is the gap between your times on agreeing and disagreeing trials, not your accuracy, which should stay high.',
+    },
+    handGame: {
+      promptWin: 'Play the hand that wins.',
+      promptLose: 'Play the hand that loses.',
+      hands: { rock: 'Rock', paper: 'Paper', scissors: 'Scissors' },
+      summary: (answer: string, shown: string, win: boolean) =>
+        win ? `${answer} beats ${shown.toLowerCase()}.` : `${answer} loses to ${shown.toLowerCase()}.`,
+      ruleWin:
+        'This one asked you to win, which is the move you already have — the answer arrives without being worked out.',
+      ruleLose:
+        'This one asked you to lose. It is the same lookup run against a habit, and the habit is what makes it slower: the winning hand is what your hand wants to play.',
+      ruleCycle: (rock: string, paper: string, scissors: string) =>
+        `${rock} blunts ${scissors.toLowerCase()}, ${scissors.toLowerCase()} cuts ${paper.toLowerCase()}, ${paper.toLowerCase()} wraps ${rock.toLowerCase()}.`,
+      ruleInhibition:
+        'The two wrong hands each mean something: the hand that was shown is the transformation never happening, and the third hand is the other instruction — winning when asked to lose, which is the automatic answer getting out.',
+    },
+    serialSubtraction: {
+      prompt: 'Where does this land?',
+      summary: (chain: string, value: number) => `${chain} lands on ${value}.`,
+      ruleSteps: (steps: string) => `Step by step: ${steps}.`,
+      ruleOneStepOut: (step: number) =>
+        `Two of the wrong options sit exactly ${step} away — one subtraction too many, and one too few. That is what losing count of the chain gives you, and it is the mistake this format is built to catch.`,
+      ruleCarry:
+        'The other two are ten out: the units digit right and a higher place wrong, which is the dropped borrow. Two options always end in the same digit as the answer, so the chain cannot be answered on its last column alone.',
+    },
+    mathRecall: {
+      prompt: 'What did they come to?',
+      summary: (sum: string, value: number) => `${sum} = ${value}.`,
+      ruleHold:
+        'Nothing was ever on screen to add. Each number had to survive the arrival of the next one, which is holding material and working on it at the same time — adding as you went is a legitimate way to do that, and loads the same thing.',
+      ruleCarry: (digit: number) =>
+        `The answer ends in ${digit}, and so does one of the wrong options — deliberately. Without it the sum could be recovered from the units digits alone, which is a fragment of what you were shown rather than all of it.`,
+      ruleNoReplay:
+        'There is no replay, and that is the format rather than a limitation: an item you can watch twice measures how carefully you looked the second time.',
+    },
+    timeLapse: {
+      prompt: 'How many minutes passed?',
+      summary: (from: string, to: string, minutes: number) =>
+        `From ${from} to ${to} is ${minutes} minutes.`,
+      ruleCrossing: (toTheHour: number, after: number) =>
+        `This one crosses the hour: ${toTheHour} minutes to reach it, then ${after} past. Subtracting the minute hands on their own gives the wrong answer here, which is why one of the options is exactly that.`,
+      ruleWithinHour: (from: number, to: number) =>
+        `Both faces are inside the same hour, so the minute hands are enough: ${to} less ${from}. The hour hands confirm it rather than contribute to it.`,
+      ruleTicks:
+        'Both hands sit on printed marks, so nothing here turns on reading a dial to the nearest minute. The options are five apart for the same reason: a minute either way is not a reading anybody arrives at.',
+    },
+    clockSpin: {
+      prompt: 'What time does this show?',
+      summary: (time: string, rotation: number) => `${time}, on a face turned ${rotation}°.`,
+      ruleTurnBack: (rotation: number) =>
+        `The whole face is turned ${rotation}° clockwise, numerals included. Find the 12 and the reading follows — everything else is where it always was, relative to it.`,
+      ruleHourHand: (hour: number, minute: number) =>
+        `The hour hand is past ${hour} and travelling towards the next one, ${minute} minutes of the way. It never points squarely at a numeral except on the hour, which is what makes "the hour it is approaching" the commonest wrong reading.`,
+      ruleMisreadings:
+        'The other options are the ways a dial goes wrong: the next hour instead of this one, the two hands taken for each other, or the face read as a reflection rather than a rotation.',
+    },
   },
 
   pages: {
@@ -894,7 +1053,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Seventeen item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Twenty-four item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -965,7 +1124,7 @@ const en = {
     test: {
       title: 'Full test',
       description:
-        'A mixed run across all eighteen reasoning-test formats, two items each, with no feedback until the end.',
+        'A mixed run across all twenty-four reasoning-test formats, two items each, with no feedback until the end.',
       lede: 'Twenty-six items, two from each format, presented in a fixed rotation with no feedback until you finish. Closer to how a real battery feels than the practice drills are.',
       differsHeading: 'How this differs from a real battery',
       differs: [
@@ -1126,7 +1285,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these eighteen formats is evidence about these eighteen formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these twenty-four formats is evidence about these twenty-four formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',
