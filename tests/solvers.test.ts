@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateItem } from '@/lib/generators';
 import { NODE_RADIUS } from '@/lib/generators/trail-making';
 import { BLOCKS, BLOCK_RADIUS, encodeTaps, hasStraightRun } from '@/lib/generators/block-span';
-import { diagnoseTaps, isCorrect } from '@/lib/scoring';
+import { diagnoseFills, diagnoseTaps, isCorrect } from '@/lib/scoring';
 import { isSizeCongruent } from '@/lib/generators/high-number';
 import { elapsedMinutes } from '@/lib/generators/time-lapse';
 import { weekdayAfter } from '@/lib/generators/calendar-count';
@@ -1656,3 +1656,113 @@ describe('change maker names the fewest coins that make the change', () => {
     expect(mean(5), `d5 ${mean(5)} coins vs d1 ${mean(1)}`).toBeGreaterThan(mean(1));
   });
 });
+
+/**
+ * Triangle math: the pyramid is built from its base, and the keyed blanks are that pyramid.
+ *
+ * The check re-derives every cell from the base with an addition written here rather than imported,
+ * so a generator that built its answer from anything other than the row it prints would fail. What
+ * makes this format worth checking twice is the dependency: a wrong cell is not one wrong cell, it
+ * is that cell and everything above it, so an off-by-one in the builder would produce an item whose
+ * upper half is silently unanswerable.
+ */
+describe('triangle math sums the pyramid it draws', () => {
+  const SEEDS = Array.from({ length: 120 }, (_, i) => `TM${i}`);
+
+  it('keys every cell above the base, bottom row first', () => {
+    for (const difficulty of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = generateItem('triangle-math', seed, difficulty);
+        if (item.stimulus.kind !== 'pyramid') throw new Error('unexpected stimulus');
+        const where = `triangle-math ${seed} d${difficulty}`;
+        const base = item.stimulus.base;
+
+        // Built here, independently of `buildPyramid`.
+        const expected: number[] = [];
+        let row = base;
+        while (row.length > 1) {
+          row = row.slice(0, -1).map((value, i) => value + row[i + 1]!);
+          expected.push(...row);
+        }
+
+        expect(item.responseMode, where).toBe('fill');
+        expect(item.options, where).toHaveLength(0);
+        expect(item.answerText, `${where}: the keyed blanks are not the pyramid`).toBe(
+          expected.join(','),
+        );
+        expect(new Set(base).size, `${where}: the base repeats a number`).toBe(base.length);
+        // Some addition must carry, or the whole pyramid is single-digit column arithmetic.
+        expect(
+          [base, ...splitRows(expected, base.length)].some((r) =>
+            r.some((value, i) => i > 0 && (value % 10) + (r[i - 1]! % 10) >= 10),
+          ),
+          `${where}: no carry anywhere`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it('grades the blanks one by one rather than as one run of digits', () => {
+    const item = generateItem('triangle-math', 'GRADE', 3);
+    const answer = item.answerText!;
+    expect(isCorrect(item, null, answer)).toBe(true);
+    expect(isCorrect(item, null, answer.replace(/,/g, ''))).toBe(false);
+    /*
+     * The case that motivated comparing blank by blank: stripping separators makes "1,42" and
+     * "14,2" the same string, so a run of digits that happens to match would be marked right.
+     */
+    const shifted = answer.split(',');
+    if (shifted.length > 1 && shifted[0]!.length > 1) {
+      const smeared = [shifted[0]!.slice(0, -1), shifted[0]!.slice(-1) + shifted[1], ...shifted.slice(2)];
+      expect(isCorrect(item, null, smeared.join(','))).toBe(false);
+    }
+  });
+
+  it('names a pyramid built by subtracting, and a single slip, and neither as the other', () => {
+    for (const seed of SEEDS.slice(0, 40)) {
+      const item = generateItem('triangle-math', seed, 3);
+      if (item.stimulus.kind !== 'pyramid') throw new Error('unexpected stimulus');
+      const base = item.stimulus.base;
+      const answer = item.answerText!;
+
+      expect(diagnoseFills(answer, answer, base)).toBe('correct');
+
+      // The whole pyramid built by subtracting — one wrong idea rather than several slips.
+      const subtracted: number[] = [];
+      let row = base;
+      while (row.length > 1) {
+        row = row.slice(0, -1).map((value, i) => value - row[i + 1]!);
+        subtracted.push(...row);
+      }
+      expect(diagnoseFills(answer, subtracted.join(','), base)).toBe('wrong-rule');
+
+      // One blank out by one, and one out by ten.
+      const blanks = answer.split(',').map(Number);
+      const byOne = [...blanks];
+      byOne[0] = byOne[0]! + 1;
+      expect(diagnoseFills(answer, byOne.join(','), base)).toBe('off-by-one');
+      const byTen = [...blanks];
+      byTen[0] = byTen[0]! + 10;
+      expect(diagnoseFills(answer, byTen.join(','), base)).toBe('carry');
+
+      // Nonsense is not diagnosed as anything in particular.
+      expect(diagnoseFills(answer, '', base)).toBe('plausible');
+    }
+  });
+
+  it('widens the base as difficulty rises, so there are more blanks to hold', () => {
+    const blanks = (difficulty: Difficulty) => generateItem('triangle-math', 'WIDE', difficulty).answerText!.split(',').length;
+    expect(blanks(5), `d5 ${blanks(5)} blanks vs d1 ${blanks(1)}`).toBeGreaterThan(blanks(1));
+  });
+});
+
+/** Splits the flat blank list back into rows, given the base width. */
+function splitRows(flat: number[], baseWidth: number): number[][] {
+  const rows: number[][] = [];
+  let at = 0;
+  for (let width = baseWidth - 1; width >= 1; width--) {
+    rows.push(flat.slice(at, at + width));
+    at += width;
+  }
+  return rows;
+}

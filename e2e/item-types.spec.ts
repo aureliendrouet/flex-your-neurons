@@ -37,6 +37,14 @@ for (const meta of ALL_META) {
         await expect(page.getByTestId('text-response')).toBeVisible();
         await startSpanIfGated(page);
         await expect(page.getByTestId('span-input')).toBeEnabled({ timeout: 20_000 });
+      } else if (item.responseMode === 'fill') {
+        // One input per blank, and the board says how many it is waiting for.
+        const blanks = item.answerText!.split(',').length;
+        await expect(page.getByTestId('pyramid-board')).toHaveAttribute(
+          'data-pyramid-blanks',
+          String(blanks),
+        );
+        await expect(page.locator('[data-testid^="pyramid-input-"]')).toHaveCount(blanks);
       } else {
         await expect(page.getByTestId('options').locator('button')).toHaveCount(item.options.length);
       }

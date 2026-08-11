@@ -31,6 +31,7 @@ import { clockSpinGenerator } from './clock-spin';
 import { handGameGenerator } from './hand-game';
 import { calendarCountGenerator } from './calendar-count';
 import { changeMakerGenerator } from './change-maker';
+import { triangleMathGenerator } from './triangle-math';
 
 /**
  * Presentation order: reasoning first, then spatial, then memory, then speed, with the
@@ -64,6 +65,7 @@ export const GENERATORS: Generator[] = [
   timeLapseGenerator,
   calendarCountGenerator,
   changeMakerGenerator,
+  triangleMathGenerator,
 ];
 
 /**

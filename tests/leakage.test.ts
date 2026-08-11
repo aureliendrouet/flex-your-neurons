@@ -407,7 +407,19 @@ describe('no format leaks its answer through the option set', () => {
     const uncovered = ITEM_TYPE_IDS.filter(
       (id) => !CHOICE_FORMATS.includes(id) && getGenerator(id).meta.id === id,
     );
-    expect(uncovered.sort()).toEqual(['block-span', 'odd-one-out', 'span', 'trail-making']);
+    /*
+     * The formats with no option set to leak through. Three produce the response themselves — a
+     * typed sequence, a tapped board, a walked path — and `triangle-math` is the fourth: its answer
+     * is several numbers written into a diagram, so there is nothing to choose between. `odd-one-out`
+     * is the odd case out, and the block comment above says why.
+     */
+    expect(uncovered.sort()).toEqual([
+      'block-span',
+      'odd-one-out',
+      'span',
+      'trail-making',
+      'triangle-math',
+    ]);
   });
 
   for (const id of CHOICE_FORMATS) {

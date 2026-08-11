@@ -13,6 +13,7 @@ import ShortcutSheet from './ShortcutSheet';
 import StimulusView from './StimulusView';
 import TrailBoard from './TrailBoard';
 import BlockSpanBoard from './BlockSpanBoard';
+import PyramidBoard from './PyramidBoard';
 import FigureView, { describeFigure } from './FigureView';
 import GridView, { describeGrid } from './GridView';
 import { generateItem, getItemText, getMeta } from '../lib/generators';
@@ -22,6 +23,7 @@ import { localeHref } from '../lib/links';
 import {
   advanceLadder,
   diagnoseTaps,
+  diagnoseFills,
   formatDuration,
   formatPercent,
   dominantErrorType,
@@ -402,9 +404,16 @@ export default function Quiz({
       const errorType =
         item.responseMode === 'tap'
           ? diagnoseTaps(item.answerText ?? '', text ?? '')
-          : choiceIndex === null
-            ? undefined
-            : item.errorTypes[choiceIndex];
+          : /*
+             * A filled pyramid is the second computed diagnosis, and the more informative one: the
+             * blanks are related to each other, so what can be named is *which relation* the reader
+             * used — a pyramid built by subtracting is one wrong idea, not five careless slips.
+             */
+            item.responseMode === 'fill' && item.stimulus.kind === 'pyramid'
+            ? diagnoseFills(item.answerText ?? '', text ?? '', item.stimulus.base)
+            : choiceIndex === null
+              ? undefined
+              : item.errorTypes[choiceIndex];
       const response = makeResponse(
         item.type,
         item.seed,
@@ -864,6 +873,22 @@ export default function Quiz({
             frozen={revealed}
             onRecallStart={beginResponse}
             onComplete={(tapped) => submit(null, tapped)}
+          />
+        ) : item.responseMode === 'fill' && item.stimulus.kind === 'pyramid' ? (
+          /*
+           * The pyramid is the response surface, so it is drawn here and not in `StimulusView` — the
+           * blanks have to sit in the diagram, above the numbers they are sums of. Frozen rather
+           * than unmounted after answering, like the other two boards: the finished pyramid with the
+           * right number beside a wrong one says where the chain broke.
+           */
+          <PyramidBoard
+            key={`${item.type}:${item.seed}:${item.difficulty}`}
+            base={item.stimulus.base}
+            locale={locale}
+            answerText={item.answerText ?? ''}
+            submitted={lastResponse?.chosenText}
+            frozen={revealed}
+            onComplete={(filled) => submit(null, filled)}
           />
         ) : item.responseMode === 'text' ? (
           <form

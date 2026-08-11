@@ -3506,6 +3506,116 @@ table.data th.num {
   font-size: var(--step--1);
 }
 
+/* --- The number pyramid: a response surface shaped like its stimulus ------ */
+
+.pyramid {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.pyramid-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/*
+ * Every cell is the same width whatever it holds, so the rows stay centred on each other and the
+ * pyramid reads as a pyramid. Without it a row of two-digit sums is wider than the row of blanks
+ * above it by more than the one-cell step, and the shape stops narrowing.
+ */
+.pyramid-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(3rem, 16vw, 4.25rem);
+  height: clamp(2.5rem, 12vw, 3.25rem);
+}
+
+.pyramid-cell--given {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  font: 650 var(--step-0) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.pyramid-input {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  text-align: center;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  font: 650 var(--step-0) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.pyramid-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-style: solid;
+}
+
+.pyramid-input:disabled {
+  opacity: 1; /* a frozen board is being read, not greyed out */
+  border-style: solid;
+  background: var(--bg-sunken);
+}
+
+.pyramid-cell[data-pyramid-wrong='true'] .pyramid-input {
+  border-color: var(--wrong-border);
+  color: var(--wrong);
+  /* Struck through as well as tinted: the verdict must read without colour vision. */
+  text-decoration: line-through;
+}
+
+/*
+ * The right number sits under the cell it belongs to rather than replacing what was written. Seeing
+ * both is the point — the reveal has to say "you wrote this, it was that", in the place where it
+ * went wrong.
+ */
+.pyramid-expected {
+  position: absolute;
+  bottom: -0.95rem;
+  font: 650 var(--step--1) / 1 var(--font-code);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.pyramid-row--base {
+  margin-top: 0.35rem;
+}
+
+.pyramid-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.pyramid-count {
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+.thumb-pyramid {
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
+}
+
+.thumb-pyramid-row {
+  display: flex;
+  gap: 0.25rem;
+}
+
 /* --- Clocks: two formats, one dial ---------------------------------------- */
 
 .clock-stage {

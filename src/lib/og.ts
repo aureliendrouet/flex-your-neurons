@@ -436,6 +436,32 @@ function stage(item: Item): string {
         .join('');
     }
 
+    /*
+     * The pyramid with its base filled and everything above it blank — the item exactly as it is put
+     * to the reader, and one of the few cards that can show the whole thing, because the whole thing
+     * is six chips.
+     */
+    case 'pyramid': {
+      const depth = s.base.length;
+      const w = 88;
+      const h = 68;
+      const gap = 12;
+      const totalH = depth * h + (depth - 1) * gap;
+      const top = STAGE.y + (STAGE.h - totalH) / 2;
+      // Drawn apex first: row `d` from the top holds `d + 1` cells, and the last row is the base.
+      return Array.from({ length: depth }, (_, d) => {
+        const width = d + 1;
+        const rowW = width * w + (width - 1) * gap;
+        const startX = STAGE.x + (STAGE.w - rowW) / 2;
+        const rowY = top + d * (h + gap);
+        return Array.from({ length: width }, (_, i) =>
+          width === depth
+            ? chip(String(s.base[i]), startX + i * (w + gap), rowY, w, h)
+            : blankChip('?', startX + i * (w + gap), rowY, w, h),
+        ).join('');
+      }).join('');
+    }
+
     /* The dial, or both of them side by side. Nothing about a clock face needs abbreviating. */
     case 'clock': {
       const box = Math.min(STAGE.h, STAGE.w / s.faces.length) - 24;

@@ -49,6 +49,15 @@ export default function StimulusView({
     case 'block-span':
       return null;
 
+    /*
+     * And nothing here, for the block board's reason exactly. A pyramid's blanks have to sit *in*
+     * the diagram, above the numbers they are sums of — a copy drawn here with a row of inputs
+     * underneath would turn "fill in the pyramid" into "read a diagram and type into a list", which
+     * is a different task. `PyramidBoard` owns the whole thing.
+     */
+    case 'pyramid':
+      return null;
+
     case 'matrix':
       return (
         <div class="matrix-grid" data-stimulus="matrix" role="group" aria-label={t.patternMatrix}>

@@ -92,7 +92,7 @@ nonverbal, and why free online tests are almost universally matrix-based.
 
 ## 3. What ships in v1
 
-Twenty-six generators across five CHC domains:
+Twenty-seven generators across five CHC domains:
 
 | Module | Format | Difficulty dial |
 |--------|--------|-----------------|
@@ -122,6 +122,7 @@ Twenty-six generators across five CHC domains:
 | `clock-spin` | read a clock face that has been turned | rotation; how late the minute hand sits |
 | `calendar-count` | given one day, name the day another date falls on | direction of the count; crossing into the next month |
 | `change-maker` | pick the fewest coins that make the change | coins in the answer; whether the amount reaches the 1s and 2s |
+| `triangle-math` | fill a pyramid where each cell sums the two below | width of the given row (three or six blanks); magnitude |
 
 > **On "latency-scored".** Processing speed (Gs) is a *speeded* construct: the score on a
 > real subtest is how many items you complete per unit time, under an enforced limit. In
@@ -175,6 +176,25 @@ Twenty-six generators across five CHC domains:
 > `head-count` was never in that list. Its source task is already one short episode answered once,
 > so nothing about it is a compression of a longer block — which is why it could ship ahead of the
 > block mode rather than waiting on it.
+
+> **On the fourth response mode.** `fill` ships with `triangle-math`, and it is the first format
+> whose item genuinely has more than one answer. Two alternatives were available and both were
+> worse. One item per cell would create items whose answers are *not independent* — a cell you got
+> wrong is added into the two above it — and then pool them into per-format accuracy as though they
+> were; asking only for the apex would fit the existing machinery and throw away what the format
+> knows, since "you got 47 instead of 45" says nothing about which of three additions failed.
+>
+> It is graded all-or-nothing, like a span, and for the same reason stated there: half a pyramid is
+> not half an answer. It also cannot be, honestly — every cell above a mistake inherits it, so
+> counting the inherited cells as separate failures would count one mistake several times.
+>
+> Two details are load-bearing. The blanks are compared **one by one** rather than as a single
+> string: `normaliseTextAnswer` strips separators, so a run-of-digits comparison marks "14,2" and
+> "1,42" the same, and the blanks are numbers of varying width. And the diagnosis is *computed*
+> rather than keyed, like a tapped sequence's — but it can say more, because the blanks are related
+> to each other: a pyramid built by subtracting throughout is one wrong idea, and naming it as five
+> careless slips would be the least useful thing the review screen could do.
+
 
 > **On conflict formats and the variety property.** `interference`, `high-number` and `hand-game`
 > are all conflict tasks, and all three break the rule that a format must not repeat itself.

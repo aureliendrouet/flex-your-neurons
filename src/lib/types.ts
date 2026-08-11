@@ -38,7 +38,8 @@ export type ItemTypeId =
   | 'clock-spin'
   | 'hand-game'
   | 'calendar-count'
-  | 'change-maker';
+  | 'change-maker'
+  | 'triangle-math';
 
 /**
  * CHC broad ability. See docs/IQ-TESTS.md §2.
@@ -210,7 +211,16 @@ export type Stimulus =
    * the stimulus rather than only in the prompt because it changes from item to item — it is the
    * variable half of the task, not a standing instruction.
    */
-  | { kind: 'hands'; hand: Hand; want: 'win' | 'lose' };
+  | { kind: 'hands'; hand: Hand; want: 'win' | 'lose' }
+  /**
+   * A number pyramid, given by its base row. Everything above it is blank, and each blank is the sum
+   * of the two cells beneath it.
+   *
+   * Only the base is carried: the rest is a function of it, and storing the answer beside the
+   * question would be a second place for the two to disagree. The renderer derives the shape — one
+   * fewer cell per row — from the base's own length.
+   */
+  | { kind: 'pyramid'; base: number[] };
 
 /** One analogue clock face. `hour` is 1–12 and `minute` is 0–59; `rotation` is degrees clockwise. */
 export interface ClockFace {
@@ -324,7 +334,21 @@ export interface Explanation {
  * exactly the comparison `text` already does. What differs is how the string is *collected*, which
  * is a fact about the response surface, not about the grading.
  */
-export type ResponseMode = 'choice' | 'text' | 'trail' | 'tap';
+/**
+ * `fill` is the fourth: several blanks, answered together and graded as one.
+ *
+ * It exists for a format whose item genuinely has more than one answer — a pyramid where each cell
+ * depends on the two below it — and the alternative was worse than adding a mode. Splitting it into
+ * one item per cell would make items whose answers are not independent and pool them into per-format
+ * statistics as though they were; asking only for the top cell would throw away the thing the format
+ * knows, which is *where* a chain broke.
+ *
+ * Like `tap`, it reuses `answerText` and `chosenText` rather than inventing parallel fields, because
+ * a set of blanks really is a short string ("11,13,24"). Unlike `tap`, the separator is load-bearing
+ * — the blanks are numbers of varying width, so they are compared one by one rather than as one
+ * run of characters.
+ */
+export type ResponseMode = 'choice' | 'text' | 'trail' | 'tap' | 'fill';
 
 /**
  * A stimulus shown only briefly before the response is collected, for formats where the

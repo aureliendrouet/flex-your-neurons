@@ -43,7 +43,7 @@ Node 22.12+ is required (Astro 7).
 | `tests/` | Property-style unit tests, swept over hundreds of seeds |
 | `e2e/` | Playwright tests against the built static site |
 
-## The twenty-six formats
+## The twenty-seven formats
 
 | Format | CHC | Verification |
 |--------|-----|--------------|
@@ -73,6 +73,7 @@ Node 22.12+ is required (Astro 7).
 | Time passed | Gq | The interval is re-derived from the two faces, in minutes past midday |
 | Counting the days | Gq | The day is re-derived by parsing the printed lines; the item names no real date |
 | Making change | Gq | The coins are re-totalled from the printed amounts, and minimality proved by exhaustive search |
+| Number pyramid | Gq | Every cell re-derived from the base; the blanks are compared one by one, not as one string |
 
 ## The three modes
 

@@ -15,7 +15,7 @@ import type { Difficulty, Item, Option } from '@/lib/types';
 const SEEDS = Array.from({ length: 80 }, (_, i) => `SEED${i}`);
 
 /** How many formats ship. See the registry test below before changing this. */
-const EXPECTED_TYPES = 26;
+const EXPECTED_TYPES = 27;
 
 function optionKey(o: Option): string {
   switch (o.kind) {
@@ -161,7 +161,11 @@ describe.each(ITEM_TYPE_IDS)('generator: %s', (id) => {
           expect(item.answerIndex, where).toBe(-1);
           expect(item.errorTypes, where).toHaveLength(0);
           expect(item.stimulus.kind, where).toBe('trail');
-        } else if (item.responseMode === 'text' || item.responseMode === 'tap') {
+        } else if (
+          item.responseMode === 'text' ||
+          item.responseMode === 'tap' ||
+          item.responseMode === 'fill'
+        ) {
           // Recall formats carry an expected string and no options.
           expect(item.options, where).toHaveLength(0);
           expect(item.answerIndex, where).toBe(-1);
@@ -293,7 +297,13 @@ describe('cross-generator properties', () => {
       for (const d of DIFFICULTIES) {
         const answers = SEEDS.map((s) => {
           const item = generateItem(id, s, d);
-          if (item.responseMode === 'text' || item.responseMode === 'tap') return item.answerText!;
+          if (
+            item.responseMode === 'text' ||
+            item.responseMode === 'tap' ||
+            item.responseMode === 'fill'
+          ) {
+            return item.answerText!;
+          }
           // A trail has no answer *value* at all — it is a path, and its variety is its layout.
           if (item.responseMode === 'trail') return null;
           const chosen = item.options[item.answerIndex]!;

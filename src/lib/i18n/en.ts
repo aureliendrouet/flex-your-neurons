@@ -172,6 +172,12 @@ const en = {
       left: 'Left',
       right: 'Right',
     },
+    /** Labels for the number pyramid, which is a response surface rather than a stimulus. */
+    pyramid: {
+      cellLabel: (n: number, total: number) => `Blank ${n} of ${total}, counting from the bottom row`,
+      progress: (filled: number, total: number) => `${filled} of ${total} filled`,
+    },
+
     /** Labels for the rock-paper-scissors hand. */
     hands: {
       shownLabel: (hand: string) => `The hand shown: ${hand}`,
@@ -501,7 +507,7 @@ const en = {
     /** Small multiples: one trend per format. */
     wall: {
       heading: 'Every format, over time',
-      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than twenty-six lines on one axis — twenty-six colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
+      lede: 'One trace per format, oldest attempts on the left. Small charts side by side rather than twenty-seven lines on one axis — twenty-seven colours on one plot would be unreadable, and these are meant to be scanned for shape, not read for values.',
       never: 'not attempted yet',
     },
     byItemType: 'By item type',
@@ -742,6 +748,13 @@ const en = {
       description:
         'A price, an amount handed over, and four handfuls of coins — pick the one that makes the change. The subtraction is the easy half and is not what this measures: the interesting part is the decomposition, finding the fewest coins that make an amount, which is the greedy run everybody performs at a till without having been taught it. Every option holds the same number of coins as the answer, so counting them tells you nothing and the totals have to be worked out. The euro and the pound share a denomination structure, so a seed gives the same item in both languages with only the symbols changed.',
       seenIn: 'Brain Age 2 Change Maker, money items in numeracy and functional-skills batteries',
+    },
+    'triangle-math': {
+      name: 'Number pyramid',
+      blurb: 'Every cell is the sum of the two below it.',
+      description:
+        'A row of numbers is given and the pyramid above it is blank; each cell is the sum of the two beneath it, and you fill in every one. The additions are easy and they are not independent — the second row has to be finished before the third can start, and a cell you get wrong travels upward into everything above it. That dependency is the format: mental arithmetic measures one step, counting down measures a chain of identical steps on one running value, and this measures a chain that branches, with two intermediate results to hold at once. Because every cell is answered, a wrong item shows exactly which addition failed rather than only that the total was out.',
+      seenIn: 'Brain Age Triangle Math, arithmetic-fluency drills, mental-calculation batteries',
     },
     'calendar-count': {
       name: 'Counting the days',
@@ -1099,6 +1112,14 @@ const en = {
       ruleTicks:
         'Both hands sit on printed marks, so nothing here turns on reading a dial to the nearest minute. The options are five apart for the same reason: a minute either way is not a reading anybody arrives at.',
     },
+    triangleMath: {
+      prompt: 'Fill in the pyramid.',
+      summary: (top: number) => `The top of the pyramid is ${top}.`,
+      ruleSum: 'Each cell is the sum of the two directly beneath it, so the pyramid is built from the bottom up.',
+      ruleRows: (rows: string) => `Row by row: ${rows}.`,
+      rulePropagates:
+        'The rows are not independent: a cell you get wrong is added into both cells above it, so a single slip near the bottom moves everything after it. That is why every blank is answered rather than only the top one — the pyramid shows where the chain broke.',
+    },
     changeMaker: {
       prompt: 'Which coins make the change?',
       priceLine: (price: string) => `The bill comes to ${price}.`,
@@ -1144,7 +1165,7 @@ const en = {
       title: 'Train on reasoning-test formats',
       description:
         'Practise the item formats used in IQ and aptitude tests — matrix reasoning, number series, syllogisms, mental rotation and more. Every item is generated fresh, verified to have one answer, and explained afterwards. Runs entirely in your browser.',
-      lede: 'Twenty-six item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
+      lede: 'Twenty-seven item formats from the intelligence-testing literature, generated fresh every time and explained after every answer. No account, no server, no score you should put on a CV.',
       ctaTest: 'Take a full test',
       ctaPractice: 'Practise one format',
       whatHeading: 'What you can train',
@@ -1386,7 +1407,7 @@ const en = {
         },
       ],
       notMeasuredClose:
-        'That applies recursively to this site. High accuracy on these twenty-six formats is evidence about these twenty-six formats, and about nothing else.',
+        'That applies recursively to this site. High accuracy on these twenty-seven formats is evidence about these twenty-seven formats, and about nothing else.',
 
       difficultyP3:
         'What that does not amount to is calibration. The bands are *designed* from published cognitive operators — a defensible ordering — but no item here carries a difficulty parameter fitted to real response data, which is what item-response theory means by difficulty. So the adaptive ladder is a staircase that keeps you near your own success rate, not an estimate of your ability.',

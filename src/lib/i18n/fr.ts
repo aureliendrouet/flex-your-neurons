@@ -131,6 +131,12 @@ const fr: Dict = {
       left: 'Gauche',
       right: 'Droite',
     },
+    pyramid: {
+      cellLabel: (n: number, total: number) =>
+        `Case ${n} sur ${total}, en partant de la rangée du bas`,
+      progress: (filled: number, total: number) => `${filled} sur ${total} remplies`,
+    },
+
     hands: {
       shownLabel: (hand: string) => `La main montrée : ${hand}`,
       rock: 'pierre',
@@ -399,7 +405,7 @@ const fr: Dict = {
 
     wall: {
       heading: 'Chaque format, dans le temps',
-      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que vingt-six courbes sur un même axe : vingt-six couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
+      lede: 'Une courbe par format, les tentatives les plus anciennes à gauche. De petits graphiques côte à côte plutôt que vingt-sept courbes sur un même axe : vingt-sept couleurs sur un seul tracé seraient illisibles, et ceux-ci se parcourent du regard, ils ne se lisent pas au chiffre près.',
       never: 'pas encore tenté',
     },
     byItemType: 'Par type d’item',
@@ -641,6 +647,13 @@ const fr: Dict = {
       description:
         'Un prix, une somme donnée, et quatre poignées de pièces : choisissez celle qui fait la monnaie. La soustraction est la partie facile et n’est pas ce qui est mesuré ici ; l’intéressant est la décomposition — trouver le plus petit nombre de pièces qui fait une somme, c’est-à-dire l’algorithme glouton que tout le monde exécute à la caisse sans l’avoir jamais appris. Toutes les réponses proposées comptent le même nombre de pièces que la bonne : les compter n’apprend donc rien, et il faut faire les totaux. L’euro et la livre ont la même structure de coupures, si bien qu’une graine donne le même item dans les deux langues, aux symboles près.',
       seenIn: 'Change Maker de Brain Age 2, items de monnaie des batteries de numératie et de compétences de base',
+    },
+    'triangle-math': {
+      name: 'Pyramide de nombres',
+      blurb: 'Chaque case est la somme des deux du dessous.',
+      description:
+        'Une rangée de nombres est donnée et la pyramide au-dessus est vide ; chaque case est la somme des deux qui la portent, et vous les remplissez toutes. Les additions sont faciles et elles ne sont pas indépendantes : la deuxième rangée doit être finie avant que la troisième puisse commencer, et une case fausse remonte dans tout ce qui la surmonte. Cette dépendance est le format : le calcul mental mesure une étape, le décompte mesure une chaîne d’étapes identiques sur une seule valeur, et ceci mesure une chaîne qui se ramifie, avec deux résultats intermédiaires à tenir en même temps. Comme toutes les cases sont demandées, un item raté montre quelle addition a lâché, et pas seulement que le total est faux.',
+      seenIn: 'Triangle Math de Brain Age, exercices de fluence arithmétique, batteries de calcul mental',
     },
     'calendar-count': {
       name: 'Compte des jours',
@@ -1000,6 +1013,15 @@ const fr: Dict = {
       ruleTicks:
         'Les deux aiguilles se posent sur des repères imprimés : rien ici ne dépend d’une lecture à la minute près. Les réponses sont espacées de cinq pour la même raison — une minute d’écart n’est une lecture à laquelle personne n’aboutit.',
     },
+    triangleMath: {
+      prompt: 'Remplissez la pyramide.',
+      summary: (top: number) => `Le sommet de la pyramide est ${top}.`,
+      ruleSum:
+        'Chaque case est la somme des deux qui se trouvent juste en dessous : la pyramide se construit donc du bas vers le haut.',
+      ruleRows: (rows: string) => `Rangée par rangée : ${rows}.`,
+      rulePropagates:
+        'Les rangées ne sont pas indépendantes : une case fausse est additionnée dans les deux cases au-dessus d’elle, si bien qu’une seule erreur en bas déplace tout ce qui suit. C’est pourquoi toutes les cases sont demandées et non le seul sommet — la pyramide montre où la chaîne a lâché.',
+    },
     changeMaker: {
       prompt: 'Quelles pièces font la monnaie ?',
       priceLine: (price: string) => `L’addition est de ${price}.`,
@@ -1046,7 +1068,7 @@ const fr: Dict = {
       title: 'Entraînez-vous aux formats des tests de raisonnement',
       description:
         'Entraînez-vous aux formats d’items utilisés dans les tests de QI et d’aptitude — raisonnement matriciel, suites numériques, syllogismes, rotation mentale, et plus encore. Chaque item est généré à la volée, vérifié comme n’admettant qu’une seule réponse, puis expliqué. Tout fonctionne dans votre navigateur.',
-      lede: 'Vingt-six formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
+      lede: 'Vingt-sept formats d’items issus de la littérature sur les tests d’intelligence, générés à neuf à chaque fois et expliqués après chaque réponse. Sans compte, sans serveur, et sans score à mettre sur un CV.',
       ctaTest: 'Passer un test complet',
       ctaPractice: 'S’entraîner sur un format',
       whatHeading: 'Ce que vous pouvez travailler',
@@ -1275,7 +1297,7 @@ const fr: Dict = {
         },
       ],
       notMeasuredClose:
-        'Cela s’applique récursivement à ce site. Une précision élevée sur ces vingt-six formats est une information sur ces vingt-six formats, et sur rien d’autre.',
+        'Cela s’applique récursivement à ce site. Une précision élevée sur ces vingt-sept formats est une information sur ces vingt-sept formats, et sur rien d’autre.',
 
       difficultyP3:
         'Ce qui ne revient pas à un étalonnage. Les paliers sont conçus à partir d’opérateurs cognitifs publiés — un ordonnancement défendable — mais aucun item ne porte ici de paramètre de difficulté estimé sur des données de réponse réelles, ce qu’entend la théorie de réponse à l’item par « difficulté ». L’échelle adaptative est donc un escalier qui vous maintient près de votre propre taux de réussite, pas une estimation de votre aptitude.',

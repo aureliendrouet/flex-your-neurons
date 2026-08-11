@@ -124,6 +124,23 @@ async function tapBlocks(page: Page, sequence: number[], reversed: boolean): Pro
   }
 }
 
+/**
+ * Fills a pyramid and submits it.
+ *
+ * `wrong` writes the right numbers with the last blank one out, which is a genuine wrong answer for
+ * every pyramid this format produces and is also the *diagnosable* one — a single blank out by one
+ * is what the fill diagnosis calls `off-by-one`, so the diagnosis tests get something to name.
+ */
+async function fillPyramid(page: Page, answerText: string, wrong: boolean): Promise<void> {
+  const blanks = answerText.split(',');
+  for (const [i, value] of blanks.entries()) {
+    const last = i === blanks.length - 1;
+    const typed = wrong && last ? String(Number(value) + 1) : value;
+    await page.getByTestId(`pyramid-input-${i}`).fill(typed);
+  }
+  await page.getByTestId('submit-pyramid').click();
+}
+
 /** Answers the current item correctly, using the answer computed in Node. */
 export async function answerCorrectly(
   page: Page,
@@ -146,6 +163,10 @@ export async function answerCorrectly(
   if (item.responseMode === 'tap') {
     if (item.stimulus.kind !== 'block-span') throw new Error('expected a block-span stimulus');
     await tapBlocks(page, item.stimulus.sequence, false);
+    return;
+  }
+  if (item.responseMode === 'fill') {
+    await fillPyramid(page, item.answerText!, false);
     return;
   }
   if (item.responseMode === 'text') {
@@ -176,6 +197,10 @@ export async function answerIncorrectly(
   if (item.responseMode === 'tap') {
     if (item.stimulus.kind !== 'block-span') throw new Error('expected a block-span stimulus');
     await tapBlocks(page, item.stimulus.sequence, true);
+    return;
+  }
+  if (item.responseMode === 'fill') {
+    await fillPyramid(page, item.answerText!, true);
     return;
   }
   if (item.responseMode === 'text') {

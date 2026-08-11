@@ -44,6 +44,22 @@ export function isCorrect(
    * failed trial, not four fifths of a success, because what is being measured is whether the whole
    * sequence survived.
    */
+  /*
+   * A filled pyramid is compared blank by blank rather than as one string, and the difference
+   * matters: `normaliseTextAnswer` strips separators, so "1,42" and "14,2" both flatten to "142".
+   * The blanks are numbers of varying width, so the separator is the only thing that says where one
+   * ends — dropping it would mark a wrong answer right.
+   *
+   * Still all-or-nothing, like a span. Half a pyramid is not half an answer: every cell above a
+   * mistake inherits it, so a reader who slips once is wrong from there upward, and scoring the
+   * inherited cells as separate failures would count one mistake several times.
+   */
+  if (item.responseMode === 'fill') {
+    if (chosenText === undefined) return false;
+    const want = splitBlanks(item.answerText ?? '');
+    const got = splitBlanks(chosenText);
+    return want.length === got.length && want.every((value, i) => value === got[i]);
+  }
   if (item.responseMode === 'text' || item.responseMode === 'tap') {
     if (chosenText === undefined) return false;
     return normaliseTextAnswer(chosenText) === normaliseTextAnswer(item.answerText ?? '');
@@ -78,6 +94,52 @@ export function diagnoseTaps(expected: string, tapped: string): ErrorType {
 /** Spaces, dashes and case are noise in a recall answer, not errors. */
 export function normaliseTextAnswer(text: string): string {
   return text.replace(/[\s,\-_]/g, '').toUpperCase();
+}
+
+/** The blanks of a `fill` response, in order. Empty blanks survive as empty strings. */
+export function splitBlanks(text: string): string[] {
+  return text.split(',').map((part) => part.trim());
+}
+
+/**
+ * Names the mistake in a filled pyramid.
+ *
+ * Computed rather than keyed, for the same reason a tapped sequence's is: there are no distractors
+ * to look up, because the reader produced the answer instead of choosing it. What can be said is
+ * more specific here than in a span, because the blanks are related to each other — so the
+ * diagnosis is about *which* relation the reader used, not merely about how far off they were.
+ *
+ * The order matters. A subtracted pyramid is checked before an arithmetic slip, because a reader who
+ * subtracted throughout has made one conceptual mistake and not five careless ones, and calling that
+ * "off by one" in five places would be the least useful thing this screen could say.
+ */
+export function diagnoseFills(expected: string, filled: string, base: number[]): ErrorType {
+  const want = splitBlanks(expected);
+  const got = splitBlanks(filled);
+  if (want.length === got.length && want.every((v, i) => v === got[i])) return 'correct';
+  if (got.length !== want.length || got.some((v) => v === '' || !/^-?\d+$/.test(v))) {
+    return 'plausible';
+  }
+
+  const wanted = want.map(Number);
+  const given = got.map(Number);
+
+  // The whole pyramid built by subtracting instead of adding — one wrong idea, applied throughout.
+  const subtracted: number[] = [];
+  let row = base;
+  while (row.length > 1) {
+    row = row.slice(0, -1).map((value, i) => value - row[i + 1]!);
+    subtracted.push(...row);
+  }
+  if (subtracted.length === given.length && subtracted.every((v, i) => v === given[i])) {
+    return 'wrong-rule';
+  }
+
+  const wrong = given.map((v, i) => v - wanted[i]!).filter((d) => d !== 0);
+  // The units digit right and a higher place wrong, everywhere it went wrong: the dropped carry.
+  if (wrong.every((d) => d % 10 === 0)) return 'carry';
+  if (wrong.every((d) => Math.abs(d) === 1)) return 'off-by-one';
+  return 'plausible';
 }
 
 export interface TypeStats {

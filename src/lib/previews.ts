@@ -100,6 +100,9 @@ export const PREVIEW_PINS: Record<ItemTypeId, Pin> = {
   'calendar-count': { seed: 'PRVCALND', difficulty: 2 },
   // Level 3: three or four coins. Two is not visibly a decomposition, and six does not fit the card.
   'change-maker': { seed: 'PRVCHNGE', difficulty: 3 },
+  // Level 1: a three-wide base of single digits. The pyramid's *shape* is what the card has to
+  // show, and a four-wide base of two-digit numbers is the same shape with less room for it.
+  'triangle-math': { seed: 'PRVTRIAN', difficulty: 1 },
 };
 
 /** The pinned item for a format. Pure: same format and locale always give the same item. */

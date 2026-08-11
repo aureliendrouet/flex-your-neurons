@@ -428,6 +428,34 @@ function ThumbBody({ item, locale }: { item: Item; locale: Locale }) {
     }
 
     /*
+     * The pyramid, base filled and the rest blank. The *shape* is what identifies this format at
+     * card size — a triangle of cells narrowing to one — so the miniature draws every row rather
+     * than a sample of them, which it can afford: three rows is the whole item.
+     */
+    case 'pyramid': {
+      const depth = s.base.length;
+      return (
+        <div class="thumb-pyramid">
+          {Array.from({ length: depth }, (_, d) => (
+            <div class="thumb-pyramid-row" key={d}>
+              {Array.from({ length: d + 1 }, (_, i) =>
+                d + 1 === depth ? (
+                  <span class="thumb-term" key={i}>
+                    {s.base[i]}
+                  </span>
+                ) : (
+                  <span class="thumb-term" key={i} data-blank="true">
+                    ?
+                  </span>
+                ),
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    /*
      * The two numerals at the sizes they were drawn at. That is the entire item, and the miniature
      * can show it whole — the conflict is legible at any size, because it is a *relation* between
      * the two rather than a property of either.
