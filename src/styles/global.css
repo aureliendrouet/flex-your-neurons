@@ -2035,9 +2035,17 @@ kbd {
  * they needed. In a format whose entire score is response latency, that is a scroll inside the
  * measurement. The symbols themselves are small marks; drawing them at 138px was never doing any
  * work that 84px does not.
+ *
+ * 44px rather than the 56px that first fixed it, because 56px fitted by 11px — and 11px is inside
+ * the margin by which one font stack differs from another. The build that shipped the cap fitted on
+ * macOS and overflowed by 13px on the CI runners, which is the same page rendered in a different
+ * metric. A layout that only fits on the machine it was measured on is not a fixed layout.
+ *
+ * 44px is also exactly `.coding-symbol`, so an option is now drawn at the size of the key entry it
+ * has to be matched against, which is the comparison the format asks for.
  */
 .quiz-answer[data-format='coding'] .option-figure {
-  max-width: 3.5rem;
+  max-width: 2.75rem;
   margin-inline: auto;
 }
 
@@ -3124,6 +3132,16 @@ kbd {
     overflow-y: auto;
     gap: 0.85rem;
     scrollbar-gutter: stable;
+  }
+
+  /*
+   * Except on the speeded formats, where that permission is exactly the cost being measured — so
+   * their options are made to fit rather than allowed to move. Padding is the cheapest 16px on the
+   * board: two rows of options, and none of it is ink. The tap target is unaffected, since it is the
+   * whole option and the symbol inside it already stands clear of the option's edge.
+   */
+  [data-drill] .quiz-answer[data-format='coding'] .option {
+    padding: 0.5rem;
   }
 
   /*

@@ -164,11 +164,31 @@ test.describe('a speeded item never asks to be scrolled', () => {
       const tray = await box(page, '[data-testid="answer-tray"]');
       expect(tray.bottom, `${type}: the option tray runs past the fold`).toBeLessThanOrEqual(vh + 1);
 
-      // And nothing inside the tray is parked out of reach of the tray itself.
-      const overflow = await page
-        .locator('[data-testid="answer-tray"]')
-        .evaluate((el) => el.scrollHeight - el.clientHeight);
-      expect(overflow, `${type}: the option tray scrolls internally`).toBeLessThanOrEqual(1);
+      /*
+       * And nothing inside the tray is parked out of reach of the tray itself — with room to spare,
+       * which is the part that had to be learned.
+       *
+       * Fitting exactly is not fitting. The first version of this asserted no overflow at all and
+       * passed here while failing every CI run, because the same page in a different font stack put
+       * the tray 13px over: text metrics are not portable, and a layout verified to the last pixel is
+       * verified only on the machine that measured it. The headroom below is a little more than that
+       * observed difference, so a stack this suite has never run on has somewhere to be wrong.
+       */
+      const HEADROOM = 16;
+      /*
+       * Measured from the last child's bottom edge rather than from `scrollHeight`, which cannot
+       * express this: a container whose content fits reports `scrollHeight === clientHeight`, so it
+       * says "not overflowing" and "overflowing by nothing" in the same number. Spare room only
+       * exists below the content.
+       */
+      const room = await page.locator('[data-testid="answer-tray"]').evaluate((el) => {
+        const last = el.lastElementChild!.getBoundingClientRect();
+        return Math.round(el.getBoundingClientRect().top + el.clientHeight - last.bottom);
+      });
+      expect(
+        room,
+        `${type}: the option tray has ${room}px of slack, which is not enough to survive a different font stack`,
+      ).toBeGreaterThanOrEqual(HEADROOM);
     });
   }
 });
