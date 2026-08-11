@@ -223,8 +223,97 @@ function bisect(
     }
   }
 
+  /*
+   * And then check the shape that was aimed at, rather than trusting the aim.
+   *
+   * The loop above spreads an attribute only when more than one distractor still carries the
+   * answer's value on it, which quietly leaves the two cases where the answer is *already* alone in
+   * how it sits — and being alone is a tell of exactly the same kind as being the mode:
+   *
+   *  - exactly one distractor shares the answer's value while the other three are all different.
+   *    The answer's value is then the only one held twice, so "pick either option from the one
+   *    matched pair" is a coin flip on a five-option item. Measured on shape type at level 5: 30%
+   *    against a 20% chance, and the largest surviving leak in the format.
+   *  - no distractor shares it and the others agree among themselves, which is the same tell
+   *    upside down — the answer is the only option not part of a crowd.
+   *
+   * So each varying attribute is now *verified* to place the answer's value in a class whose size
+   * some wrong value also has, and repaired by a single move where it does not. What a reader can
+   * see, at best, is a class — never which class holds the answer.
+   */
+  /*
+   * Twice, because the attributes are not independent: a move that balances shape type changes the
+   * figure's rotation key with it, since a turn is only visible relative to the shape being turned.
+   * Two passes settle every case seen in practice, and the check that follows is what the item is
+   * actually held to — an unbalanced set is discarded rather than shipped half-repaired.
+   */
+  for (let pass = 0; pass < 2; pass++) {
+    for (const attr of BISECT_ATTRS) {
+      if (!balanced(answer, out, attr)) repair(answer, out, attr, rng);
+    }
+  }
+  for (const attr of BISECT_ATTRS) {
+    if (!balanced(answer, out, attr)) return null;
+  }
+
   const keys = new Set([figureKey(answer), ...out.map((w) => figureKey(w.spec))]);
   return keys.size === total ? out : null;
+}
+
+/**
+ * True when the answer's value on this attribute is held by as many options as some wrong value is.
+ *
+ * The invariant is about *class sizes*, not about which value wins. A set where the answer's shape
+ * type is held by two options and a wrong one is held by two others is balanced; so is a set where
+ * every option has its own. What is not balanced is any set where counting how many options share a
+ * value picks the answer's group out — whether because it is the biggest group, the smallest, or the
+ * only group at all.
+ *
+ * An attribute every option agrees on is balanced by definition: there is one class, it holds the
+ * answer, and it holds everything else too, so nothing about it distinguishes anything.
+ */
+function balanced(answer: Spec, out: { spec: Spec }[], attr: BisectAttr): boolean {
+  const answerKey = keyOfAttr(answer, attr);
+  const sizes = new Map<string, number>();
+  for (const key of [answerKey, ...out.map((w) => keyOfAttr(w.spec, attr))]) {
+    sizes.set(key, (sizes.get(key) ?? 0) + 1);
+  }
+  if (sizes.size === 1) return true;
+  const answerSize = sizes.get(answerKey)!;
+  for (const [key, size] of sizes) {
+    if (key !== answerKey && size === answerSize) return true;
+  }
+  return false;
+}
+
+/**
+ * Move one distractor onto some other value until the attribute balances. Reports whether it could.
+ *
+ * A single move is enough for every unbalanced shape a five-option set can take, so this enumerates
+ * candidate moves and takes the first that works rather than searching: each distractor in turn,
+ * against the answer's value, every other distractor's value, and a handful of fresh ones. Shuffled,
+ * so the repair does not always fall on the same distractor and become a tell of its own.
+ *
+ * Returning `false` — no single move balances it, which the shifts being unavailable can cause, since
+ * a triangle has no other shape of its symmetry to become — makes the caller redraw the whole set.
+ * That is the right answer: a set that cannot be balanced is a set that should not be shown.
+ */
+function repair(answer: Spec, out: { spec: Spec }[], attr: BisectAttr, rng: Rng): boolean {
+  for (const w of rng.shuffle(out.map((x, i) => i))) {
+    const target = out[w]!;
+    const before = target.spec;
+    const candidates: Spec[] = [answer, ...out.filter((_, i) => i !== w).map((x) => x.spec)];
+    for (let i = 0; i < 4; i++) {
+      const shifted = shift(before, attr, rng);
+      if (shifted) candidates.push(shifted);
+    }
+    for (const candidate of rng.shuffle(candidates)) {
+      target.spec = { ...before, [attr]: candidate[attr] } as Spec;
+      if (balanced(answer, out, attr)) return true;
+    }
+    target.spec = before;
+  }
+  return false;
 }
 
 /** One attribute of a spec, as drawn — rotation reduced by the shape's symmetry. */

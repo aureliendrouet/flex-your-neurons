@@ -61,19 +61,16 @@ const MAX_RATIO = 1.25;
  * An allowance is a debt, not a dispensation: it says the leak is understood, bounded, and smaller
  * than the value written here. Anything that drifts past it fails, so the number is a ratchet.
  *
- * `analogy-figural` at difficulty 5 draws three simultaneous transformations, which frequently
- * leaves only two of the four attributes varying across the option set — the rest are the item's
- * constant background. With so little to spread, the attribute-wise majority ends in a three-way
- * tie that includes the answer, and a tie is scored here at a third of a guess. That is real
- * information (five options narrowed to three) and it is why this is recorded rather than waved
- * through, but it is a different thing from the defect this file was written for: the answer is not
- * identified, and every arrangement that did identify it — modal on every attribute, or the lone
- * outlier — was measured and removed. Closing the last of it means giving the format a fifth
- * attribute to vary, which is a change to what the item asks.
+ * Empty, and worth keeping empty. It held one entry — `analogy-figural` at difficulty 5, at 1.6 —
+ * on the reading that three simultaneous transformations leave too few attributes varying to spread.
+ * That reading was wrong about the cause. The leak was not scarcity, it was an unchecked assumption
+ * in the bisect: it spread an attribute only where more than one distractor still carried the
+ * answer's value, so the case where exactly one did — leaving the answer's value as the only one
+ * held twice, a coin flip between two options — was skipped as though it were already balanced. The
+ * generator now verifies the class sizes it was aiming for, and the format sits inside the ordinary
+ * margin at every level. The debt was payable; it just had to be read correctly first.
  */
-const ALLOWANCES: Partial<Record<ItemTypeId, { difficulty: Difficulty; ratio: number }>> = {
-  'analogy-figural': { difficulty: 5, ratio: 1.6 },
-};
+const ALLOWANCES: Partial<Record<ItemTypeId, { difficulty: Difficulty; ratio: number }>> = {};
 
 // ---------------------------------------------------------------------------
 // Features — the only thing a strategy is allowed to see.

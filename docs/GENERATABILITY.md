@@ -388,6 +388,17 @@ been the wrong bar in both directions: plausible near-miss distractors leave the
 middle of the set often enough to beat 1/n on their own, and the maximum of fifty noisy estimators is
 not an unbiased estimate of anything.
 
+The harness shipped with one recorded allowance, for figural analogy at level 5, on the reading that
+three simultaneous transformations leave too few attributes varying to spread. The reading was wrong
+about the cause, which is the argument for measuring rather than reasoning: the bisect spread an
+attribute only where *more than one* distractor still carried the answer's value, so the case where
+exactly one did was skipped as though already balanced — leaving the answer's value the only one held
+twice, and "pick either option from the one matched pair" a coin flip on a five-option item. The
+repair is to state the invariant and check it: the answer's value must sit in a class whose size some
+wrong value also has, on every attribute that varies. A set that cannot be arranged that way is
+discarded rather than shown. **The allowance table is now empty, and the useful discipline is that an
+allowance is a debt with a number on it rather than a permanent exemption.**
+
 ---
 
 ## 5. Consequences for the product
