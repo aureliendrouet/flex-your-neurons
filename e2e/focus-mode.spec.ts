@@ -18,6 +18,22 @@ test.describe('the interface gets out of the way', () => {
     const html = page.locator('html');
     await expect(html).toHaveAttribute('data-focus', '');
 
+    /*
+     * Park the pointer over the item before reading the chrome, because otherwise this test
+     * depends on where the harness happens to leave it.
+     *
+     * The header occupies the top-left corner — its box starts at exactly (0, 0) — and the
+     * virtual pointer starts there too, so on any runner that treats the origin as hovered the
+     * `:hover` rule below holds the navigation at full strength and the recede never shows.
+     * That is what made this pass on macOS and fail on every CI run: the same page, the same
+     * CSS, a different default pointer. `hover()` makes the pointer position part of the test
+     * rather than part of the environment. The pointer is first put *on* the corner rather than
+     * left there implicitly, so the worst case is reproduced on every platform instead of only on
+     * the ones whose default happens to hit it.
+     */
+    await page.mouse.move(0, 0);
+    await page.getByTestId('quiz').hover();
+
     // Polled, not read once: the dim is a 420ms transition that starts when the island's
     // effect sets the flag, so an immediate read can legitimately catch it still near 1.
     await expect
