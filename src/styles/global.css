@@ -1131,11 +1131,25 @@ kbd {
  * Stacking would put the bubble under the character, which means either a tail that points the
  * wrong way or no tail at all — and it would cost vertical space on the one screen size where the
  * verdict and the Next button are already fighting to stay above the fold.
+ *
+ * The cap overrides the component's `size` prop rather than scaling it, which makes the prop a
+ * decision about wide screens only: below 30rem every mascot is 60px whatever the caller asked
+ * for. That is deliberate. The vertical budget on a phone belongs to the item, and a caller
+ * choosing a size for how a page looks on a laptop should not be able to spend it.
+ *
+ * It has to be set on the figure, not as `--mascot-width` on the wrapper, and this is the whole
+ * reason the rule works. The component writes that property as an inline style, and an inline
+ * declaration beats any stylesheet rule for the same property however narrow the media query is —
+ * so the obvious version of this rule silently did nothing, and `size="md"` shipped at 96px to
+ * phones. The image itself carries no inline style, so a plain `width` on it wins.
  */
 @media (max-width: 30rem) {
   .mascot {
-    --mascot-width: 60px;
     gap: 0.35rem;
+  }
+
+  .mascot-figure {
+    width: 60px;
   }
 
   .mascot-bubble {

@@ -961,7 +961,6 @@ export default function Quiz({
               locale={locale}
               moment={wasCorrect ? 'correct' : 'wrong'}
               seed={item.seed}
-              size="sm"
               prefix={
                 <strong class="feedback-verdict" data-testid="verdict">
                   {wasCorrect ? t.quiz.correct : t.quiz.notQuite}
