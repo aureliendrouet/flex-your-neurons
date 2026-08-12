@@ -1034,6 +1034,154 @@ kbd {
   margin-top: 0.9rem;
 }
 
+/* --- Mascot ---------------------------------------------------------------- */
+
+/*
+ * Neurone and its bubble. See `src/components/Mascot.tsx` for why the balloon is built here
+ * rather than drawn into the artwork.
+ *
+ * Everything below is chrome. The mascot never appears beside a live item and never appears in
+ * test mode, so nothing here has to survive sitting next to a figure someone is reading — but it
+ * does have to survive both themes, a fifth more text in French, a 320px screen, and a reader who
+ * has asked for no motion.
+ */
+.mascot {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  /* One shot on arrival, matching the feedback panel it most often appears inside. */
+  animation: mascot-in var(--dur-slow) var(--ease-out) both;
+}
+
+.mascot-figure {
+  flex: none;
+  width: var(--mascot-width, 96px);
+  height: auto;
+  /*
+   * The sprite is a PNG-alpha drawing, not a figure: it carries no information, so it is the one
+   * image on the site that may be dimmed rather than kept at full contrast. Held slightly back
+   * from full opacity so it reads as a companion to the text rather than as the loudest thing in
+   * the panel.
+   */
+  opacity: 0.96;
+}
+
+.mascot-bubble {
+  position: relative;
+  /*
+   * Shrink-to-fit up to a limit. A bubble stretched to the full width of the feedback panel stops
+   * looking like speech and starts looking like a second paragraph; 22rem is a comfortable
+   * measure for a line of forty-odd characters plus the French overhang.
+   */
+  max-width: 22rem;
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sm);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  /* Balances the ragged edge so a two-line bubble does not end on a single short word. */
+  text-wrap: pretty;
+}
+
+/*
+ * The tail: a rotated square with two of its borders, so it inherits the bubble's own border and
+ * background tokens and stays correct in both themes. A CSS triangle built from border tricks
+ * cannot carry a 1px outline, which is what gives this one an edge that matches the balloon.
+ */
+.mascot-bubble-tail {
+  position: absolute;
+  top: 0.85rem;
+  left: -0.3rem;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  border-bottom-left-radius: 2px;
+  background: var(--bg-raised);
+  transform: rotate(45deg);
+}
+
+@keyframes mascot-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/*
+ * Inside the feedback panel the bubble sits on a tinted card, so it takes the panel's verdict
+ * colour on its edge rather than the neutral border — otherwise it reads as a foreign object
+ * pasted onto the panel.
+ */
+.feedback .mascot-bubble,
+.feedback .mascot-bubble-tail {
+  border-color: var(--wrong-border);
+}
+
+.feedback[data-correct='true'] .mascot-bubble,
+.feedback[data-correct='true'] .mascot-bubble-tail {
+  border-color: var(--correct-border);
+}
+
+/*
+ * Narrow screens keep the side-by-side arrangement and shrink the drawing instead of stacking it.
+ * Stacking would put the bubble under the character, which means either a tail that points the
+ * wrong way or no tail at all — and it would cost vertical space on the one screen size where the
+ * verdict and the Next button are already fighting to stay above the fold.
+ */
+@media (max-width: 30rem) {
+  .mascot {
+    --mascot-width: 60px;
+    gap: 0.35rem;
+  }
+
+  .mascot-bubble {
+    font-size: 0.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Appear, do not arrive. The 4px rise is small enough to be inoffensive to most readers and is
+   * exactly the kind of unrequested movement the preference is asking about, so it goes; the fade
+   * stays, because a panel that materialises with no transition at all reads as a glitch.
+   */
+  .mascot {
+    animation-name: mascot-in-still;
+  }
+
+  @keyframes mascot-in-still {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+/*
+ * Placements. The component draws itself; where it sits is the page's business, and these are the
+ * only three rules that decide it.
+ */
+/*
+ * Space below as well as above. The sprite's feet sit on the bottom edge of its box, so a mascot
+ * with only a top margin lands directly on whatever heading follows it and reads as part of that
+ * section rather than as a sign-off to the one above.
+ */
+.home-mascot {
+  margin: 1.75rem 0 2.25rem;
+}
+
+.page-mascot {
+  margin-bottom: 1.25rem;
+}
+
+/* In the empty dashboard the bubble carries the heading's own indent. */
+.dash-empty-card .mascot {
+  margin: 0.6rem 0 0.2rem;
+}
+
 /* --- Session mistake breakdown -------------------------------------------- */
 
 .mistakes {

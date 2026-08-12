@@ -274,6 +274,54 @@ const en = {
   },
 
   /**
+   * What the mascot says.
+   *
+   * Keyed by *moment*, not by pose. Which drawing appears is a presentation decision that lives
+   * in the component; which words appear is a content decision that has to be translated, and
+   * tying the two together would mean a French reader could only ever get a line if it happened
+   * to suit the same picture.
+   *
+   * Every bank is a list because a mascot that says one fixed thing stops being read within about
+   * ten items — it becomes furniture, and furniture in the feedback panel is worse than nothing.
+   * The line is picked from the item seed rather than at random, so the same item always draws
+   * the same line: a run is reproducible from its seed, and that has to keep being true of
+   * everything on the screen, including this.
+   *
+   * Three rules the copy holds to, and they are why these lines are so plain:
+   *
+   * - Nothing here claims anything about the reader's intelligence. The whole site is careful not
+   *   to, down to the footer; a cartoon is not a licence to start.
+   * - `wrong` never commiserates. "Oh no!" is a small punishment for being wrong, and the reader
+   *   is about to read a diagnosis of their actual mistake — the mascot's job is to hand over to
+   *   it, not to editorialise first.
+   * - Under about sixty characters. The bubble sits beside a 100px drawing, and a paragraph in a
+   *   speech balloon is a paragraph nobody reads.
+   */
+  mascot: {
+    /* Not a name anyone is told; it is the accessible label on the figure, for when the bubble
+       is read out and something has to identify who is speaking. */
+    name: 'Neurone',
+    lines: {
+      home: ['Ready when you are.', 'Pick a format and we will start.'],
+      practice: ['Every format, one at a time.', 'Start anywhere — they all generate fresh.'],
+      correct: [
+        'That is the rule, exactly.',
+        'You read it straight through.',
+        'That one held up.',
+        'Rule spotted.',
+      ],
+      wrong: [
+        'Not this one. The rule is just below.',
+        'Worth a second read — see below.',
+        'Close. Here is what it turned on.',
+        'It happens. The reason is right here.',
+      ],
+      results: ['That is a block done.', 'Whole block, behind you.'],
+      progressEmpty: ['Nothing recorded yet.', 'No runs yet — the charts fill as you go.'],
+    },
+  },
+
+  /**
    * The keyboard shortcuts sheet.
    *
    * The shortcuts themselves have worked from the beginning; what was missing was any way to

@@ -109,6 +109,8 @@ describe('dictionaries', () => {
       'pages.terms.contact', // URL
       'pages.terms.publisher', // placeholder until the owner supplies a name
       'pages.terms.contactLabel', // "Contact" is the same word in French
+      // The mascot's name, which is a proper noun — and happens to be the French word as well.
+      'mascot.name',
       // Proper nouns: the names of published test batteries.
       'pages.about.families[1].name', // Stanford–Binet 5
       'pages.about.families[3].name', // Cattell Culture Fair (CFIT)

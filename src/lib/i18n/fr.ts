@@ -214,6 +214,38 @@ const fr: Dict = {
     },
   },
 
+  /**
+   * Les répliques de la mascotte. Voir `en.ts` pour les règles auxquelles se tient ce texte.
+   *
+   * Traduites plutôt que transposées mot à mot : la contrainte de longueur est plus dure ici,
+   * le français étant régulièrement d’un cinquième plus long que l’anglais, et une bulle qui
+   * passe à trois lignes en français seulement déplace tout le panneau.
+   */
+  mascot: {
+    name: 'Neurone',
+    lines: {
+      home: ['Quand vous voulez.', 'Choisissez un format, on commence.'],
+      practice: ['Tous les formats, un par un.', 'Commencez où vous voulez : tout se régénère.'],
+      correct: [
+        'C’est exactement la règle.',
+        'Vous l’avez lue de bout en bout.',
+        'Celle-ci a tenu.',
+        'Règle repérée.',
+      ],
+      wrong: [
+        'Pas celle-ci. La règle est juste dessous.',
+        'À relire — c’est expliqué dessous.',
+        'Tout près. Voici ce qui se jouait.',
+        'Ça arrive. La raison est juste là.',
+      ],
+      results: ['Un bloc de terminé.', 'Bloc entier, derrière vous.'],
+      progressEmpty: [
+        'Rien d’enregistré pour l’instant.',
+        'Aucune série : les courbes se remplissent au fil du temps.',
+      ],
+    },
+  },
+
   /** L’aide-mémoire des raccourcis clavier. */
   shortcuts: {
     open: 'Raccourcis clavier',

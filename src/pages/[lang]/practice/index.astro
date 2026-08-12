@@ -1,6 +1,7 @@
 ---
 import Base from '../../../layouts/Base.astro';
 import ItemThumb from '../../../components/ItemThumb';
+import Mascot from '../../../components/Mascot';
 import { allItemTypes } from '../../../lib/generators';
 import { typeHue } from '../../../lib/identity';
 import { previewItem } from '../../../lib/previews';
@@ -20,6 +21,12 @@ const types = allItemTypes(locale);
 ---
 
 <Base locale={locale} title={p.title} description={p.description} lede={p.lede}>
+  {
+    /* Ahead of the grid: this page is a wall of eleven cards, and the mascot's line is the one
+       thing on it that says where to start. */
+  }
+  <Mascot locale={locale} moment="practice" size="sm" className="page-mascot" />
+
   <div class="card-grid" style="--card-min: 20rem">
     {
       types.map((meta) => (

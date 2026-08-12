@@ -5,6 +5,7 @@
   "private": true,
   "description": "Deliberate practice on procedurally generated reasoning-test item formats. Static, offline, local-first.",
   "scripts": {
+    "assets:mascot": "node scripts/build-mascot.mjs",
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",

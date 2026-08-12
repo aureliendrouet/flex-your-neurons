@@ -1,0 +1,108 @@
+---
+/**
+ * Every mascot moment on one page, for looking at.
+ *
+ * Development only. `getStaticPaths` returns nothing in a production build, so the route simply
+ * does not exist in `dist/` — the page is a workbench, not a feature, and shipping it would put
+ * an unlinked page with no translation review into a site whose every other page is deliberate.
+ *
+ * It exists because the failure modes of a mascot are all visual and all contextual: a pose that
+ * is subtly larger than its neighbours, a bubble that wraps to three lines in French, an outline
+ * that vanishes on the light theme. None of those show up in a unit test, and hunting them one at
+ * a time by playing through a drill is how they get missed.
+ */
+import Base from '../../layouts/Base.astro';
+import Mascot, { type MascotMoment } from '../../components/Mascot';
+import { dict, LOCALES, type Locale } from '../../lib/i18n';
+
+export function getStaticPaths() {
+  /* The workbench never reaches production. See the note above. */
+  if (!import.meta.env.DEV) return [];
+  return LOCALES.map((lang) => ({ params: { lang } }));
+}
+
+const locale = Astro.params.lang as Locale;
+const t = dict(locale);
+
+const MOMENTS: MascotMoment[] = [
+  'home',
+  'practice',
+  'correct',
+  'wrong',
+  'results',
+  'progressEmpty',
+];
+
+/*
+ * Four seeds that show every line, chosen rather than typed.
+ *
+ * They are real `randomSeed()` output, picked so that they land on four distinct indices in a
+ * four-line bank *and* on both indices in a two-line bank. The obvious hand-written set —
+ * AAAA1111, BBBB2222 and so on — happens to hash to the same value under both moduli, so the
+ * first version of this page showed the same line four times and looked like a broken rotation.
+ * It was not broken: over random seeds the hash is uniform to a tenth of a percent.
+ */
+const SEEDS = ['A74V5ZUG', 'WDNRGXZ6', 'BUCNB6QF', '9W8QZ8MZ'];
+---
+
+<Base
+  locale={locale}
+  title="Mascot preview"
+  description="Development workbench for the mascot component."
+>
+  <p class="muted">
+    Development only. Every moment, every line in its bank, in {t.locale.nativeName}.
+  </p>
+
+  {
+    MOMENTS.map((moment) => (
+      <section class="card" style="margin-top: 1rem">
+        <h2 class="section-heading section-heading--sm">{moment}</h2>
+        <div style="display: grid; gap: 1rem">
+          {SEEDS.map((seed) => (
+            <Mascot locale={locale} moment={moment} seed={seed} />
+          ))}
+        </div>
+      </section>
+    ))
+  }
+
+  {/* The three sizes together, which is the only way to judge whether they are the right three. */}
+  <section class="card" style="margin-top: 1rem">
+    <h2 class="section-heading section-heading--sm">sizes</h2>
+    <div style="display: grid; gap: 1rem">
+      <Mascot locale={locale} moment="home" size="sm" />
+      <Mascot locale={locale} moment="home" size="md" />
+      <Mascot locale={locale} moment="home" size="lg" />
+    </div>
+  </section>
+
+  {/*
+   * The quiz treatment, mocked up rather than played through: the verdict inside the bubble, on
+   * the tinted panel, in both states. This is the arrangement agreed for the feedback panel, and
+   * seeing it here is the point of the whole page.
+   */}
+  <section class="card" style="margin-top: 1rem">
+    <h2 class="section-heading section-heading--sm">in the feedback panel</h2>
+    <div style="display: grid; gap: 1rem">
+      {[true, false].map((wasCorrect) => (
+        <div class="card feedback" data-correct={String(wasCorrect)}>
+          <Mascot
+            locale={locale}
+            moment={wasCorrect ? 'correct' : 'wrong'}
+            seed="BUCNB6QF"
+            size="sm"
+            prefix={
+              <strong class="feedback-verdict">
+                {wasCorrect ? t.quiz.correct : t.quiz.notQuite}
+              </strong>
+            }
+          />
+          <ul class="feedback-rules muted">
+            <li>A rule from the item's explanation sits here.</li>
+          </ul>
+        </div>
+      ))}
+    </div>
+  </section>
+</Base>

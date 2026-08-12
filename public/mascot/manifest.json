@@ -1,0 +1,19 @@
+{
+  "canvas": {
+    "width": 360,
+    "height": 420
+  },
+  "poses": [
+    "asleep",
+    "celebrate",
+    "correct",
+    "idle",
+    "pointing",
+    "thinking",
+    "wrong"
+  ],
+  "needsRework": [
+    "celebrate",
+    "wrong"
+  ]
+}

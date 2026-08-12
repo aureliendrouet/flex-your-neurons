@@ -8,6 +8,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useStore } from '@nanostores/preact';
+import Mascot from './Mascot';
 import SeedChip from './SeedChip';
 import ShortcutSheet from './ShortcutSheet';
 import StimulusView from './StimulusView';
@@ -944,9 +945,29 @@ export default function Quiz({
             data-correct={String(wasCorrect)}
             data-error-type={diagnosis ?? undefined}
           >
-            <strong class="feedback-verdict" data-testid="verdict">
-              {wasCorrect ? t.quiz.correct : t.quiz.notQuite}
-            </strong>
+            {/*
+             * The verdict, spoken rather than stated.
+             *
+             * This panel is only ever reached from practice with instant feedback on — a sprint
+             * never reveals and neither does the full test — so the mascot cannot appear during a
+             * measurement by construction, and no mode check is needed here to keep it out.
+             *
+             * The verdict itself is unchanged and still leads: it is the one thing in the panel a
+             * reader cannot be left to infer, so it keeps its exact words, its colour and its
+             * test id, and the mascot's line follows it. Seeded from the item, so a replay of the
+             * same seed says the same thing.
+             */}
+            <Mascot
+              locale={locale}
+              moment={wasCorrect ? 'correct' : 'wrong'}
+              seed={item.seed}
+              size="sm"
+              prefix={
+                <strong class="feedback-verdict" data-testid="verdict">
+                  {wasCorrect ? t.quiz.correct : t.quiz.notQuite}
+                </strong>
+              }
+            />
 
             {/*
              * The diagnosis leads, ahead of both the rules and the answer. Someone who got
@@ -1183,6 +1204,17 @@ function Results({
       style={{ '--stack-gap': '1.25rem' } as never}
     >
       <h2 class="results-heading">{isSprint ? t.results.sprintHeading : t.results.heading}</h2>
+
+      {/*
+       * Here rather than during the run, in every mode including the full test.
+       *
+       * The rule the mascot obeys is that it never appears while something is being measured; a
+       * results screen is after the measurement, not during it, so there is nothing left for a
+       * cheerful drawing to bias. What it says is deliberately about the *block* — "that is a
+       * block done" — and never about the score, because the numbers directly beneath it are
+       * uncalibrated by design and the disclaimer at the foot of this screen says so.
+       */}
+      <Mascot locale={locale} moment="results" seed={session.seed} size="sm" />
 
       <div class="card-grid card-grid--fit stat-grid">
         {/*

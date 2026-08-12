@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import FigureView from '../../components/FigureView';
 import ItemThumb from '../../components/ItemThumb';
+import Mascot from '../../components/Mascot';
 import { allItemTypes, generateItem } from '../../lib/generators';
 import { typeHue } from '../../lib/identity';
 import { previewItem } from '../../lib/previews';
@@ -64,6 +65,19 @@ const heroCells = hero.stimulus.kind === 'matrix' ? hero.stimulus.cells : [];
     <a class="btn btn-primary btn-lg" href={href('test/')} data-testid="cta-test">{p.ctaTest}</a>
     <a class="btn btn-lg" href={href('practice/')} data-testid="cta-practice">{p.ctaPractice}</a>
   </div>
+
+  {
+    /*
+     * Below the buttons rather than beside the hero.
+     *
+     * The hero is a real, solvable matrix sitting behind the h1 at low contrast, and it is the
+     * page's argument: the site demonstrates the product instead of describing it. Putting a
+     * cartoon next to it would give the eye something louder to land on than the thing the layout
+     * exists to show. Down here the mascot is the first warm thing after the decision has already
+     * been offered, which is the job it was added to do.
+     */
+  }
+  <Mascot locale={locale} moment="home" className="home-mascot" />
 
   <section class="home-section">
     <h2 class="section-heading">{p.whatHeading}</h2>

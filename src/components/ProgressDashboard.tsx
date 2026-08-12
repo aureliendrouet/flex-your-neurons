@@ -9,6 +9,7 @@ import { useState } from 'preact/hooks';
 import { useStore } from '@nanostores/preact';
 import { ALL_META, getItemText } from '../lib/generators';
 import { typeHue } from '../lib/identity';
+import Mascot from './Mascot';
 import ActivityChart from './charts/ActivityChart';
 import BarRows from './charts/BarRows';
 import Sparkline from './charts/Sparkline';
@@ -630,6 +631,11 @@ function EmptyState({ locale }: { locale: Locale }) {
   return (
     <div class="card note note--accent dash-empty-card" data-testid="empty-state">
       <h3 class="section-heading section-heading--sm">{t.dashboard.emptyHeading}</h3>
+      {/*
+       * No seed to hash on a page with no runs on it, so this always shows the first line of the
+       * bank — which is why the banks are ordered with the line that reads best cold in front.
+       */}
+      <Mascot locale={locale} moment="progressEmpty" size="sm" />
       <p class="note-body">{t.dashboard.emptyBody}</p>
       <div class="cluster dash-empty-actions">
         <a class="btn btn-primary" href={localeHref('practice/')}>
