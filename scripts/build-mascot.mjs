@@ -64,8 +64,15 @@ const POSES = [
   { name: 'wrong', scale: 1 },
   { name: 'celebrate', scale: 1 },
   { name: 'pointing', scale: 1 },
-  /* Sitting. Normalising it to the standing height would draw it half again life size. */
-  { name: 'asleep', scale: 0.82 },
+  /*
+   * Sitting. Normalising it to the standing height would draw it half again life size, so it has
+   * to come down — but not by as much as the folded posture suggests. The trim measures the whole
+   * figure, and a seated figure is short because its legs are tucked, not because the character
+   * is smaller; scaling by the height difference shrinks the head too, and the head is what reads
+   * as how big the character is. Tuned against `idle` by matching head size, not total height:
+   * below about 0.9 it stops being Neurone asleep and becomes a smaller, younger Neurone.
+   */
+  { name: 'asleep', scale: 0.92 },
 ];
 
 /**
